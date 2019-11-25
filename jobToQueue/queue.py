@@ -28,7 +28,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     filename = path.basename(inputfile)
     master = gethostbyname(gethostname())
     localdir = path.abspath(path.dirname(inputfile))
-    version = sc.null.join(sc.lower() for c in options.version if sc.isalnum())
+    version = sc.null.join(c.lower() for c in options.version if c.isalnum())
 
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]

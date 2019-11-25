@@ -13,7 +13,6 @@ from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 from os.path import basename, realpath, expandvars, expanduser
 from distutils import util
 
-from jobToQueue.aliases import *
 from jobToQueue.utils import post, prompt, pathjoin
 from jobToQueue.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
 from jobToQueue.classes import ec, it, sc
