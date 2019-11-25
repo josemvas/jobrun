@@ -1,0 +1,40 @@
+Geometry = GenFormat {
+3 C
+O H
+     1   1   0.0000000000E+00   0.0000000000E+00   1.2390000000E-01
+     2   2   0.0000000000E+00   7.8970000000E-01  -4.9570000000E-01
+     3   2   0.0000000000E+00  -7.8970000000E-01  -4.9570000000E-01
+}
+
+Driver = ConjugateGradient {
+  OutputPrefix = "finalgeom"
+  MovedAtoms = 1:-1
+  ConvergentForcesOnly = Yes
+  AppendGeometries = Yes
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  Eigensolver = RelativelyRobust {}
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "./"
+    Separator = "-"
+    Suffix = ".skf"
+    LowerCaseTypeName = No
+  }
+  MaxAngularMomentum {
+    H = "s"
+    O = "p"
+  }
+  Dispersion = LennardJones {
+    Parameters = UFFParameters {}
+  }
+  Filling = Fermi {
+    Temperature [K] = 0.0
+  }
+}
+
+ParserOptions {
+  ParserVersion = 4
+}
+

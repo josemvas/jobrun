@@ -1,0 +1,75 @@
+<title>VASP</title>
+<runtype>intelmpi</runtype>
+<outputdir>True</outputdir>
+<mpiwrapper>True</mpiwrapper>
+<versionprefix>vasp</versionprefix>
+<stdout>log</stdout>
+
+<filecheck>INCAR and POSCAR and POTCAR</filecheck>
+
+<fileexts>
+   <e>INCAR</e>
+   <e>POSCAR</e>
+   <e>KPOINTS</e>
+   <e>POTCAR</e>
+   <e>CHG</e>
+   <e>CHGCAR</e>
+   <e>CONTCAR</e>
+   <e>DOSCAR</e>
+   <e>EIGENVAL</e>
+   <e>ELFCAR</e>
+   <e>IBZKPT</e>
+   <e>LOCPOT</e>
+   <e>OSZICAR</e>
+   <e>OUTCAR</e>
+   <e>PARCHG</e>
+   <e>PCDAT</e>
+   <e>PROCAR</e>
+   <e>PROOUT</e>
+   <e>REPORT</e>
+   <e>TMPCAR</e>
+   <e>WAVECAR</e>
+   <e>WAVEDER</e>
+   <e>XDATCAR</e>
+   <e>AECCAR0</e>
+   <e>AECCAR1</e>
+   <e>AECCAR2</e>
+   <e>BSEFATBAND</e>
+   <e key="run">vasprun.xml</e>
+   <e key="log">logfile</e>
+</fileexts>
+
+<inputfiles>
+   <e>INCAR</e>
+   <e>POSCAR</e>
+   <e>KPOINTS</e>
+   <e>POTCAR</e>
+   <e>CHGCAR</e>
+   <e>WAVECAR</e>
+</inputfiles>
+
+<outputfiles>
+   <e>CHG</e>
+   <e>CONTCAR</e>
+   <e>DOSCAR</e>
+   <e>EIGENVAL</e>
+   <e>ELFCAR</e>
+   <e>IBZKPT</e>
+   <e>LOCPOT</e>
+   <e>OSZICAR</e>
+   <e>OUTCAR</e>
+   <e>PARCHG</e>
+   <e>PCDAT</e>
+   <e>PROCAR</e>
+   <e>PROOUT</e>
+   <e>REPORT</e>
+   <e>TMPCAR</e>
+   <e>WAVEDER</e>
+   <e>XDATCAR</e>
+   <e>AECCAR0</e>
+   <e>AECCAR1</e>
+   <e>AECCAR2</e>
+   <e>BSEFATBAND</e>
+   <e>run</e>
+   <e>log</e>
+</outputfiles>

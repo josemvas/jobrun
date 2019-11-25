@@ -1,0 +1,10 @@
+<title>Sistema</title>
+<storage>shared</storage>
+<scheduler>platformlsf</scheduler>
+<init>module purge</init>
+
+<defaults>
+   <queue>q_htc</queue>
+   <scratch>/scratch</scratch>
+   <waitime>3</waitime>
+</defaults>

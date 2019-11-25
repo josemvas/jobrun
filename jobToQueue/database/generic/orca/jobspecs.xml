@@ -1,0 +1,46 @@
+<title>ORCA</title>
+<runtype>openmpi</runtype>
+<outputdir>True</outputdir>
+<mpiwrapper>False</mpiwrapper>
+<versionprefix>orca</versionprefix>
+<filecheck>inp</filecheck>
+<stdout>out</stdout>
+
+<fileexts>
+   <e key="inp">job.inp</e>
+   <e key="out">job.out</e>
+   <e key="opt">job.opt</e>
+   <e key="xyz">job.xyz</e>
+   <e key="trj">job.trj</e>
+   <e key="gbw">job.gbw</e>
+   <e key="prop">job.prop</e>
+   <e key="engrad">job.engrad</e>
+   <e key="property">job_property.txt</e>
+</fileexts>
+
+<filevars>
+   <e>inp</e>
+</filevars>
+
+<inputfiles>
+   <e>inp</e>
+</inputfiles>
+
+<positionargs>
+   <e>inp</e>
+</positionargs>
+
+<outputfiles>
+   <e>gbw</e>
+   <e>out</e>
+   <e>opt</e>
+   <e>xyz</e>
+   <e>trj</e>
+   <e>prop</e>
+   <e>engrad</e>
+   <e>property</e>
+</outputfiles>
+
+<prescript>
+   <s>sed -i '/\s*%pal\s\s*end/Id;1i'"%pal nprocs $ncpu end" $inp</s>
+</prescript>
