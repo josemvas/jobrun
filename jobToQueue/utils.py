@@ -9,10 +9,10 @@ import os
 import sys
 import errno
 import shutil
-from os.path import basename, dirname
 from termcolor import colored
 from re import match, IGNORECASE 
-from jobToQueue.aliases import *
+from os.path import basename, dirname
+from jobToQueue.classes import ec, it, sc, cl
 
 
 if sys.version_info[0] < 3:
@@ -22,21 +22,21 @@ if sys.version_info[0] < 3:
 
 # Python 2 and 3
 def textform(*args, **kwargs):
-    sep = kwargs.pop('sep', c.ws)
-    end = kwargs.pop('end', c.nl)
+    sep = kwargs.pop('sep', sc.ws)
+    end = kwargs.pop('end', sc.nl)
     indent = kwargs.pop('indent', 0)
     line = [ ]
     for arg in args:
         if type(arg) is list: line.append(sep.join(arg))
         elif arg: line.append(arg)
-    return c.ws*indent + sep.join(line) + end
+    return sc.ws*indent + sep.join(line) + end
 # Python 3 only
-#def textform(*args, sep=c.ws, end=c.nl, indent=0):
+#def textform(*args, sep=sc.ws, end=sc.nl, indent=0):
 #    line = [ ]
 #    for arg in args:
 #        if type(arg) is list: line.append(sep.join(arg))
 #        elif type(arg) is str: line.append(arg)
-#    return c.ws*indent + sep.join(line) + end
+#    return sc.ws*indent + sep.join(line) + end
 
 
 def quote(string):
@@ -48,10 +48,10 @@ def quote(string):
 def prompt(*args, **kwargs):
     #TODO: Validate path
     def path_prompt(question):
-        return input(question + ':' + c.ws)
+        return input(question + ':' + sc.ws)
     def yesno_prompt(question):
         while True:
-            answer = input(question + c.ws)
+            answer = input(question + sc.ws)
             if match('(si|yes)$', answer, IGNORECASE):
                 return True
             elif match('[sy]', answer, IGNORECASE):
@@ -64,33 +64,33 @@ def prompt(*args, **kwargs):
         def list_prompt(question, choices):
             print(question)
             for i, option in enumerate(choices):
-                print('  {}) {}'.format(alphabet[i], option));
+                print('  {}) {}'.format(cl.lower[i], option));
             while True:
                 letter = input('Selección: ').strip()
                 if len(letter.split()) != 1:
-                    post('Seleccione exactamente una opción', kind=rc.warning)
+                    post('Seleccione exactamente una opción', kind=ec.warning)
                 else:
                     try:
-                        return choices[alphabet.index(letter.lower())]
+                        return choices[cl.lower.index(letter.lower())]
                     except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=rc.warning)
+                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
                     except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=rc.warning)
+                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
         def check_prompt(question, choices, default):
             print(question)
             for i, choice in enumerate(choices):
-                print('  {}) {}'.format(alphabet[i].upper() if choice in default else alphabet[i], choice));
+                print('  {}) {}'.format(cl.upper[i] if choice in default else cl.lower[i], choice));
             while True:
                 chosen = [ ]
                 letters = input('Selección separada por espacios: ').strip().split()
                 for letter in letters:
                     try:
-                        chosen.append(choices[alphabet.index(letter.lower())])
+                        chosen.append(choices[cl.lower.index(letter.lower())])
                     except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=rc.warning)
+                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
                         break
                     except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=rc.warning)
+                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
                         break
                 if len(chosen) == len(letters):
                     return chosen
@@ -127,39 +127,39 @@ def prompt(*args, **kwargs):
                 background_on_switch=bullet.colors.background["black"],
                 pad_right = 5,
                 ).launch(default=[choices.index(i) for i in default])
-    question = c.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
+    question = sc.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
     kind = kwargs.pop('kind')
     choices = kwargs.pop('choices', [ ])
     default = kwargs.pop('default', [ ])
     try:
-        if kind == ic.path:
+        if kind == it.path:
             return path_prompt(question)
             #return bullet.Input(prompt=question).launch()
-        elif kind == ic.yn:
+        elif kind == it.yn:
             return yesno_prompt(question)
             #return bullet.YesNo(prompt=question).launch()
-        elif kind == ic.radio:
+        elif kind == it.radio:
             return list_prompt(question, choices)
-        elif kind == ic.check:
+        elif kind == it.check:
             return check_prompt(question, choices, default)
         else:
-            post('Tipo de prompt inválido', kind=rc.cfgerr)
+            post('Tipo de prompt inválido', kind=ec.cfgerr)
     except KeyboardInterrupt:
         sys.exit(colored('Cancelado por el usuario', 'red'))
 
 
 def post(*args, **kwargs):
-    message = c.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
+    message = sc.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
     kind = kwargs.pop('kind')
-    if kind == rc.sucess:
+    if kind == ec.sucess:
         print(colored(message, 'green'))
-    elif kind == rc.warning:
+    elif kind == ec.warning:
         print(colored(message, 'yellow'))
-    elif kind == rc.joberr:
+    elif kind == ec.joberr:
         print(colored(message, 'red'))
-    elif kind == rc.opterr:
+    elif kind == ec.opterr:
         sys.exit(colored('¡Error! ' + message, 'red'))
-    elif kind == rc.cfgerr:
+    elif kind == ec.cfgerr:
         sys.exit(colored('¡Error de configuración! ' + message, 'red'))
     elif kind == runerror:
         frame = sys._getframe(1)

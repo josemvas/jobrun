@@ -38,7 +38,7 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": [
-            "j2q-setup=jobToQueue.j2q:setup",
+            "j2q-setup=jobToQueue.main:setup",
         ],
     },
 )

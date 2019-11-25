@@ -1,8 +1,39 @@
 # -*- coding: utf-8 -*-
 #simpleBool.py with modified to support custom contexts original Copyright by Paul McGuire
 
+from __future__ import unicode_literals
+
 import sys
-from jobToQueue.aliases import *
+
+
+class sc:
+    ws = ' '
+    nl = '\n'
+    dot = '.'
+    null = ''
+
+
+class ec:
+    sucess = 0
+    warning = 1
+    joberr = 2
+    opterr = 3
+    cfgerr = 4
+    runerr = 5
+
+
+class it: 
+    yn = 1
+    path = 2
+    radio = 3
+    check = 4
+
+
+class cl:
+    lower = list('abcdefghijklmnopqrstuvwxyz')
+    upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    digit = list('0123456789')
+
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -23,8 +54,8 @@ class BoolBinOp(object):
     def __init__(self, t):
         self.args = t[0][0::2]
     def __str__(self):
-        sep = " %s " % self.reprsymbol
-        return "(" + sep.join(map(str,self.args)) + ")"
+        sep = ' %s ' % self.reprsymbol
+        return '(' + sep.join(map(str,self.args)) + ')'
     def __bool__(self):
         return self.evalop(bool(a) for a in self.args)
     __nonzero__ = __bool__
@@ -76,11 +107,11 @@ class XmlTreeList(list):
                     for attr in child.attrib:
                         self[-1][attr] = child.attrib[attr]
                 elif child.tag == 'export':
-                    self.append('export' + c.ws + child.text)
+                    self.append('export' + sc.ws + child.text)
                 elif child.tag == 'source':
-                    self.append('source' + c.ws + child.text)
+                    self.append('source' + sc.ws + child.text)
                 elif child.tag == 'load':
-                    self.append('module' + c.ws + 'load' + c.ws + child.text)
+                    self.append('module' + sc.ws + 'load' + sc.ws + child.text)
                 else:
                     sys.exit('(xmlparse) invalid tag: ' + child.tag)
 

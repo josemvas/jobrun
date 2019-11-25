@@ -16,6 +16,7 @@ from distutils import util
 from jobToQueue.aliases import *
 from jobToQueue.utils import post, prompt, pathjoin
 from jobToQueue.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
+from jobToQueue.classes import ec, it, sc
 
 
 def getelement(xmlfile, element):
@@ -25,9 +26,9 @@ def getelement(xmlfile, element):
             try:
                 xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
             except ElementTree.ParseError as e:
-                post('El archivo', xmlfile, 'no es válido:', str(e), kind=rc.cfgerr)
+                post('El archivo', xmlfile, 'no es válido:', str(e), kind=ec.cfgerr)
     except IOError:
-        post('El archivo', xmlfile, 'no existe o no es legible', kind=rc.cfgerr)
+        post('El archivo', xmlfile, 'no existe o no es legible', kind=ec.cfgerr)
     try:
         return xmlroot.find(element).text
     except AttributeError:
@@ -41,9 +42,9 @@ def loadconfig(xmlfile):
             try:
                 xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
             except ElementTree.ParseError as e:
-                post('El archivo', xmlfile, 'no es válido:', str(e), kind=rc.cfgerr)
+                post('El archivo', xmlfile, 'no es válido:', str(e), kind=ec.cfgerr)
     except IOError:
-        post('El archivo', xmlfile, 'no existe o no es legible', kind=rc.cfgerr)
+        post('El archivo', xmlfile, 'no existe o no es legible', kind=ec.cfgerr)
     return XmlTreeBunch(xmlroot)
 
 
@@ -75,9 +76,9 @@ def readoptions(sysconf, jobconf, alias):
                 try: isdefault = key == jobconf.defaults.version
                 except AttributeError: isdefault = False
                 if isdefault:
-                    print(c.ws*3 + key + c.ws + '(default)')
+                    print(sc.ws*3 + key + sc.ws + '(default)')
                 else:
-                    print(c.ws*3 + key)
+                    print(sc.ws*3 + key)
         #TODO: fix parameterlist
         if 'parameterlist' in jobconf:
             print('Conjuntos de parámetros disponibles:')
@@ -85,9 +86,9 @@ def readoptions(sysconf, jobconf, alias):
                 try: isdefault = key == jobconf.defaults.parameter
                 except AttributeError: isdefault = False
                 if isdefault:
-                    print(c.ws*3 + key + c.ws + '(default)')
+                    print(sc.ws*3 + key + sc.ws + '(default)')
                 else:
-                    print(c.ws*3 + key)
+                    print(sc.ws*3 + key)
         sys.exit(0)
 
     parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
@@ -111,40 +112,40 @@ def readoptions(sysconf, jobconf, alias):
     options.update(vars(parser.parse_args(args[1])))
 
     if not options.inputlist:
-        post('Debe especificar al menos un archivo de entrada', kind=rc.opterr)
+        post('Debe especificar al menos un archivo de entrada', kind=ec.opterr)
 
     try: sysconf.scheduler
-    except AttributeError: post('No se especificó el nombre del sistema de colas (scheduler)', kind=rc.cfgerr)
+    except AttributeError: post('No se especificó el nombre del sistema de colas (scheduler)', kind=ec.cfgerr)
 
     try: sysconf.storage
-    except AttributeError: post('No se especificó el tipo de almacenamiento (storage)', kind=rc.cfgerr)
+    except AttributeError: post('No se especificó el tipo de almacenamiento (storage)', kind=ec.cfgerr)
 
     if options.scratch is None:
         try: options.scratch = expandvars(sysconf.defaults.scratch)
-        except AttributeError: post('No se especificó el directorio temporal de escritura por defecto (scratch)', kind=rc.cfgerr)
+        except AttributeError: post('No se especificó el directorio temporal de escritura por defecto (scratch)', kind=ec.cfgerr)
 
     if options.queue is None:
         try: options.queue = sysconf.defaults.queue
-        except AttributeError: post('No se especificó la cola por defecto (queue)', kind=rc.cfgerr)
+        except AttributeError: post('No se especificó la cola por defecto (queue)', kind=ec.cfgerr)
 
     if options.waitime is None:
         try: options.waitime = float(sysconf.defaults.waitime)
-        except AttributeError: post('No se especificó el tiempo de pausa por defecto (waitime)', kind=rc.cfgerr)
+        except AttributeError: post('No se especificó el tiempo de pausa por defecto (waitime)', kind=ec.cfgerr)
 
     try: jobconf.outputdir = bool(util.strtobool(jobconf.outputdir))
-    except AttributeError: post('No se especificó si se debe crear una carpeta de salida (outputdir)', kind=rc.cfgerr)
-    except ValueError: post('El valor debe ser True or False (outputdir)', kind=rc.cfgerr)
+    except AttributeError: post('No se especificó si se debe crear una carpeta de salida (outputdir)', kind=ec.cfgerr)
+    except ValueError: post('El valor debe ser True or False (outputdir)', kind=ec.cfgerr)
 
     if options.interactive is True:
         jobconf.get('defaults', None)
 
     try: jobconf.runtype
-    except AttributeError: post('No se especificó el tipo de paralelización del programa', kind=rc.cfgerr)
+    except AttributeError: post('No se especificó el tipo de paralelización del programa', kind=ec.cfgerr)
 
     if jobconf.runtype in ('intelmpi', 'openmpi', 'mpich'):
         try: jobconf.mpiwrapper = bool(util.strtobool(jobconf.mpiwrapper))
-        except AttributeError: post('No se especificó ningún wrapper MPI (mpiwrapper)', kind=rc.cfgerr)
-        except ValueError: post('El valor de debe ser True or False (mpiwrapper)', kind=rc.cfgerr)
+        except AttributeError: post('No se especificó ningún wrapper MPI (mpiwrapper)', kind=ec.cfgerr)
+        except ValueError: post('El valor de debe ser True or False (mpiwrapper)', kind=ec.cfgerr)
 
     if 'versionlist' in jobconf:
         if len(jobconf.versionlist):
@@ -154,14 +155,14 @@ def readoptions(sysconf, jobconf, alias):
                         options.version = jobconf.defaults.version
                 else:
                     choices = sorted(list(jobconf.versionlist))
-                    options.version = prompt('Seleccione una versión', kind=ic.radio, choices=choices)
+                    options.version = prompt('Seleccione una versión', kind=it.radio, choices=choices)
             try: jobconf.program = jobconf.versionlist[options.version]
-            except KeyError as e: post('La versión seleccionada', quote(str(e.args[0])), 'no es válida', kind=rc.opterr)
-            except TypeError: post('La lista de versiones está mal definida', kind=rc.cfgerr)
+            except KeyError as e: post('La versión seleccionada', quote(str(e.args[0])), 'no es válida', kind=ec.opterr)
+            except TypeError: post('La lista de versiones está mal definida', kind=ec.cfgerr)
             try: jobconf.program.executable = expandvars(jobconf.program.executable)
-            except AttributeError: post('No se especificó el ejecutable para la versión', options.version, kind=rc.cfgerr)
-        else: post('La lista de versiones está vacía (versionlist)', kind=rc.cfgerr)
-    else: post('No se definió ninguna lista de versiones (versionlist)', kind=rc.cfgerr)
+            except AttributeError: post('No se especificó el ejecutable para la versión', options.version, kind=ec.cfgerr)
+        else: post('La lista de versiones está vacía (versionlist)', kind=ec.cfgerr)
+    else: post('No se definió ninguna lista de versiones (versionlist)', kind=ec.cfgerr)
 
     #TODO: Implement default parameter sets
     jobconf.parsets = [ ]
@@ -170,11 +171,11 @@ def readoptions(sysconf, jobconf, alias):
         try:
             choices = sorted(listdir(itempath))
         except IOError:
-            post('El directorio padre de parámetros', item, 'no existe o no es un directorio', kind=rc.cfgerr)
+            post('El directorio padre de parámetros', item, 'no existe o no es un directorio', kind=ec.cfgerr)
         if not choices:
-            post('El directorio padre de parámetros', item, 'está vacío', kind=rc.cfgerr)
+            post('El directorio padre de parámetros', item, 'está vacío', kind=ec.cfgerr)
         if options.parameter is None:
-            options.parameter = choices[0] if len(choices) == 1 else prompt('Seleccione un conjunto de parámetros', kind=ic.radio, choices=choices)
+            options.parameter = choices[0] if len(choices) == 1 else prompt('Seleccione un conjunto de parámetros', kind=it.radio, choices=choices)
         jobconf.parsets.append(pathjoin(itempath, options.parameter))
 
     return options
