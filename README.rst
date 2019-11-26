@@ -2,4 +2,4 @@
 jobToQueue: An unified tool to submit jobs to computer clusters
 ####################################################################################################
 
-- jobToQueue supports PBS, LSF and SLURM
+- Supports PBS, LSF and SLURM
