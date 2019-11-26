@@ -1,26 +1,22 @@
-#!/opt/anaconda/bin/python
 # -*- coding: utf-8 -*-
 
-import setuptools
+from setuptools import setup
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
-setuptools.setup(
+setup(
     name="jobToQueue",
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
-    description="A wrapper to submit jobs to OpenLava, Platform LSF or SLURM clusters",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://example.com",
+    description="An unified command line tool to submit jobs to Torque, LSF or SLURM clusters",
+    long_description=open("README.rst").read(),
+    long_description_content_type="text/x-rst",
+    url="https://github.com/cronofugo/python-j2q",
     packages=setuptools.find_packages(),
     package_data={
         "jobToQueue": [
             "database/platform/*/hostspecs.xml",
-            "database/platform/*/*/syspecs.xml",
             "database/generic/*/jobspecs.xml",
+            "database/platform/*/*/jobpecs.xml",
         ],
     },
     classifiers=[
