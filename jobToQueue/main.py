@@ -75,7 +75,7 @@ def setup():
         post('El archivo de configuración de la plataforma', quote(host), 'no existe', kind=ec.cfgerr)
 
     if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=it.yn):
+        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=it.ok):
             copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
     else:
         makedirs(specdir)
