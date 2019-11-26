@@ -16,7 +16,7 @@ setup(
         "jobToQueue": [
             "database/platform/*/hostspecs.xml",
             "database/generic/*/jobspecs.xml",
-            "database/platform/*/*/jobpecs.xml",
+            "database/platform/*/*/jobspecs.xml",
         ],
     },
     classifiers=[
