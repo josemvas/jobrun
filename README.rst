@@ -1,5 +1,5 @@
 ####################################################################################################
-job2queue: An unified tool to submit jobs to computer clusters
+jobToQueue: An unified tool to submit jobs to computer clusters
 ####################################################################################################
 
 - Supports PBS, LSF and SLURM
