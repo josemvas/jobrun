@@ -1,5 +1,5 @@
 ####################################################################################################
-jobToQueue: An unified command line tool to submit jobs toomputer clusters
+jobToQueue: An unified tool to submit jobs to computer clusters
 ####################################################################################################
 
 - jobToQueue supports PBS, LSF and SLURM
