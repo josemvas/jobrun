@@ -1,5 +1,5 @@
 ####################################################################################################
-jobToQueue: Extensible tool to submit jobs to computer clusters
+jobToQueue: Submit jobs to any computer cluster
 ####################################################################################################
 
 - Supports PBS, LSF and SLURM
