@@ -1,5 +1,5 @@
 ####################################################################################################
-jobToQueue: Submit jobs to any computer cluster
+JobToQueue: Submit jobs to any computer cluster
 ####################################################################################################
 
 - Supports PBS, LSF and SLURM
