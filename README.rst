@@ -1,5 +1,5 @@
 ##########
-python-j2q
+jobToQueue
 ##########
 
 An unified command line tool to submit jobs to PBS, LSF and SLURM based computer clusters
