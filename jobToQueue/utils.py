@@ -12,7 +12,7 @@ import shutil
 from termcolor import colored
 from re import match, IGNORECASE 
 from os.path import basename, dirname
-from jobToQueue.classes import ec, it, sc, cl
+from jobToQueue.classes import ec, it, cl
 
 
 if sys.version_info[0] < 3:
@@ -22,21 +22,21 @@ if sys.version_info[0] < 3:
 
 # Python 2 and 3
 def textform(*args, **kwargs):
-    sep = kwargs.pop('sep', sc.ws)
-    end = kwargs.pop('end', sc.nl)
+    sep = kwargs.pop('sep', ' ')
+    end = kwargs.pop('end', '\n')
     indent = kwargs.pop('indent', 0)
     line = [ ]
     for arg in args:
         if type(arg) is list: line.append(sep.join(arg))
         elif arg: line.append(arg)
-    return sc.ws*indent + sep.join(line) + end
+    return ' '*indent + sep.join(line) + end
 # Python 3 only
-#def textform(*args, sep=sc.ws, end=sc.nl, indent=0):
+#def textform(*args, sep=' ', end='\n', indent=0):
 #    line = [ ]
 #    for arg in args:
 #        if type(arg) is list: line.append(sep.join(arg))
 #        elif type(arg) is str: line.append(arg)
-#    return sc.ws*indent + sep.join(line) + end
+#    return ' '*indent + sep.join(line) + end
 
 
 def quote(string):
@@ -48,24 +48,24 @@ def quote(string):
 def prompt(*args, **kwargs):
     #TODO: Validate path
     def path_prompt(question):
-        return input(question + ':' + sc.ws)
+        return input(question + ':' + ' ')
     def ok_prompt(question):
         while True:
-            answer = input(question + sc.ws)
-            if match('(ok|y|ye|yes|s|si)', answer, IGNORECASE):
+            answer = input(question + ' ')
+            if match('(ok|y|ye|yes|s|si)$', answer, IGNORECASE):
                 return True
             else:
                 return False
     def yesno_prompt(question):
         while True:
-            answer = input(question + sc.ws)
-            if match('s', answer, IGNORECASE):
+            answer = input(question + ' ')
+            if match('s$', answer, IGNORECASE):
                 print('Por favor escriba "si" para confirmar:')
-            elif match('(y|ye)', answer, IGNORECASE):
+            elif match('(y|ye)$', answer, IGNORECASE):
                 print('Por favor escriba "yes" para confirmar:')
-            elif match('(si|yes)', answer, IGNORECASE):
+            elif match('(si|yes)$', answer, IGNORECASE):
                 return True
-            elif match('(n|no)', answer, IGNORECASE):
+            elif match('(n|no)$', answer, IGNORECASE):
                 return False
     try:
         import bullet
@@ -136,7 +136,7 @@ def prompt(*args, **kwargs):
                 background_on_switch=bullet.colors.background["black"],
                 pad_right = 5,
                 ).launch(default=[choices.index(i) for i in default])
-    question = sc.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
+    question = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
     kind = kwargs.pop('kind')
     choices = kwargs.pop('choices', [ ])
     default = kwargs.pop('default', [ ])
@@ -161,7 +161,7 @@ def prompt(*args, **kwargs):
 
 
 def post(*args, **kwargs):
-    message = sc.ws.join([i if isinstance(i, basestring) else str(i) for i in args])
+    message = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
     kind = kwargs.pop('kind')
     if kind == ec.sucess:
         print(colored(message, 'green'))

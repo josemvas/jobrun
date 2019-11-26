@@ -12,7 +12,7 @@ from re import sub
 
 from jobToQueue.utils import post, textform, pathjoin, quote, prompt, copyfile, remove
 from jobToQueue.parse import parse_boolexpr
-from jobToQueue.classes import ec, it, sc
+from jobToQueue.classes import ec, it
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -24,12 +24,6 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     arguments = [ ]
     filebool = { }
 
-    jobname = sc.null
-    filename = path.basename(inputfile)
-    master = gethostbyname(gethostname())
-    localdir = path.abspath(path.dirname(inputfile))
-    version = sc.null.join(c.lower() for c in options.version if c.isalnum())
-
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]
         except KeyError: post('La extensión de archivo de salida', ext, 'no fue definida', kind=ec.cfgerr)
@@ -38,27 +32,25 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         try: jobconf.fileexts[ext]
         except KeyError: post('La extensión de archivo de salida', ext, 'no fue definida', kind=ec.cfgerr)
 
-    if 'versionprefix' in jobconf:
-        version = jobconf.versionprefix + version
-    else:
-        version = 'v' + version
+    filename = path.basename(inputfile)
+    master = gethostbyname(gethostname())
+    localdir = path.abspath(path.dirname(inputfile))
+    version = ''.join(c for c in options.version if c.isalnum()).lower()
+    version = jobconf.versionprefix + version if 'versionprefix' in jobconf else 'v' + version
+    versionlist = [ ''.join(c for c in version if c.isalnum()).lower() for version in jobconf.get('versionlist', []) ]
+    iosuffix = { ext : version + '.' + ext for ext in jobconf.fileexts }
 
-    iosuffix = { ext : version + sc.dot + ext for ext in jobconf.fileexts }
+    for ext in jobconf.inputfiles:
+        if filename.endswith('.' + ext):
+            basename = filename[:-len('.' + ext)]
+            break
 
-    if not jobname:
-        for ext in jobconf.inputfiles:
-            if filename.endswith(sc.dot + ext):
-                jobname = filename[:-len(sc.dot + ext)]
-                ionames = { ext : ext for ext in jobconf.fileexts }
-                break
-
-    if not jobname:
-        post('La extensión', path.splitext(filename)[1], 'no es de un archivo de entrada de', jobconf.title, kind=ec.joberr)
+    if not basename:
+        post('Se esperaba un archivo de entrada de', jobconf.title + ':', ', '.join(jobconf.inputfiles), kind=ec.joberr)
         return
 
-    for ext in ionames:
-        filebool[ext] = path.isfile(pathjoin(localdir, [jobname, ionames[ext]]))
-        #print(pathjoin([jobname, ionames[ext]]), filebool[ext])
+    for ext in jobconf.fileexts:
+        filebool[ext] = path.isfile(pathjoin(localdir, [basename, ext]))
 
     if 'filecheck' in jobconf:
         if not parse_boolexpr(jobconf.filecheck, filebool):
@@ -69,6 +61,22 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         if parse_boolexpr(jobconf.fileclash, filebool):
             post('Hay un conflicto entre algunos de los archivos de entrada', kind=ec.joberr)
             return
+
+    jobname = basename
+
+    if 'versionprefix' in jobconf:
+        if basename.endswith('.' + jobconf.versionprefix):
+            jobname = basename[:-len('.' + jobconf.versionprefix)]
+        else:
+            for key in versionlist:
+                if basename.endswith('.' + jobconf.versionprefix + key):
+                    jobname = basename[:-len('.' + jobconf.versionprefix + key)]
+                    break
+    else:
+        for key in versionlist:
+            if basename.endswith('.v' + key):
+                jobname = basename[:-len('.v' + key)]
+                break
 
     if jobconf.outputdir is True:
         outputdir = pathjoin(localdir, jobname)
@@ -118,7 +126,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         if options.nodes is not None:
             jobcontrol.append(scheduler.span.format(options.nodes))
         if jobconf.mpiwrapper is True:
-            jobcommand = scheduler.mpiwrapper[jobconf.runtype] + sc.ws + jobcommand
+            jobcommand = scheduler.mpiwrapper[jobconf.runtype] + ' ' + jobcommand
     else: post('El tipo de paralelización ' + jobconf.runtype + ' no es válido', kind=ec.cfgerr)
 
     for ext in jobconf.inputfiles:
@@ -133,20 +141,20 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         if not path.isabs(parset):
             parset = pathjoin(localdir, parset)
         if path.isdir(parset):
-            parset = pathjoin(parset, sc.dot)
+            parset = pathjoin(parset, '.')
         importfiles.append(['ssh', master, 'scp -r', quote(quote(parset)), '$ip:' + quote(quote('$workdir'))])
 
     for profile in jobconf.setdefault('profile', []) + jobconf.program.setdefault('profile', []):
         environment.append(profile)
 
     if 'stdin' in jobconf:
-        try: redirections.append('0<' + sc.ws + jobconf.fileexts[jobconf.stdin])
+        try: redirections.append('0<' + ' ' + jobconf.fileexts[jobconf.stdin])
         except KeyError: post('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.', kind=ec.cfgerr)
     if 'stdout' in jobconf:
-        try: redirections.append('1>' + sc.ws + jobconf.fileexts[jobconf.stdout])
+        try: redirections.append('1>' + ' ' + jobconf.fileexts[jobconf.stdout])
         except KeyError: post('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.', kind=ec.cfgerr)
     if 'stderr' in jobconf:
-        try: redirections.append('2>' + sc.ws + jobconf.fileexts[jobconf.stderr])
+        try: redirections.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
         except KeyError: post('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.', kind=ec.cfgerr)
 
     if 'positionargs' in jobconf:
@@ -159,9 +167,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     if 'optionargs' in jobconf:
         for opt in jobconf.optionargs:
             ext = jobconf.optionargs[opt]
-            arguments.append('-' + opt + sc.ws + jobconf.fileexts[ext])
+            arguments.append('-' + opt + ' ' + jobconf.fileexts[ext])
 
-    jobdir = pathjoin(outputdir, [sc.null, jobname, version])
+    jobdir = pathjoin(outputdir, ['', jobname, version])
 
     try: mkdir(jobdir)
     except OSError:
@@ -198,17 +206,17 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     try:
         #TODO textform: do not write newlines or spaces if lists are empty
         fh = NamedTemporaryFile(mode='w+t', delete=False)
-        fh.write(textform([textform(line, end=sc.null) for line in jobcontrol], sep=sc.nl))
-        fh.write(textform(environment, sep=sc.nl))
+        fh.write(textform([textform(line, end='') for line in jobcontrol], sep='\n'))
+        fh.write(textform(environment, sep='\n'))
         fh.write(textform('for ip in ${iplist[*]}; do'))
         fh.write(textform('ssh', master, 'ssh $ip mkdir -m 700', quote(quote('$workdir')), indent=4))
-        fh.write(textform([textform(line, indent=4, end=sc.null) for line in importfiles], sep=sc.nl))
+        fh.write(textform([textform(line, indent=4, end='') for line in importfiles], sep='\n'))
         fh.write(textform('done'))
         fh.write(textform('cd', quote('$workdir')))
-        fh.write(textform([i.repr for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]], sep=sc.nl)) \
+        fh.write(textform([i.repr for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]], sep='\n')) \
             if 'prescript' in jobconf else None
         fh.write(textform(jobcommand, arguments, redirections))
-        fh.write(textform([textform(line, end=sc.null) for line in exportfiles], sep=sc.nl))
+        fh.write(textform([textform(line, end='') for line in exportfiles], sep='\n'))
         fh.write(textform('for ip in ${iplist[*]}; do'))
         fh.write(textform('ssh $ip rm -f', quote(quote('$workdir') + '/*'), indent=4))
         fh.write(textform('ssh $ip rmdir', quote(quote('$workdir')), indent=4))
@@ -221,8 +229,8 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         fh.close()
 
     for ext in jobconf.inputfiles:
-        if path.isfile(pathjoin(localdir, [jobname, ionames[ext]])):
-            copyfile(pathjoin(localdir, [jobname, ionames[ext]]), pathjoin(outputdir, [jobname, iosuffix[ext]]))
+        if path.isfile(pathjoin(localdir, [basename, ext])):
+            copyfile(pathjoin(localdir, [basename, ext]), pathjoin(outputdir, [jobname, iosuffix[ext]]))
 
     try:
         jobid = scheduler.submit(fh.name)

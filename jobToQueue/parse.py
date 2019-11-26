@@ -15,7 +15,7 @@ from distutils import util
 
 from jobToQueue.utils import post, prompt, pathjoin
 from jobToQueue.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
-from jobToQueue.classes import ec, it, sc
+from jobToQueue.classes import ec, it
 
 
 def getelement(xmlfile, element):
@@ -63,6 +63,7 @@ def parse_boolexpr(boolstring, context):
     return bool(boolExpr.parseString(boolstring)[0])
 
 
+#TODO: Move listings to utils.py
 def readoptions(sysconf, jobconf, alias):
 
     parser = ArgumentParser(prog=alias, add_help=False)
@@ -75,9 +76,9 @@ def readoptions(sysconf, jobconf, alias):
                 try: isdefault = key == jobconf.defaults.version
                 except AttributeError: isdefault = False
                 if isdefault:
-                    print(sc.ws*3 + key + sc.ws + '(default)')
+                    print(' '*3 + key + ' ' + '(default)')
                 else:
-                    print(sc.ws*3 + key)
+                    print(' '*3 + key)
         #TODO: fix parameterlist
         if 'parameterlist' in jobconf:
             print('Conjuntos de parámetros disponibles:')
@@ -85,9 +86,9 @@ def readoptions(sysconf, jobconf, alias):
                 try: isdefault = key == jobconf.defaults.parameter
                 except AttributeError: isdefault = False
                 if isdefault:
-                    print(sc.ws*3 + key + sc.ws + '(default)')
+                    print(' '*3 + key + ' ' + '(default)')
                 else:
-                    print(sc.ws*3 + key)
+                    print(' '*3 + key)
         sys.exit(0)
 
     parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')

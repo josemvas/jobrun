@@ -6,13 +6,6 @@ from __future__ import unicode_literals
 import sys
 
 
-class sc:
-    ws = ' '
-    nl = '\n'
-    dot = '.'
-    null = ''
-
-
 class ec:
     sucess = 0
     warning = 1
@@ -23,10 +16,11 @@ class ec:
 
 
 class it: 
-    yn = 1
-    path = 2
+    ok = 1
+    yn = 2
     radio = 3
     check = 4
+    path = 5
 
 
 class cl:
@@ -84,6 +78,7 @@ class BoolNot(object):
     __nonzero__ = __bool__
 
 
+#TODO: Implement default dict functionality to handle empty dicts without if testing
 class Bunch(dict):
     def __init__(self, **kwargs):
         for key in kwargs:
@@ -107,11 +102,11 @@ class XmlTreeList(list):
                     for attr in child.attrib:
                         self[-1][attr] = child.attrib[attr]
                 elif child.tag == 'export':
-                    self.append('export' + sc.ws + child.text)
+                    self.append('export' + ' ' + child.text)
                 elif child.tag == 'source':
-                    self.append('source' + sc.ws + child.text)
+                    self.append('source' + ' ' + child.text)
                 elif child.tag == 'load':
-                    self.append('module' + sc.ws + 'load' + sc.ws + child.text)
+                    self.append('module' + ' ' + 'load' + ' ' + child.text)
                 else:
                     sys.exit('(xmlparse) invalid tag: ' + child.tag)
 

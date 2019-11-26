@@ -2,17 +2,15 @@
 <runtype>serial</runtype>
 <outputdir>True</outputdir>
 <versionprefix>ad</versionprefix>
-<filecheck>dpf and ligand.pdbqt</filecheck>
+<filecheck>dpf</filecheck>
 
 <fileexts>
    <e key="dpf">job.dpf</e>
    <e key="dlg">job.dlg</e>
-   <e key="ligand.pdbqt">ligand.pdbqt</e>
 </fileexts>
 
 <inputfiles>
    <e>dpf</e>
-   <e>pdbq</e>
 </inputfiles>
 
 <outputfiles>
@@ -28,6 +26,3 @@
    <e>.</e>
 </parameteroot>
 
-<defaults>
-   <parameterset>receptor</parameterset>
-</defaults>

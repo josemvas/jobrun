@@ -11,7 +11,7 @@ map cox1HD.NA.map                    # atom-specific affinity map
 map cox1HD.OA.map                    # atom-specific affinity map
 elecmap cox1HD.e.map                 # electrostatics map
 desolvmap cox1HD.d.map               # desolvation map
-move ligand.pdbqt                    # small molecule
+move 2a.pdbqt                        # small molecule
 about -0.0076 -0.0979 0.004          # small molecule center
 tran0 random                         # initial coordinates/A or random
 quaternion0 random                   # initial orientation
