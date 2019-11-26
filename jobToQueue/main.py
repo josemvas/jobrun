@@ -28,18 +28,6 @@ from jobToQueue.classes import Bunch
 from jobToQueue.classes import ec, it
 
 
-runscript = '''#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import os
-import sys
-if sys.version_info != {version}:
-    for var, path in {environ}.items():
-        os.environ[var] = path
-    os.execve(sys.argv[0], sys.argv, os.environ)
-from jobToQueue import main
-main.run('{hostspecs}', '{jobspecs}')
-'''
-
 def run(hostspecs, jobspecs):
 
     alias = basename(sys.argv[0])
@@ -126,16 +114,18 @@ def setup():
     for package in disabled:
         remove(pathjoin(specdir, available[package], 'jobspecs.xml'))
 
-    binpath = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=it.path))
+    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=it.path))
 
-    if binpath:
+    if bindir:
+        with open(pathjoin(genericdir, 'pyrun.txt')) as fh:
+            pyrun = fh.read()
         environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
-                    with open(pathjoin(binpath, package), 'w') as fh:
-                        fh.write(runscript.format(version=tuple(sys.version_info), executable=sys.executable, argv=sys.argv, environ=environ, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                    with open(pathjoin(bindir, package), 'w') as fh:
+                        fh.write(pyrun.format(version=tuple(sys.version_info), executable=sys.executable, argv=sys.argv, environ=environ, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
                 except IOError as e:
                     post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
                 else:
-                    chmod(pathjoin(binpath, package), 0o755)
+                    chmod(pathjoin(bindir, package), 0o755)

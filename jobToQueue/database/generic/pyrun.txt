@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import os
+import sys
+if sys.version_info != {version}:
+    for var, path in {environ}.items():
+        os.environ[var] = path
+    os.execve(sys.argv[0], sys.argv, os.environ)
+from jobToQueue import main
+main.run('{hostspecs}', '{jobspecs}')
