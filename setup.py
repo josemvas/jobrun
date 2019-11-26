@@ -14,6 +14,7 @@ setup(
     packages=setuptools.find_packages(),
     package_data={
         "jobToQueue": [
+            "exec.py.txt",
             "database/platform/*/hostspecs.xml",
             "database/generic/*/jobspecs.xml",
             "database/platform/*/*/jobspecs.xml",
