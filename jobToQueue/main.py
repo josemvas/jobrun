@@ -117,7 +117,7 @@ def setup():
     bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=it.path))
 
     if bindir:
-        with open(pathjoin(genericdir, 'pyrun.txt')) as fh:
+        with open(pathjoin(srcdir, 'pyrun.txt')) as fh:
             pyrun = fh.read()
         environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
