@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(
-    name="jobToQueue",
+    name="job2queue",
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
@@ -13,7 +13,7 @@ setup(
     url="https://github.com/cronofugo/python-j2q",
     packages=setuptools.find_packages(),
     package_data={
-        "jobToQueue": [
+        "job2queue": [
             "exec.py.txt",
             "database/platform/*/hostspecs.xml",
             "database/generic/*/jobspecs.xml",
@@ -35,7 +35,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "j2q-setup=jobToQueue.main:setup",
+            "j2q-setup=job2queue.main:setup",
         ],
     },
 )

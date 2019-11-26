@@ -10,9 +10,9 @@ from tempfile import NamedTemporaryFile
 from subprocess import call
 from re import sub
 
-from jobToQueue.utils import post, textform, pathjoin, quote, prompt, copyfile, remove
-from jobToQueue.parse import parse_boolexpr
-from jobToQueue.classes import ec, it
+from job2queue.utils import post, textform, pathjoin, quote, prompt, copyfile, remove
+from job2queue.parse import parse_boolexpr
+from job2queue.classes import ec, it
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 

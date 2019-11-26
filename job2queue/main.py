@@ -12,20 +12,20 @@ from termcolor import colored
 from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
-from jobToQueue.utils import post
-from jobToQueue.utils import quote
-from jobToQueue.utils import rmdir
-from jobToQueue.utils import remove
-from jobToQueue.utils import prompt
-from jobToQueue.utils import makedirs
-from jobToQueue.utils import pathjoin
-from jobToQueue.utils import copyfile
-from jobToQueue.parse import loadconfig
-from jobToQueue.parse import readoptions
-from jobToQueue.parse import getelement
-from jobToQueue.queue import queuejob
-from jobToQueue.classes import Bunch
-from jobToQueue.classes import ec, it
+from job2queue.utils import post
+from job2queue.utils import quote
+from job2queue.utils import rmdir
+from job2queue.utils import remove
+from job2queue.utils import prompt
+from job2queue.utils import makedirs
+from job2queue.utils import pathjoin
+from job2queue.utils import copyfile
+from job2queue.parse import loadconfig
+from job2queue.parse import readoptions
+from job2queue.parse import getelement
+from job2queue.queue import queuejob
+from job2queue.classes import Bunch
+from job2queue.classes import ec, it
 
 
 def run(hostspecs, jobspecs):
@@ -46,7 +46,7 @@ def run(hostspecs, jobspecs):
     if path.isfile(userspecs):
         jobconf.update(loadconfig(userspecs))
 
-    scheduler = import_module('.schedulers.' + sysconf.scheduler, package='jobToQueue')
+    scheduler = import_module('.schedulers.' + sysconf.scheduler, package='job2queue')
 
     options = readoptions(sysconf, jobconf, alias)
 

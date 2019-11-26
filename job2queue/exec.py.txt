@@ -6,5 +6,5 @@ if sys.version_info != {version}:
     for var, path in {environ}.items():
         os.environ[var] = path
     os.execve(sys.argv[0], sys.argv, os.environ)
-from jobToQueue import main
+from job2queue import main
 main.run('{hostspecs}', '{jobspecs}')
