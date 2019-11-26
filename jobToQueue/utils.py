@@ -49,14 +49,23 @@ def prompt(*args, **kwargs):
     #TODO: Validate path
     def path_prompt(question):
         return input(question + ':' + sc.ws)
+    def ok_prompt(question):
+        while True:
+            answer = input(question + sc.ws)
+            if match('(ok|y|ye|yes|s|si)', answer, IGNORECASE):
+                return True
+            else:
+                return False
     def yesno_prompt(question):
         while True:
             answer = input(question + sc.ws)
-            if match('(si|yes)$', answer, IGNORECASE):
-                return True
-            elif match('[sy]', answer, IGNORECASE):
+            if match('s', answer, IGNORECASE):
                 print('Por favor escriba "si" para confirmar:')
-            elif match('[n|no]', answer, IGNORECASE):
+            elif match('(y|ye)', answer, IGNORECASE):
+                print('Por favor escriba "yes" para confirmar:')
+            elif match('(si|yes)', answer, IGNORECASE):
+                return True
+            elif match('(n|no)', answer, IGNORECASE):
                 return False
     try:
         import bullet
@@ -135,6 +144,9 @@ def prompt(*args, **kwargs):
         if kind == it.path:
             return path_prompt(question)
             #return bullet.Input(prompt=question).launch()
+        elif kind == it.ok:
+            return ok_prompt(question)
+            #return bullet.YesNo(prompt=question).launch()
         elif kind == it.yn:
             return yesno_prompt(question)
             #return bullet.YesNo(prompt=question).launch()
