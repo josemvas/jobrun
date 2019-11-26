@@ -33,8 +33,8 @@ runscript = '''#!/usr/bin/env python
 import os
 import sys
 if sys.version_info != {version}:
-    for envar, path in {keepenv}.items():
-        os.environ[envar] = path + os.pathsep + os.environ[envar]
+    for var, path in {environ}.items():
+        os.environ[var] = path
     os.execve(sys.argv[0], sys.argv, os.environ)
 from jobToQueue import main
 main.run('{hostspecs}', '{jobspecs}')
@@ -81,7 +81,7 @@ def setup():
     platformdir = pathjoin(srcdir, 'database', 'platform')
     specdir = pathjoin(dirname(dirname(sys.argv[0])), 'etc', 'j2q')
 
-    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=it.radio, choices=listdir(platformdir))
+    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=it.radio, choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
         post('El archivo de configuración de la plataforma', quote(host), 'no existe', kind=ec.cfgerr)
@@ -129,11 +129,12 @@ def setup():
     binpath = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=it.path))
 
     if binpath:
+        environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
                     with open(pathjoin(binpath, package), 'w') as fh:
-                        fh.write(runscript.format(version=tuple(sys.version_info), executable=sys.executable, argv=sys.argv, keepenv={key:os.environ[key] for key in ['PATH', 'LD_LIBRARY_PATH']}, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                        fh.write(runscript.format(version=tuple(sys.version_info), executable=sys.executable, argv=sys.argv, environ=environ, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
                 except IOError as e:
                     post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
                 else:

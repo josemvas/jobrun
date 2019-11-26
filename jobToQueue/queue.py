@@ -215,7 +215,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         fh.write(textform('done'))
         if 'offscript' in sysconf:
             for command in sysconf.offscript:
-                if not call(['ssh', master, 'test ${{{}+?}}'.format(command.ifv)]):
+                if not call(['sh', '-c', 'test ${{{}+?}}'.format(command.ifv)]):
                     fh.write(textform('ssh', master, '"{}"'.format(command.repr)))
     finally:
         fh.close()
