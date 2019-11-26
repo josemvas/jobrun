@@ -7,7 +7,9 @@ setup(
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
-    description="An unified command line tool to submit jobs to PBS, LSF or SLURM queues",
+    description="An unified command line tool to submit jobs to PBS, LSF and SLURM based computer clusters
+
+",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/python-j2q",
