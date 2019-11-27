@@ -8,7 +8,7 @@ JobToQueue supports the following schedulers:
 - LSF
 - Slurm
 
-and the following simulation codes:
+and the following simulation packages:
 
 - Gaussian
 - VASP
