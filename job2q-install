@@ -1,3 +1,0 @@
-#!/bin/sh
-pip install --upgrade --no-deps --force-reinstall git+https://cronofugo@github.com/cronofugo/job2q.git
-
