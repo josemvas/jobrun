@@ -36,7 +36,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "j2q-setup=job2q.main:setup",
+            "job2q-setup=job2q.main:setup",
         ],
     },
 )
