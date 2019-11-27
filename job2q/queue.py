@@ -172,7 +172,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     jobdir = pathjoin(outputdir, ['', jobname, version])
 
-    try: makedirs(jobdir)
+    try: os.mkdir(jobdir)
     except OSError:
         if os.path.isdir(outputdir):
             if os.path.isdir(jobdir):
