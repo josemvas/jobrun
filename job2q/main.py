@@ -12,20 +12,20 @@ from termcolor import colored
 from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
-from job2queue.utils import post
-from job2queue.utils import quote
-from job2queue.utils import rmdir
-from job2queue.utils import remove
-from job2queue.utils import prompt
-from job2queue.utils import makedirs
-from job2queue.utils import pathjoin
-from job2queue.utils import copyfile
-from job2queue.parse import loadconfig
-from job2queue.parse import readoptions
-from job2queue.parse import getelement
-from job2queue.queue import queuejob
-from job2queue.classes import Bunch
-from job2queue.classes import ec, pr
+from job2q.utils import post
+from job2q.utils import quote
+from job2q.utils import rmdir
+from job2q.utils import remove
+from job2q.utils import prompt
+from job2q.utils import makedirs
+from job2q.utils import pathjoin
+from job2q.utils import copyfile
+from job2q.parse import loadconfig
+from job2q.parse import readoptions
+from job2q.parse import getelement
+from job2q.queue import queuejob
+from job2q.classes import Bunch
+from job2q.classes import ec, pr
 
 
 def run(hostspecs, jobspecs):
@@ -46,7 +46,7 @@ def run(hostspecs, jobspecs):
     if path.isfile(userspecs):
         jobconf.update(loadconfig(userspecs))
 
-    scheduler = import_module('.schedulers.' + sysconf.scheduler, package='job2queue')
+    scheduler = import_module('.schedulers.' + sysconf.scheduler, package='job2q')
 
     options = readoptions(sysconf, jobconf, alias)
 
@@ -113,7 +113,7 @@ def setup():
     bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para instalar en ./bin)', kind=pr.path, enter='./bin'))
 
     makedirs(bindir)
-    with open(pathjoin(srcdir, 'exec.py.txt')) as fh:
+    with open(pathjoin(srcdir, 'exec.py.str')) as fh:
         pyrun = fh.read()
     #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
     for package in listdir(specdir):

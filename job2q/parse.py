@@ -13,9 +13,9 @@ from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 from os.path import basename, realpath, expandvars, expanduser
 from distutils import util
 
-from job2queue.utils import post, prompt, pathjoin
-from job2queue.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
-from job2queue.classes import ec, pr
+from job2q.utils import post, prompt, pathjoin
+from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
+from job2q.classes import ec, pr
 
 
 def getelement(xmlfile, element):
