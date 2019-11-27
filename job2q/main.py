@@ -110,18 +110,19 @@ def setup():
             with open(pathjoin(platformdir, host, available[package], 'jobspecs.xml')) as ifh:
                 ofh.write(ifh.read())
 
-    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para instalar en ./bin)', kind=pr.path, enter='./bin'))
+    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=pr.path))
 
-    makedirs(bindir)
-    with open(pathjoin(srcdir, 'exec.py.str')) as fh:
-        pyrun = fh.read()
-    #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
-    for package in listdir(specdir):
-        if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
-            try:
-                with open(pathjoin(bindir, package), 'w') as fh:
-                    fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
-            except IOError as e:
-                post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
-            else:
-                chmod(pathjoin(bindir, package), 0o755)
+    if bindir:
+        makedirs(bindir)
+        with open(pathjoin(srcdir, 'exec.py.str')) as fh:
+            pyrun = fh.read()
+        #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
+        for package in listdir(specdir):
+            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                try:
+                    with open(pathjoin(bindir, package), 'w') as fh:
+                        fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                except IOError as e:
+                    post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=ec.runerr)
+                else:
+                    chmod(pathjoin(bindir, package), 0o755)
