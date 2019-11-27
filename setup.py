@@ -4,18 +4,18 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(
-    name="job2queue",
+    name="job2q",
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
     description="Submit jobs to any computer cluster",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
-    url="https://github.com/cronofugo/job2queue",
+    url="https://github.com/cronofugo/job2q",
     packages=find_packages(),
     package_data={
-        "job2queue": [
-            "exec.py.txt",
+        "job2q": [
+            "exec.py.str",
             "database/platform/*/hostspecs.xml",
             "database/generic/*/jobspecs.xml",
             "database/platform/*/*/jobspecs.xml",
@@ -36,7 +36,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "j2q-setup=job2queue.main:setup",
+            "j2q-setup=job2q.main:setup",
         ],
     },
 )

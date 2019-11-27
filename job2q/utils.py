@@ -12,7 +12,7 @@ import shutil
 from termcolor import colored
 from re import match, IGNORECASE 
 from os.path import basename, dirname
-from job2queue.classes import ec, pr, cl
+from job2q.classes import ec, pr, cl
 
 
 if sys.version_info[0] < 3:
