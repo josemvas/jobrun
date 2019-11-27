@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 
+import os
 from socket import gethostname, gethostbyname
-from os import path, listdir, mkdir, rename
 from tempfile import NamedTemporaryFile
 from subprocess import call
 from re import sub
 
-from job2q.utils import post, textform, pathjoin, quote, prompt, copyfile, remove
+from job2q.utils import post, textform, pathjoin, quote, prompt, copyfile, remove, makedirs
 from job2q.parse import parse_boolexpr
 from job2q.classes import ec, pr
 
@@ -32,9 +32,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         try: jobconf.fileexts[ext]
         except KeyError: post('La extensión de archivo de salida', ext, 'no fue definida', kind=ec.cfgerr)
 
-    filename = path.basename(inputfile)
+    filename = os.path.basename(inputfile)
     master = gethostbyname(gethostname())
-    localdir = path.abspath(path.dirname(inputfile))
+    localdir = os.path.abspath(os.path.dirname(inputfile))
     version = ''.join(c for c in options.version if c.isalnum()).lower()
     version = jobconf.versionprefix + version if 'versionprefix' in jobconf else 'v' + version
     versionlist = [ ''.join(c for c in version if c.isalnum()).lower() for version in jobconf.get('versionlist', []) ]
@@ -51,7 +51,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         return
 
     for ext in jobconf.fileexts:
-        filebool[ext] = path.isfile(pathjoin(localdir, [basename, ext]))
+        filebool[ext] = os.path.isfile(pathjoin(localdir, [basename, ext]))
 
     if 'filecheck' in jobconf:
         if not parse_boolexpr(jobconf.filecheck, filebool):
@@ -139,9 +139,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
             master + ':' + quote(quote(pathjoin(outputdir, [jobname, iosuffix[ext]])))])
 
     for parset in jobconf.parsets:
-        if not path.isabs(parset):
+        if not os.path.isabs(parset):
             parset = pathjoin(localdir, parset)
-        if path.isdir(parset):
+        if os.path.isdir(parset):
             parset = pathjoin(parset, '.')
         importfiles.append(['ssh', master, 'scp -r', quote(quote(parset)), '$ip:' + quote(quote('$workdir'))])
 
@@ -172,12 +172,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     jobdir = pathjoin(outputdir, ['', jobname, version])
 
-    try: mkdir(jobdir)
+    try: makedirs(jobdir)
     except OSError:
-        if path.isdir(outputdir):
-            if path.isdir(jobdir):
+        if os.path.isdir(outputdir):
+            if os.path.isdir(jobdir):
                 try:
-                    lastjob = max(listdir(jobdir), key=int)
+                    lastjob = max(os.listdir(jobdir), key=int)
                 except ValueError:
                     pass
                 else:
@@ -186,10 +186,10 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                         post('El trabajo', quote(jobname), 'no se envió porque', scheduler.jobstates[jobstate], \
                             '(job {})'.format(lastjob), kind=ec.joberr)
                         return
-            elif path.exists(jobdir):
+            elif os.path.exists(jobdir):
                 remove(jobdir)
-                mkdir(jobdir)
-            if not set(listdir(outputdir)).isdisjoint([ pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles ]):
+                makedirs(jobdir)
+            if not set(os.listdir(outputdir)).isdisjoint([ pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles ]):
                 if options.defaultanswer is None:
                     options.defaultanswer = prompt('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?', kind=pr.yn)
                 if options.defaultanswer is False:
@@ -197,12 +197,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                     return
             for ext in jobconf.inputfiles + jobconf.outputfiles:
                 remove(pathjoin(outputdir, [jobname, iosuffix[ext]]))
-        elif path.exists(outputdir):
+        elif os.path.exists(outputdir):
             post('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre', kind=ec.joberr)
             return
         else:
-            mkdir(outputdir)
-            mkdir(jobdir)
+            makedirs(outputdir)
+            makedirs(jobdir)
 
     try:
         #TODO textform: do not write newlines or spaces if lists are empty
@@ -224,13 +224,13 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         fh.write(textform('done'))
         if 'offscript' in sysconf:
             for command in sysconf.offscript:
-                if not call(['sh', '-c', 'test ${{{}+?}}'.format(command.ifv)]):
+                if command.ifv in os.environ:
                     fh.write(textform('ssh', master, '"{}"'.format(command.repr)))
     finally:
         fh.close()
 
     for ext in jobconf.inputfiles:
-        if path.isfile(pathjoin(localdir, [basename, ext])):
+        if os.path.isfile(pathjoin(localdir, [basename, ext])):
             copyfile(pathjoin(localdir, [basename, ext]), pathjoin(outputdir, [jobname, iosuffix[ext]]))
 
     try:
