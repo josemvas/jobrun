@@ -45,8 +45,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
             basename = filename[:-len('.' + ext)]
             break
 
-    if not basename:
-        post('Se esperaba un archivo de entrada de', jobconf.title + ':', ', '.join(jobconf.inputfiles), kind=ec.joberr)
+    try: basename
+    except NameError:
+        post('Se esperaba un archivo de entrada de', jobconf.title, kind=ec.joberr)
         return
 
     for ext in jobconf.fileexts:
