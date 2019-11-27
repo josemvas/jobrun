@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="job2queue",
@@ -11,7 +11,7 @@ setup(
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/job2queue",
-    packages=setuptools.find_packages(),
+    packages=find_packages(),
     package_data={
         "job2queue": [
             "exec.py.txt",
