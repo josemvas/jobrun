@@ -11,7 +11,7 @@ setup(
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
-    description="Submit any job to any queue",
+    description="A python package to readily submit jobs to Linux clusters",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/job2q",
