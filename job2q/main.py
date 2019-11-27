@@ -13,7 +13,7 @@ from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
 from job2q.utils import post
-from job2q.utils import quote
+from job2q.utils import q
 from job2q.utils import rmdir
 from job2q.utils import remove
 from job2q.utils import prompt
@@ -72,7 +72,7 @@ def setup():
     host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
-        post('El archivo de configuración de la plataforma', quote(host), 'no existe', kind=ec.cfgerr)
+        post('El archivo de configuración de la plataforma', q(host), 'no existe', kind=ec.cfgerr)
 
     if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
         if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
@@ -110,18 +110,19 @@ def setup():
             with open(pathjoin(platformdir, host, available[package], 'jobspecs.xml')) as ifh:
                 ofh.write(ifh.read())
 
-    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para instalar en ./bin)', kind=pr.path, enter='./bin'))
+    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=pr.path))
 
-    makedirs(bindir)
-    with open(pathjoin(srcdir, 'exec.py.str')) as fh:
-        pyrun = fh.read()
-    #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
-    for package in listdir(specdir):
-        if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
-            try:
-                with open(pathjoin(bindir, package), 'w') as fh:
-                    fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
-            except IOError as e:
-                post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
-            else:
-                chmod(pathjoin(bindir, package), 0o755)
+    if bindir:
+        makedirs(bindir)
+        with open(pathjoin(srcdir, 'exec.py.str')) as fh:
+            pyrun = fh.read()
+        #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
+        for package in listdir(specdir):
+            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                try:
+                    with open(pathjoin(bindir, package), 'w') as fh:
+                        fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                except IOError as e:
+                    post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=ec.runerr)
+                else:
+                    chmod(pathjoin(bindir, package), 0o755)

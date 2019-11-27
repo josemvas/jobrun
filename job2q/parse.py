@@ -157,7 +157,7 @@ def readoptions(sysconf, jobconf, alias):
                     choices = sorted(list(jobconf.versionlist))
                     options.version = prompt('Seleccione una versión', kind=pr.radio, choices=choices)
             try: jobconf.program = jobconf.versionlist[options.version]
-            except KeyError as e: post('La versión seleccionada', quote(str(e.args[0])), 'no es válida', kind=ec.opterr)
+            except KeyError as e: post('La versión seleccionada', q(str(e.args[0])), 'no es válida', kind=ec.opterr)
             except TypeError: post('La lista de versiones está mal definida', kind=ec.cfgerr)
             try: jobconf.program.executable = expandvars(jobconf.program.executable)
             except AttributeError: post('No se especificó el ejecutable para la versión', options.version, kind=ec.cfgerr)

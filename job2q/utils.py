@@ -39,10 +39,14 @@ def textform(*args, **kwargs):
 #    return ' '*indent + sep.join(line) + end
 
 
-def quote(string):
-    if '"' in string and "'" in string: post('El texto contiene comillas simples y dobles:', string , kind=runerror)
+def q(string):
+    if '"' in string and "'" in string: post('El texto contiene comillas simples y dobles:', string , kind=ec.runerr)
     if '"' in string: return '"{}"'.format(string.rstrip().replace('"', "'"))
     else: return '"{}"'.format(string.rstrip())
+
+
+def dq(string):
+    return '"{}"'.format(string.rstrip())
 
 
 def prompt(*args, **kwargs):
@@ -142,7 +146,8 @@ def prompt(*args, **kwargs):
     precheck = kwargs.pop('precheck', [ ])
     try:
         if kind == pr.path:
-            return path_prompt(question) or kwargs['enter']
+            return path_prompt(question)
+            #return path_prompt(question) or kwargs['default']
             #return bullet.Input(prompt=question).launch()
         elif kind == pr.ok:
             return ok_prompt(question)
@@ -173,7 +178,7 @@ def post(*args, **kwargs):
         sys.exit(colored('¡Error! ' + message, 'red'))
     elif kind == ec.cfgerr:
         sys.exit(colored('¡Error de configuración! ' + message, 'red'))
-    elif kind == runerror:
+    elif kind == ec.runerr:
         frame = sys._getframe(1)
         sys.exit(colored('{}:{} {}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
     else:
@@ -187,7 +192,7 @@ def makedirs(path):
         if e.errno == errno.EEXIST:
             pass
         else:
-            post('No se pudo crear el directorio', e, kind=runerror)
+            post('No se pudo crear el directorio', e, kind=ec.runerr)
 
 def remove(path):
     try:
@@ -196,7 +201,7 @@ def remove(path):
         if e.errno == errno.ENOENT:
             pass
         else:
-            post('No se pudo eliminar el archivo:', e, kind=runerror)
+            post('No se pudo eliminar el archivo:', e, kind=ec.runerr)
 
 
 def rmdir(path):
@@ -206,7 +211,7 @@ def rmdir(path):
         if e.errno == errno.ENOENT:
             pass
         else:
-            post('No se pudo eliminar el directorio:', e, kind=runerror)
+            post('No se pudo eliminar el directorio:', e, kind=ec.runerr)
 
 
 def copyfile(source, dest):
@@ -214,9 +219,9 @@ def copyfile(source, dest):
         shutil.copyfile(source, dest)
     except IOError as e:
         if e.errno == errno.ENOENT:
-            post('No existe el archivo de origen', source + ',', 'o el directorio de destino', dirname(dest), kind=runerror)
+            post('No existe el archivo de origen', source + ',', 'o el directorio de destino', dirname(dest), kind=ec.runerr)
         if e.errno == errno.EEXIST:
-            post('Ya existe el archivo de destino', dest, kind=runerror)
+            post('Ya existe el archivo de destino', dest, kind=ec.runerr)
 
 
 def pathjoin(*components):

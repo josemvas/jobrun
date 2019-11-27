@@ -8,5 +8,5 @@
 </defaults>
 
 <offscript>
-   <s ifv='TELEGRAM_CHAT_ID'>curl -s -X POST \$TELEGRAM_BOT_URL -d chat_id=\$TELEGRAM_CHAT_ID -d text='Tu cálculo \"$LSB_JOBNAME\" ha finalizado'</s>
+   <s ifv='TELEGRAM_CHAT_ID'>curl -s -X POST \$TELEGRAM_BOT_URL -d chat_id=\$TELEGRAM_CHAT_ID --data-urlencode text='Tu cálculo \"{jobname}\" de {packagename} ha finalizado'</s>
 </offscript>
