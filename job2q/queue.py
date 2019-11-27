@@ -10,7 +10,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import call
 from re import sub
 
-from job2q.utils import post, textform, pathjoin, quote, prompt, copyfile, remove, makedirs
+from job2q.utils import post, textform, pathjoin, q, dq, prompt, copyfile, remove, makedirs
 from job2q.parse import parse_boolexpr
 from job2q.classes import ec, pr
 
@@ -131,19 +131,19 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     else: post('El tipo de paralelización ' + jobconf.runtype + ' no es válido', kind=ec.cfgerr)
 
     for ext in jobconf.inputfiles:
-        importfiles.append(['ssh', master, 'scp', quote(quote(pathjoin(outputdir, [jobname, iosuffix[ext]]))), \
-           '$ip:' + quote(quote(pathjoin('$workdir', jobconf.fileexts[ext])))])
+        importfiles.append(['ssh', master, 'scp', q(q(pathjoin(outputdir, [jobname, iosuffix[ext]]))), \
+           '$ip:' + q(q(pathjoin('$workdir', jobconf.fileexts[ext])))])
 
     for ext in jobconf.inputfiles + jobconf.outputfiles:
-        exportfiles.append(['scp', quote(pathjoin('$workdir', jobconf.fileexts[ext])), \
-            master + ':' + quote(quote(pathjoin(outputdir, [jobname, iosuffix[ext]])))])
+        exportfiles.append(['scp', q(pathjoin('$workdir', jobconf.fileexts[ext])), \
+            master + ':' + q(q(pathjoin(outputdir, [jobname, iosuffix[ext]])))])
 
     for parset in jobconf.parsets:
         if not os.path.isabs(parset):
             parset = pathjoin(localdir, parset)
         if os.path.isdir(parset):
             parset = pathjoin(parset, '.')
-        importfiles.append(['ssh', master, 'scp -r', quote(quote(parset)), '$ip:' + quote(quote('$workdir'))])
+        importfiles.append(['ssh', master, 'scp -r', q(q(parset)), '$ip:' + q(q('$workdir'))])
 
     for profile in jobconf.setdefault('profile', []) + jobconf.program.setdefault('profile', []):
         environment.append(profile)
@@ -183,7 +183,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 else:
                     jobstate = scheduler.checkjob(lastjob)
                     if jobstate in scheduler.jobstates:
-                        post('El trabajo', quote(jobname), 'no se envió porque', scheduler.jobstates[jobstate], \
+                        post('El trabajo', q(jobname), 'no se envió porque', scheduler.jobstates[jobstate], \
                             '(job {})'.format(lastjob), kind=ec.joberr)
                         return
             elif os.path.exists(jobdir):
@@ -193,7 +193,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 if options.defaultanswer is None:
                     options.defaultanswer = prompt('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?', kind=pr.yn)
                 if options.defaultanswer is False:
-                    post('El trabajo', quote(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
+                    post('El trabajo', q(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
                     return
             for ext in jobconf.inputfiles + jobconf.outputfiles:
                 remove(pathjoin(outputdir, [jobname, iosuffix[ext]]))
@@ -210,22 +210,22 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         fh.write(textform([textform(line, end='') for line in jobcontrol], sep='\n'))
         fh.write(textform(environment, sep='\n'))
         fh.write(textform('for ip in ${iplist[*]}; do'))
-        fh.write(textform('ssh', master, 'ssh $ip mkdir -m 700', quote(quote('$workdir')), indent=4))
+        fh.write(textform('ssh', master, 'ssh $ip mkdir -m 700', q(q('$workdir')), indent=4))
         fh.write(textform([textform(line, indent=4, end='') for line in importfiles], sep='\n'))
         fh.write(textform('done'))
-        fh.write(textform('cd', quote('$workdir')))
+        fh.write(textform('cd', q('$workdir')))
         fh.write(textform([i.repr for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]], sep='\n')) \
             if 'prescript' in jobconf else None
         fh.write(textform(jobcommand, arguments, redirections))
         fh.write(textform([textform(line, end='') for line in exportfiles], sep='\n'))
         fh.write(textform('for ip in ${iplist[*]}; do'))
-        fh.write(textform('ssh $ip rm -f', quote(quote('$workdir') + '/*'), indent=4))
-        fh.write(textform('ssh $ip rmdir', quote(quote('$workdir')), indent=4))
+        fh.write(textform('ssh $ip rm -f', q(q('$workdir') + '/*'), indent=4))
+        fh.write(textform('ssh $ip rmdir', q(q('$workdir')), indent=4))
         fh.write(textform('done'))
         if 'offscript' in sysconf:
             for command in sysconf.offscript:
                 if command.ifv in os.environ:
-                    fh.write(textform('ssh', master, '"{}"'.format(command.repr)))
+                    fh.write(textform('ssh', master, dq(command.repr.format(jobname=jobname, packagename=jobconf.title))))
     finally:
         fh.close()
 
@@ -236,9 +236,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     try:
         jobid = scheduler.submit(fh.name)
     except RuntimeError as e:
-        post('El sistema de colas rechazó el trabajo', quote(jobname), 'con el mensaje', quote(e.args[0]), kind=ec.joberr)
+        post('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]), kind=ec.joberr)
     else:
-        post('El trabajo', quote(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU (job', jobid + ')', kind=ec.sucess)
+        post('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU (job', jobid + ')', kind=ec.sucess)
         copyfile(fh.name, pathjoin(jobdir, jobid))
         remove(fh.name)
 

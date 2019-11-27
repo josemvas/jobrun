@@ -39,10 +39,14 @@ def textform(*args, **kwargs):
 #    return ' '*indent + sep.join(line) + end
 
 
-def quote(string):
+def q(string):
     if '"' in string and "'" in string: post('El texto contiene comillas simples y dobles:', string , kind=runerror)
     if '"' in string: return '"{}"'.format(string.rstrip().replace('"', "'"))
     else: return '"{}"'.format(string.rstrip())
+
+
+def dq(string):
+    return '"{}"'.format(string.rstrip())
 
 
 def prompt(*args, **kwargs):

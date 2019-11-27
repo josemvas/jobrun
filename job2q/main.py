@@ -13,7 +13,7 @@ from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
 from job2q.utils import post
-from job2q.utils import quote
+from job2q.utils import q
 from job2q.utils import rmdir
 from job2q.utils import remove
 from job2q.utils import prompt
@@ -72,7 +72,7 @@ def setup():
     host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
-        post('El archivo de configuración de la plataforma', quote(host), 'no existe', kind=ec.cfgerr)
+        post('El archivo de configuración de la plataforma', q(host), 'no existe', kind=ec.cfgerr)
 
     if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
         if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
