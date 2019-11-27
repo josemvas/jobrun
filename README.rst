@@ -3,13 +3,13 @@ JobToQueue: Submit any job to any queue
 #######################################
 
 Supported schedulers:
--PBS
--LSF
--Slurm
+- PBS
+- LSF
+- Slurm
 
 Supported programs:
--Gaussian
--VASP
--DFTB+
--Orca
--deMon2k
+- Gaussian
+- VASP
+- DFTB+
+- Orca
+- deMon2k
