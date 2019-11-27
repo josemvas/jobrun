@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages
+from setuptools import setup
+from setuptools import find_packages
 
 setup(
     name="job2queue",
@@ -26,12 +27,12 @@ setup(
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Operating System :: POSIX :: Linux",
     ],
-#    python_requires=">=2.7",
+    python_requires=">=2.7",
     install_requires=[
         "future",
         "termcolor",
         "pyparsing",
-        "bullet;python_version>='3.2'",
+        "bullet",
     ],
     entry_points={
         "console_scripts": [
