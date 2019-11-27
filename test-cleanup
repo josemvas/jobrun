@@ -1,0 +1,8 @@
+#!/bin/sh
+find tests -mindepth 2 -type f -delete
+find tests -type d -delete
+find etc -type f -delete
+find etc -type d -delete
+find bin -type f -delete
+find bin -type d -delete
+rmdir etc bin

@@ -15,7 +15,7 @@ from distutils import util
 
 from job2queue.utils import post, prompt, pathjoin
 from job2queue.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
-from job2queue.classes import ec, it
+from job2queue.classes import ec, pr
 
 
 def getelement(xmlfile, element):
@@ -155,7 +155,7 @@ def readoptions(sysconf, jobconf, alias):
                         options.version = jobconf.defaults.version
                 else:
                     choices = sorted(list(jobconf.versionlist))
-                    options.version = prompt('Seleccione una versión', kind=it.radio, choices=choices)
+                    options.version = prompt('Seleccione una versión', kind=pr.radio, choices=choices)
             try: jobconf.program = jobconf.versionlist[options.version]
             except KeyError as e: post('La versión seleccionada', quote(str(e.args[0])), 'no es válida', kind=ec.opterr)
             except TypeError: post('La lista de versiones está mal definida', kind=ec.cfgerr)
@@ -175,7 +175,7 @@ def readoptions(sysconf, jobconf, alias):
         if not choices:
             post('El directorio padre de parámetros', item, 'está vacío', kind=ec.cfgerr)
         if options.parameter is None:
-            options.parameter = choices[0] if len(choices) == 1 else prompt('Seleccione un conjunto de parámetros', kind=it.radio, choices=choices)
+            options.parameter = choices[0] if len(choices) == 1 else prompt('Seleccione un conjunto de parámetros', kind=pr.radio, choices=choices)
         jobconf.parsets.append(pathjoin(itempath, options.parameter))
 
     return options

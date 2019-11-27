@@ -10,7 +10,7 @@ setup(
     description="Submit jobs to any computer cluster",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
-    url="https://github.com/cronofugo/python-j2q",
+    url="https://github.com/cronofugo/job2queue",
     packages=setuptools.find_packages(),
     package_data={
         "job2queue": [

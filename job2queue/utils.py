@@ -12,7 +12,7 @@ import shutil
 from termcolor import colored
 from re import match, IGNORECASE 
 from os.path import basename, dirname
-from job2queue.classes import ec, it, cl
+from job2queue.classes import ec, pr, cl
 
 
 if sys.version_info[0] < 3:
@@ -48,7 +48,7 @@ def quote(string):
 def prompt(*args, **kwargs):
     #TODO: Validate path
     def path_prompt(question):
-        return input(question + ':' + ' ')
+        return input(question + ': ')
     def ok_prompt(question):
         while True:
             answer = input(question + ' ')
@@ -85,10 +85,10 @@ def prompt(*args, **kwargs):
                         post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
                     except IndexError:
                         post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
-        def check_prompt(question, choices, default):
+        def check_prompt(question, choices, precheck):
             print(question)
             for i, choice in enumerate(choices):
-                print('  {}) {}'.format(cl.upper[i] if choice in default else cl.lower[i], choice));
+                print('  {}) {}'.format(cl.upper[i] if choice in precheck else cl.lower[i], choice));
             while True:
                 chosen = [ ]
                 letters = input('Selección separada por espacios: ').strip().split()
@@ -120,7 +120,7 @@ def prompt(*args, **kwargs):
                 background_on_switch=bullet.colors.background["black"],
                 pad_right = 5,
                 ).launch()
-        def check_prompt(question, choices, default):
+        def check_prompt(question, choices, precheck):
             return bullet.Check(
                 prompt = question,
                 choices = choices,
@@ -135,25 +135,25 @@ def prompt(*args, **kwargs):
                 background_color=bullet.colors.background["black"],
                 background_on_switch=bullet.colors.background["black"],
                 pad_right = 5,
-                ).launch(default=[choices.index(i) for i in default])
+                ).launch(default=[choices.index(i) for i in precheck])
     question = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
     kind = kwargs.pop('kind')
     choices = kwargs.pop('choices', [ ])
-    default = kwargs.pop('default', [ ])
+    precheck = kwargs.pop('precheck', [ ])
     try:
-        if kind == it.path:
-            return path_prompt(question)
+        if kind == pr.path:
+            return path_prompt(question) or kwargs['enter']
             #return bullet.Input(prompt=question).launch()
-        elif kind == it.ok:
+        elif kind == pr.ok:
             return ok_prompt(question)
             #return bullet.YesNo(prompt=question).launch()
-        elif kind == it.yn:
+        elif kind == pr.yn:
             return yesno_prompt(question)
             #return bullet.YesNo(prompt=question).launch()
-        elif kind == it.radio:
+        elif kind == pr.radio:
             return list_prompt(question, choices)
-        elif kind == it.check:
-            return check_prompt(question, choices, default)
+        elif kind == pr.check:
+            return check_prompt(question, choices, precheck)
         else:
             post('Tipo de prompt inválido', kind=ec.cfgerr)
     except KeyboardInterrupt:

@@ -25,7 +25,7 @@ from job2queue.parse import readoptions
 from job2queue.parse import getelement
 from job2queue.queue import queuejob
 from job2queue.classes import Bunch
-from job2queue.classes import ec, it
+from job2queue.classes import ec, pr
 
 
 def run(hostspecs, jobspecs):
@@ -69,13 +69,13 @@ def setup():
     platformdir = pathjoin(srcdir, 'database', 'platform')
     specdir = pathjoin(dirname(dirname(sys.argv[0])), 'etc', 'j2q')
 
-    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=it.radio, choices=sorted(listdir(platformdir)))
+    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
         post('El archivo de configuración de la plataforma', quote(host), 'no existe', kind=ec.cfgerr)
 
     if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=it.ok):
+        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
             copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
     else:
         makedirs(specdir)
@@ -100,10 +100,9 @@ def setup():
         post('No hay paquetes configurados para este host', kind=ec.warning)
         return
 
-    enabled = prompt('Marque/desmarque los paquetes para los que desea escribir/borrar la configuración por defecto/actual', kind=it.check, choices=packagelist, default=configured)
-    disabled = [ x for x in available if x not in enabled ]
+    selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
 
-    for package in enabled:
+    for package in selected:
         makedirs(pathjoin(specdir, available[package]))
         with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
             with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
@@ -111,21 +110,18 @@ def setup():
             with open(pathjoin(platformdir, host, available[package], 'jobspecs.xml')) as ifh:
                 ofh.write(ifh.read())
 
-    for package in disabled:
-        remove(pathjoin(specdir, available[package], 'jobspecs.xml'))
+    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para instalar en ./bin)', kind=pr.path, enter='./bin'))
 
-    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=it.path))
-
-    if bindir:
-        with open(pathjoin(srcdir, 'exec.py.txt')) as fh:
-            pyrun = fh.read()
-        environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
-        for package in listdir(specdir):
-            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
-                try:
-                    with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(pyrun.format(version=tuple(sys.version_info), executable=sys.executable, argv=sys.argv, environ=environ, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
-                except IOError as e:
-                    post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
-                else:
-                    chmod(pathjoin(bindir, package), 0o755)
+    makedirs(bindir)
+    with open(pathjoin(srcdir, 'exec.py.txt')) as fh:
+        pyrun = fh.read()
+    #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
+    for package in listdir(specdir):
+        if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+            try:
+                with open(pathjoin(bindir, package), 'w') as fh:
+                    fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+            except IOError as e:
+                post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=runerror)
+            else:
+                chmod(pathjoin(bindir, package), 0o755)

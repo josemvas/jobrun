@@ -12,7 +12,7 @@ from re import sub
 
 from job2queue.utils import post, textform, pathjoin, quote, prompt, copyfile, remove
 from job2queue.parse import parse_boolexpr
-from job2queue.classes import ec, it
+from job2queue.classes import ec, pr
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -190,7 +190,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 mkdir(jobdir)
             if not set(listdir(outputdir)).isdisjoint([ pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles ]):
                 if options.defaultanswer is None:
-                    options.defaultanswer = prompt('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?', kind=it.yn)
+                    options.defaultanswer = prompt('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?', kind=pr.yn)
                 if options.defaultanswer is False:
                     post('El trabajo', quote(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
                     return

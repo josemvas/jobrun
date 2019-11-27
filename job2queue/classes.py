@@ -15,7 +15,7 @@ class ec:
     runerr = 5
 
 
-class it: 
+class pr: 
     ok = 1
     yn = 2
     radio = 3

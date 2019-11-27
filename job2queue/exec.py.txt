@@ -1,10 +1,7 @@
-#!/usr/bin/env python
+#!{python}
 # -*- coding: utf-8 -*-
 import os
 import sys
-if sys.version_info != {version}:
-    for var, path in {environ}.items():
-        os.environ[var] = path
-    os.execve(sys.argv[0], sys.argv, os.environ)
+sys.path = {syspath}
 from job2queue import main
 main.run('{hostspecs}', '{jobspecs}')
