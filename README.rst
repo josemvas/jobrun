@@ -2,13 +2,13 @@
 JobToQueue: Submit any job to any queue
 #######################################
 
-Supported schedulers:
+JobToQueue supports the following schedulers:
 
 - PBS
 - LSF
 - Slurm
 
-Supported programs:
+and the following simulation codes:
 
 - Gaussian
 - VASP
