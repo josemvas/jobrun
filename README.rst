@@ -1,5 +1,18 @@
-###############################################
-JobToQueue: Submit jobs to any computer cluster
-###############################################
+#######################################
+JobToQueue: Submit any job to any queue
+#######################################
 
-- Supports PBS, LSF and SLURM
+JobToQueue supports the following schedulers:
+
+- PBS
+- LSF
+- Slurm
+
+and the following simulation packages:
+
+- Gaussian
+- VASP
+- DFTB+
+- Orca
+- deMon2k
+

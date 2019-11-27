@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import sys
+assert sys.version_info >= (2, 7)
+
 from setuptools import setup
 from setuptools import find_packages
 
@@ -8,7 +11,7 @@ setup(
     version="0.0.1",
     author="José Manuel Vásquez",
     author_email="manuelvsqz@gmail.com",
-    description="Submit jobs to any computer cluster",
+    description="Submit any job to any queue",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/job2q",
