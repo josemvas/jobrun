@@ -11,13 +11,16 @@ import errno
 import shutil
 from termcolor import colored
 from re import match, IGNORECASE 
-from os.path import basename, dirname
 from job2q.classes import ec, pr, cl
 
 
 if sys.version_info[0] < 3:
     def input(question):
        return raw_input(question.encode(sys.stdout.encoding))
+
+
+def pathexpand(path):
+    return os.path.expanduser(os.path.expandvars(path))
 
 
 # Python 2 and 3
@@ -180,7 +183,7 @@ def post(*args, **kwargs):
         sys.exit(colored('¡Error de configuración! ' + message, 'red'))
     elif kind == ec.runerr:
         frame = sys._getframe(1)
-        sys.exit(colored('{}:{} {}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
+        sys.exit(colored('{}:{} {}'.format(os.path.basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
     else:
         message('Tipo de aviso inválido:', kind, kind=cfgkind)
 
@@ -219,7 +222,7 @@ def copyfile(source, dest):
         shutil.copyfile(source, dest)
     except IOError as e:
         if e.errno == errno.ENOENT:
-            post('No existe el archivo de origen', source + ',', 'o el directorio de destino', dirname(dest), kind=ec.runerr)
+            post('No existe el archivo de origen', source + ',', 'o el directorio de destino', os.path.dirname(dest), kind=ec.runerr)
         if e.errno == errno.EEXIST:
             post('Ya existe el archivo de destino', dest, kind=ec.runerr)
 

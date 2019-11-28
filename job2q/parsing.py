@@ -10,10 +10,10 @@ from os import path, listdir
 from argparse import ArgumentParser
 from xml.etree import ElementTree
 from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
-from os.path import basename, realpath, expandvars, expanduser
+from os.path import basename, realpath
 from distutils import util
 
-from job2q.utils import post, prompt, pathjoin
+from job2q.utils import post, prompt, pathjoin, pathexpand
 from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
 from job2q.classes import ec, pr
 
@@ -121,7 +121,7 @@ def readoptions(sysconf, jobconf, alias):
     except AttributeError: post('No se especificó el tipo de almacenamiento (storage)', kind=ec.cfgerr)
 
     if options.scratch is None:
-        try: options.scratch = expandvars(sysconf.defaults.scratch)
+        try: options.scratch = pathexpand(sysconf.defaults.scratch)
         except AttributeError: post('No se especificó el directorio temporal de escritura por defecto (scratch)', kind=ec.cfgerr)
 
     if options.queue is None:
@@ -159,7 +159,7 @@ def readoptions(sysconf, jobconf, alias):
             try: jobconf.program = jobconf.versionlist[options.version]
             except KeyError as e: post('La versión seleccionada', q(str(e.args[0])), 'no es válida', kind=ec.opterr)
             except TypeError: post('La lista de versiones está mal definida', kind=ec.cfgerr)
-            try: jobconf.program.executable = expandvars(jobconf.program.executable)
+            try: jobconf.program.executable = pathexpand(jobconf.program.executable)
             except AttributeError: post('No se especificó el ejecutable para la versión', options.version, kind=ec.cfgerr)
         else: post('La lista de versiones está vacía (versionlist)', kind=ec.cfgerr)
     else: post('No se definió ninguna lista de versiones (versionlist)', kind=ec.cfgerr)
@@ -167,7 +167,7 @@ def readoptions(sysconf, jobconf, alias):
     #TODO: Implement default parameter sets
     jobconf.parsets = [ ]
     for item in jobconf.get('parameteroot', []):
-        itempath = realpath(expanduser(expandvars(item)))
+        itempath = realpath(pathexpand(item))
         try:
             choices = sorted(listdir(itempath))
         except IOError:

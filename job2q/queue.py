@@ -11,7 +11,7 @@ from subprocess import call
 from re import sub
 
 from job2q.utils import post, textform, pathjoin, q, dq, prompt, copyfile, remove, makedirs
-from job2q.parse import parse_boolexpr
+from job2q.parsing import parse_boolexpr
 from job2q.classes import ec, pr
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):

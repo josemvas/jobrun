@@ -12,20 +12,10 @@ from termcolor import colored
 from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
-from job2q.utils import post
-from job2q.utils import q
-from job2q.utils import rmdir
-from job2q.utils import remove
-from job2q.utils import prompt
-from job2q.utils import makedirs
-from job2q.utils import pathjoin
-from job2q.utils import copyfile
-from job2q.parse import loadconfig
-from job2q.parse import readoptions
-from job2q.parse import getelement
+from job2q.utils import post, rmdir, remove, prompt, makedirs, copyfile, pathjoin, pathexpand
+from job2q.parsing import loadconfig, readoptions, getelement
+from job2q.classes import Bunch, ec, pr
 from job2q.queue import queuejob
-from job2q.classes import Bunch
-from job2q.classes import ec, pr
 
 
 def run(hostspecs, jobspecs):
@@ -50,6 +40,7 @@ def run(hostspecs, jobspecs):
 
     options = readoptions(sysconf, jobconf, alias)
 
+    #TODO: Sort in alphabetical and numerical order
     if 'r' in options.sort:
         options.inputlist.sort(reverse=True)
 
@@ -62,59 +53,59 @@ def run(hostspecs, jobspecs):
         sys.exit(colored('Cancelado por el usario', 'red'))
 
 
-def setup():
+def setup(**kwargs):
 
     srcdir = dirname(realpath(__file__))
     genericdir = pathjoin(srcdir, 'database', 'generic')
     platformdir = pathjoin(srcdir, 'database', 'platform')
-    specdir = pathjoin(dirname(dirname(sys.argv[0])), 'etc', 'j2q')
 
-    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
+    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)', kind=pr.path))
+    bindir = kwargs['bindir'] if 'bindir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)', kind=pr.path))
+    hostname = kwargs['hostname'] if 'hostname' in kwargs else prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
 
-    if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
-        post('El archivo de configuración de la plataforma', q(host), 'no existe', kind=ec.cfgerr)
+    if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
+        post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
 
-    if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
-            copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
-    else:
-        makedirs(specdir)
-        copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
-         
-    available = { }
-    configured = [ ]
+    if cfgdir and os.path.isdir(cfgdir):
+        specdir = pathjoin(cfgdir, 'j2q')
+        if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
+            if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
+                copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+        else:
+            makedirs(specdir)
+            copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+             
+        available = { }
+        configured = [ ]
+    
+        for package in listdir(pathjoin(platformdir, hostname)):
+            if path.isdir(pathjoin(platformdir, hostname, package)):
+                try:
+                    title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
+                except AttributeError:
+                    post('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título', kind=ec.cfgerr)
+                available[title] = package
+                if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                    configured.append(title)
+    
+        packagelist = list(available)
+    
+        if not packagelist:
+            post('No hay paquetes configurados para este host', kind=ec.warning)
+            return
+    
+        selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
+    
+        for package in selected:
+            makedirs(pathjoin(specdir, available[package]))
+            with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
+                with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
+                    ofh.write(ifh.read())
+                with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
+                    ofh.write(ifh.read())
 
-    for package in listdir(pathjoin(platformdir, host)):
-        if path.isdir(pathjoin(platformdir, host, package)):
-            try:
-                title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
-            except AttributeError:
-                post('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título', kind=ec.cfgerr)
-            available[title] = package
-            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
-                configured.append(title)
-
-    packagelist = list(available)
-
-    if not packagelist:
-        post('No hay paquetes configurados para este host', kind=ec.warning)
-        return
-
-    selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
-
-    for package in selected:
-        makedirs(pathjoin(specdir, available[package]))
-        with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
-            with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
-                ofh.write(ifh.read())
-            with open(pathjoin(platformdir, host, available[package], 'jobspecs.xml')) as ifh:
-                ofh.write(ifh.read())
-
-    bindir = path.expanduser(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=pr.path))
-
-    if bindir:
-        makedirs(bindir)
-        with open(pathjoin(srcdir, 'exec.py.str')) as fh:
+    if bindir and os.path.isdir(bindir):
+        with open(pathjoin(srcdir, 'strings', 'exec.py.str')) as fh:
             pyrun = fh.read()
         #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
