@@ -16,7 +16,7 @@ setup(
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/job2q",
     packages=find_packages(),
-    python_requires=">=2.7",
+#    python_requires=">=2.7",
     package_data={
         "job2q": [
             "strings/exec.py.str",
@@ -35,7 +35,6 @@ setup(
         "future",
         "termcolor",
         "pyparsing",
-        "bullet",
     ],
     entry_points={
         "console_scripts": [
