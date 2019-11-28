@@ -1,7 +1,5 @@
 #!/bin/sh
 find tests -mindepth 2 -type f -delete
 find tests -mindepth 1 -type d -delete
-find etc -type f -delete
-find etc -type d -delete
-find bin -type f -delete
-find bin -type d -delete
+find local -type f -delete
+find local -type d -delete

@@ -4,4 +4,4 @@ assert sys.version_info >= (2, 7)
 
 import os
 from job2q import main
-main.setup(cfgdir=os.path.join(os.getcwd(),'etc'), bindir=os.path.join(os.getcwd(),'bin'))
+main.setup(cfgdir=os.path.join(os.getcwd(), 'local', 'etc'), bindir=os.path.join(os.getcwd(), 'local', 'bin'))

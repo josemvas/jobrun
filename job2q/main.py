@@ -59,51 +59,50 @@ def setup(**kwargs):
     genericdir = pathjoin(srcdir, 'database', 'generic')
     platformdir = pathjoin(srcdir, 'database', 'platform')
 
-    host = prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
+    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)', kind=pr.path))
+    bindir = kwargs['bindir'] if 'bindir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)', kind=pr.path))
+    hostname = kwargs['hostname'] if 'hostname' in kwargs else prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
 
-    if not path.isfile(pathjoin(platformdir, host, 'hostspecs.xml')):
-        post('El archivo de configuración del host', host, 'no existe', kind=ec.cfgerr)
+    if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
+        post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
 
-    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else pathexpand(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=pr.path))
-    specdir = pathjoin(cfgdir, 'j2q')
-
-    if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-        if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
-            copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
-    else:
-        makedirs(specdir)
-        copyfile(pathjoin(platformdir, host, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
-         
-    available = { }
-    configured = [ ]
-
-    for package in listdir(pathjoin(platformdir, host)):
-        if path.isdir(pathjoin(platformdir, host, package)):
-            try:
-                title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
-            except AttributeError:
-                post('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título', kind=ec.cfgerr)
-            available[title] = package
-            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
-                configured.append(title)
-
-    packagelist = list(available)
-
-    if not packagelist:
-        post('No hay paquetes configurados para este host', kind=ec.warning)
-        return
-
-    selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
-
-    for package in selected:
-        makedirs(pathjoin(specdir, available[package]))
-        with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
-            with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
-                ofh.write(ifh.read())
-            with open(pathjoin(platformdir, host, available[package], 'jobspecs.xml')) as ifh:
-                ofh.write(ifh.read())
-
-    bindir = kwargs['bindir'] if 'bindir' in kwargs else pathexpand(prompt('Especifique la ruta donde se instalarán los enlaces de los paquetes configurados (ENTER para omitir)', kind=pr.path))
+    if cfgdir:
+        specdir = pathjoin(cfgdir, 'j2q')
+        if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
+            if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
+                copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+        else:
+            makedirs(specdir)
+            copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+             
+        available = { }
+        configured = [ ]
+    
+        for package in listdir(pathjoin(platformdir, hostname)):
+            if path.isdir(pathjoin(platformdir, hostname, package)):
+                try:
+                    title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
+                except AttributeError:
+                    post('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título', kind=ec.cfgerr)
+                available[title] = package
+                if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                    configured.append(title)
+    
+        packagelist = list(available)
+    
+        if not packagelist:
+            post('No hay paquetes configurados para este host', kind=ec.warning)
+            return
+    
+        selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
+    
+        for package in selected:
+            makedirs(pathjoin(specdir, available[package]))
+            with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
+                with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
+                    ofh.write(ifh.read())
+                with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
+                    ofh.write(ifh.read())
 
     if bindir:
         makedirs(bindir)
