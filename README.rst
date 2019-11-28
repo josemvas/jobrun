@@ -2,21 +2,15 @@
 JobToQueue: Submit any job to any queue
 #######################################
 
-JobToQueue is a python package to readily submit jobs to Linux clusters.
+JobToQueue is a python package to readily submit jobs to Linux clusters, it currently supports the following schedulers and simulation packages:
 
-It currently supports the following schedulers
-
-- PBS
-- LSF
-- Slurm
-
-and the following simulation packages
-
-- Gaussian
-- VASP
-- DFTB+
-- Orca
-- deMon2k
-- AutoDock
-- NAMD
++------------------+-------------------
+| Schedulers       | Packages         |
++==================+===================
+|- PBS             | - Gaussian       |
+|- LSF             | - VASP           |
+|- Slurm           | - DFTB+          |
+|                  | - Orca           |
+|                  | - deMon2k        |
++------------------+------------------+
 
