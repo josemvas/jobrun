@@ -66,7 +66,7 @@ def setup(**kwargs):
     if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
         post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
 
-    if cfgdir:
+    if cfgdir and os.path.isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
         if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
             if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
@@ -104,8 +104,7 @@ def setup(**kwargs):
                 with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
                     ofh.write(ifh.read())
 
-    if bindir:
-        makedirs(bindir)
+    if bindir and os.path.isdir(bindir):
         with open(pathjoin(srcdir, 'strings', 'exec.py.str')) as fh:
             pyrun = fh.read()
         #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }

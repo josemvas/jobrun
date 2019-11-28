@@ -20,7 +20,7 @@ if sys.version_info[0] < 3:
 
 
 def pathexpand(path):
-    return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
+    return os.path.expanduser(os.path.expandvars(path))
 
 
 # Python 2 and 3
