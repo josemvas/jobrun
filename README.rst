@@ -2,7 +2,7 @@
 JobToQueue: Submit any job to any queue
 #######################################
 
-JobToQueue is a python package to readily submit jobs to Linux clusters. It currently supports the following schedulers and simulation packages:
+JobToQueue is a python package to readily submit jobs to Linux clusters. It currently supports the following job schedulers and simulation packages:
 
 +------------------+------------------+
 | Schedulers       | Packages         |
