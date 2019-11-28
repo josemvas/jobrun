@@ -16,9 +16,10 @@ setup(
     long_description_content_type="text/x-rst",
     url="https://github.com/cronofugo/job2q",
     packages=find_packages(),
+    python_requires=">=2.7",
     package_data={
         "job2q": [
-            "exec.py.str",
+            "strings/exec.py.str",
             "database/platform/*/hostspecs.xml",
             "database/generic/*/jobspecs.xml",
             "database/platform/*/*/jobspecs.xml",
@@ -30,7 +31,6 @@ setup(
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires=">=2.7",
     install_requires=[
         "future",
         "termcolor",

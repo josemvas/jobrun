@@ -114,7 +114,7 @@ def setup():
 
     if bindir:
         makedirs(bindir)
-        with open(pathjoin(srcdir, 'exec.py.str')) as fh:
+        with open(pathjoin(srcdir, 'strings', 'exec.py.str')) as fh:
             pyrun = fh.read()
         #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
