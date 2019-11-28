@@ -10,7 +10,7 @@ JobToQueue is a python package to readily submit jobs to Linux clusters, it curr
 | - LSF            | - VASP           |
 | - Slurm          | - DFTB+          |
 | - PBS            | - ORCA           |
-|                  | - deMon2k        |
 |                  | - Gaussian       |
+|                  | - deMon2k        |
 +------------------+------------------+
 
