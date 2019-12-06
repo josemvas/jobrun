@@ -3,24 +3,15 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
-from past.builtins import basestring
 
 import os
 import sys
 import errno
 import shutil
+import inspect
+from job2q.classes import ec
 from termcolor import colored
-from re import match, IGNORECASE 
-from job2q.classes import ec, pr, cl
-
-
-if sys.version_info[0] < 3:
-    def input(question):
-       return raw_input(question.encode(sys.stdout.encoding))
-
-
-def pathexpand(path):
-    return os.path.expanduser(os.path.expandvars(path))
+from past.builtins import basestring
 
 
 # Python 2 and 3
@@ -52,150 +43,15 @@ def dq(string):
     return '"{}"'.format(string.rstrip())
 
 
-def prompt(*args, **kwargs):
-    #TODO: Validate path
-    def path_prompt(question):
-        return input(question + ': ')
-    def ok_prompt(question):
-        while True:
-            answer = input(question + ' ')
-            if match('(ok|y|ye|yes|s|si)$', answer, IGNORECASE):
-                return True
+def makedirs(*args):
+    for path in args:
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
             else:
-                return False
-    def yesno_prompt(question):
-        while True:
-            answer = input(question + ' ')
-            if match('s$', answer, IGNORECASE):
-                print('Por favor escriba "si" para confirmar:')
-            elif match('(y|ye)$', answer, IGNORECASE):
-                print('Por favor escriba "yes" para confirmar:')
-            elif match('(si|yes)$', answer, IGNORECASE):
-                return True
-            elif match('(n|no)$', answer, IGNORECASE):
-                return False
-    try:
-        import bullet
-    except ImportError:
-        def list_prompt(question, choices):
-            print(question)
-            for i, option in enumerate(choices):
-                print('  {}) {}'.format(cl.lower[i], option));
-            while True:
-                letter = input('Selección: ').strip()
-                if len(letter.split()) != 1:
-                    post('Seleccione exactamente una opción', kind=ec.warning)
-                else:
-                    try:
-                        return choices[cl.lower.index(letter.lower())]
-                    except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
-                    except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
-        def check_prompt(question, choices, precheck):
-            print(question)
-            for i, choice in enumerate(choices):
-                print('  {}) {}'.format(cl.upper[i] if choice in precheck else cl.lower[i], choice));
-            while True:
-                chosen = [ ]
-                letters = input('Selección separada por espacios: ').strip().split()
-                for letter in letters:
-                    try:
-                        chosen.append(choices[cl.lower.index(letter.lower())])
-                    except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
-                        break
-                    except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
-                        break
-                if len(chosen) == len(letters):
-                    return chosen
-    else:
-        def list_prompt(question, choices):
-            return bullet.Bullet(
-                prompt = question,
-                choices = choices,
-                indent = 0,
-                align = 2, 
-                margin = 1,
-                bullet = '>',
-                #bullet_color=bullet.colors.background["black"],
-                bullet_color=bullet.colors.foreground["blue"],
-                word_color=bullet.colors.foreground["white"],
-                word_on_switch=bullet.colors.foreground["blue"],
-                background_color=bullet.colors.background["black"],
-                background_on_switch=bullet.colors.background["black"],
-                pad_right = 5,
-                ).launch()
-        def check_prompt(question, choices, precheck):
-            return bullet.Check(
-                prompt = question,
-                choices = choices,
-                indent = 0,
-                align = 2, 
-                margin = 1,
-                check = 'X',
-                check_color=bullet.colors.background["black"],
-                check_on_switch=bullet.colors.foreground["blue"],
-                word_color=bullet.colors.foreground["white"],
-                word_on_switch=bullet.colors.foreground["blue"],
-                background_color=bullet.colors.background["black"],
-                background_on_switch=bullet.colors.background["black"],
-                pad_right = 5,
-                ).launch(default=[choices.index(i) for i in precheck])
-    question = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
-    kind = kwargs.pop('kind')
-    choices = kwargs.pop('choices', [ ])
-    precheck = kwargs.pop('precheck', [ ])
-    try:
-        if kind == pr.path:
-            return path_prompt(question)
-            #return path_prompt(question) or kwargs['default']
-            #return bullet.Input(prompt=question).launch()
-        elif kind == pr.ok:
-            return ok_prompt(question)
-            #return bullet.YesNo(prompt=question).launch()
-        elif kind == pr.yn:
-            return yesno_prompt(question)
-            #return bullet.YesNo(prompt=question).launch()
-        elif kind == pr.radio:
-            return list_prompt(question, choices)
-        elif kind == pr.check:
-            return check_prompt(question, choices, precheck)
-        else:
-            post('Tipo de prompt inválido', kind=ec.cfgerr)
-    except KeyboardInterrupt:
-        sys.exit(colored('Cancelado por el usuario', 'red'))
-
-
-def post(*args, **kwargs):
-    message = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
-    kind = kwargs.pop('kind')
-    if kind == ec.sucess:
-        print(colored(message, 'green'))
-    elif kind == ec.warning:
-        print(colored(message, 'yellow'))
-    elif kind == ec.joberr:
-        print(colored(message, 'red'))
-    elif kind == ec.opterr:
-        sys.exit(colored('¡Error! ' + message, 'red'))
-    elif kind == ec.cfgerr:
-        sys.exit(colored('¡Error de configuración! ' + message, 'red'))
-    elif kind == ec.runerr:
-        frame = sys._getframe(1)
-        sys.exit(colored('{}:{} {}'.format(os.path.basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
-    else:
-        message('Tipo de aviso inválido:', kind, kind=cfgkind)
-
-
-def makedirs(path):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            post('No se pudo crear el directorio', e, kind=ec.runerr)
+                post('No se pudo crear el directorio', e, kind=ec.runerr)
 
 def remove(path):
     try:
@@ -229,5 +85,46 @@ def copyfile(source, dest):
 
 def pathjoin(*components):
     return os.path.join(*[ '.'.join(x) if type(x) is list else x for x in components ])
+
+
+def basename(path):
+    return os.path.basename(path)
+
+
+def pathexpand(path):
+    return os.path.expanduser(os.path.expandvars(path))
+
+
+def catch_keyboard_interrupt(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            sys.exit(colored('Cancelado por el usuario', 'red'))
+    return wrapper
+
+
+def join_positional_args(fn):
+    def wrapper(*args, **kwargs):
+        prompt = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
+        return fn(prompt=prompt, **kwargs)
+    return wrapper
+
+
+def decorate_class_methods(decorator):
+    def decorate(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isroutine):
+            setattr(cls, name, decorator(fn))
+        return cls
+    return decorate
+
+
+def override_class_methods(module):
+    def override(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isroutine):
+            try: setattr(cls, name, getattr(module, name))
+            except Exception as e: print('Exception:', e)
+        return cls
+    return override
 
 

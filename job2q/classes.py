@@ -15,14 +15,6 @@ class ec:
     runerr = 5
 
 
-class pr: 
-    ok = 1
-    yn = 2
-    radio = 3
-    check = 4
-    path = 5
-
-
 class cl:
     lower = list('abcdefghijklmnopqrstuvwxyz')
     upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')

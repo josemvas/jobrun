@@ -10,9 +10,10 @@ from tempfile import NamedTemporaryFile
 from subprocess import call
 from re import sub
 
-from job2q.utils import post, textform, pathjoin, q, dq, prompt, copyfile, remove, makedirs
+from job2q.utils import textform, pathjoin, q, dq, copyfile, remove, makedirs
 from job2q.parsing import parse_boolexpr
-from job2q.classes import ec, pr
+from job2q.dialogs import post, dialog
+from job2q.classes import ec
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -189,9 +190,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
             elif os.path.exists(jobdir):
                 remove(jobdir)
                 makedirs(jobdir)
-            if not set(os.listdir(outputdir)).isdisjoint([ pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles ]):
+            if bool(set(os.listdir(outputdir)) & set([pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles])):
                 if options.defaultanswer is None:
-                    options.defaultanswer = prompt('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?', kind=pr.yn)
+                    options.defaultanswer = dialog.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
                 if options.defaultanswer is False:
                     post('El trabajo', q(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
                     return

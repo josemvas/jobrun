@@ -12,9 +12,10 @@ from termcolor import colored
 from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
-from job2q.utils import post, rmdir, remove, prompt, makedirs, copyfile, pathjoin, pathexpand
+from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
 from job2q.parsing import loadconfig, readoptions, getelement
-from job2q.classes import Bunch, ec, pr
+from job2q.classes import Bunch, ec
+from job2q.dialogs import post, dialog
 from job2q.queue import queuejob
 
 
@@ -59,9 +60,9 @@ def setup(**kwargs):
     genericdir = pathjoin(srcdir, 'database', 'generic')
     platformdir = pathjoin(srcdir, 'database', 'platform')
 
-    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)', kind=pr.path))
-    bindir = kwargs['bindir'] if 'bindir' in kwargs else pathexpand(prompt('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)', kind=pr.path))
-    hostname = kwargs['hostname'] if 'hostname' in kwargs else prompt('Seleccione la opción con la arquitectura más adecuada', kind=pr.radio, choices=sorted(listdir(platformdir)))
+    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else dialog.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
+    bindir = kwargs['bindir'] if 'bindir' in kwargs else dialog.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
+    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialog.Bullet('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
         post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
@@ -69,7 +70,7 @@ def setup(**kwargs):
     if cfgdir and os.path.isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
         if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-            if prompt('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?', kind=pr.ok):
+            if dialog.accept('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?'):
                 copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
         else:
             makedirs(specdir)
@@ -94,7 +95,7 @@ def setup(**kwargs):
             post('No hay paquetes configurados para este host', kind=ec.warning)
             return
     
-        selected = prompt('Marque los paquetes que desea configurar o reconfigurar', kind=pr.check, choices=packagelist, precheck=configured)
+        selected = dialog.Check('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, precheck=configured)
     
         for package in selected:
             makedirs(pathjoin(specdir, available[package]))

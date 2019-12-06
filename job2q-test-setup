@@ -2,11 +2,12 @@
 import sys
 assert sys.version_info >= (2, 7)
 
-import os
-from job2q import main
-cfgdir = os.path.join(os.getcwd(), 'etc')
-bindir = os.path.join(os.getcwd(), 'bin')
-os.makedirs(cfgdir)
-os.makedirs(bindir)
-main.setup(cfgdir=cfgdir, bindir=bindir)
+from os.path import abspath
+from job2q.main import setup
+from job2q.utils import makedirs
+
+cfgdir = abspath('./etc')
+bindir = abspath('./bin')
+makedirs(cfgdir, bindir)
+setup(cfgdir=cfgdir, bindir=bindir)
 
