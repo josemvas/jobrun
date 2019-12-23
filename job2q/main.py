@@ -62,7 +62,7 @@ def setup(**kwargs):
 
     cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else dialog.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
     bindir = kwargs['bindir'] if 'bindir' in kwargs else dialog.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
-    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialog.Bullet('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
+    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialog.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
         post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
@@ -95,7 +95,7 @@ def setup(**kwargs):
             post('No hay paquetes configurados para este host', kind=ec.warning)
             return
     
-        selected = dialog.Check('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, precheck=configured)
+        selected = dialog.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
     
         for package in selected:
             makedirs(pathjoin(specdir, available[package]))

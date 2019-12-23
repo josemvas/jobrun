@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import sys
-import bullet
 import readline
 from glob import glob
 from termcolor import colored
@@ -14,15 +13,19 @@ from job2q.classes import ec, cl
 from job2q.utils import basename, pathexpand, decorate_class_methods, catch_keyboard_interrupt, join_positional_args, override_class_methods
 from past.builtins import basestring
 
-
-readline.set_completer_delims(' \t\n')
-readline.parse_and_bind('tab: complete')
-
+try:
+    import bulletin
+except ImportError:
+    dialogs = None
+else:
+    dialogs = bulletin.Dialogs(margin=1, pad_right=1)
 
 if sys.version_info[0] < 3:
     def input(prompt):
        return raw_input(prompt.encode(sys.stdout.encoding))
 
+readline.set_completer_delims(' \t\n')
+readline.parse_and_bind('tab: complete')
 
 class tabCompleter(object):
 
@@ -33,26 +36,23 @@ class tabCompleter(object):
     def path(self, text, state):
         return [i + '/' for i in glob(readline.get_line_buffer() + '*')][state]
 
-    def bullet(self, text, state):
+    def optone(self, text, state):
         return [i + ' ' for i in self.options if i.startswith(readline.get_line_buffer())][state]
 
-    def check(self, text, state):
+    def optany(self, text, state):
         return [i + ' ' for i in self.options if i.startswith(text) if i not in readline.get_line_buffer().split()][state]
-
 
 #TODO: Validate path, autocomplete path and choices
 @decorate_class_methods(catch_keyboard_interrupt)
 @decorate_class_methods(join_positional_args)
-#@override_class_methods(bullet)
+@override_class_methods(dialogs)
 class dialog(object):
 
-    def path(**kwargs):
-        prompt = kwargs.get('prompt', [])
+    def path(propmpt=''):
         readline.set_completer(tabCompleter().path)
         return pathexpand(input(prompt + ': '))
     
-    def accept(**kwargs):
-        prompt = kwargs.get('prompt', [])
+    def accept(prompt=''):
         while True:
             answer = input(prompt + ' ')
             if match('(ok|y|ye|yes|s|si)$', answer, IGNORECASE):
@@ -60,8 +60,7 @@ class dialog(object):
             else:
                 return False
     
-    def yesno(**kwargs):
-        prompt = kwargs.get('prompt', [])
+    def yesno(prompt=''):
         while True:
             answer = input(prompt + ' ')
             if match('s$', answer, IGNORECASE):
@@ -73,13 +72,11 @@ class dialog(object):
             elif match('(n|no)$', answer, IGNORECASE):
                 return False
 
-    def Bullet(**kwargs):
-        prompt = kwargs.get('prompt', [])
-        choices = kwargs.get('choices', [])
-        readline.set_completer(tabCompleter(choices).bullet)
+    def optone(prompt='', choices=[]):
+        readline.set_completer(tabCompleter(choices).optone)
         print(prompt)
         for choice in choices:
-            print(' '*3 + choice);
+            print(' '*2 + choice);
         while True:
             chosen = input('Elección (TAB para autocompletar): ').strip()
             if chosen in choices:
@@ -87,14 +84,11 @@ class dialog(object):
             else:
                 post('Elección inválida, intente de nuevo', kind=ec.warning)
     
-    def Check(**kwargs):
-        prompt = kwargs.get('prompt', [])
-        choices = kwargs.get('choices', [])
-        precheck = kwargs.get('precheck', [])
-        readline.set_completer(tabCompleter(choices).check)
+    def optany(prompt='', choices=[], default=[]):
+        readline.set_completer(tabCompleter(choices).optany)
         print(prompt)
         for choice in choices:
-            print(' '*3 + choice);
+            print(' '*2 + choice);
         while True:
             chosen = input('Selección (TAB para autocompletar): ').strip().split()
             if set(chosen) <= set(choices):
@@ -121,41 +115,4 @@ def post(*args, **kwargs):
         sys.exit(colored('{}:{} {}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
     else:
         message('Tipo de aviso inválido:', kind, kind=cfgkind)
-
-
-#def Bullet(prompt, choices):
-#    return bullet.Bullet(
-#        prompt = prompt,
-#        choices = choices,
-#        indent = 0,
-#        align = 2, 
-#        margin = 1,
-#        bullet = '>',
-#        #bullet_color=bullet.colors.background["black"],
-#        bullet_color=bullet.colors.foreground["blue"],
-#        word_color=bullet.colors.foreground["white"],
-#        word_on_switch=bullet.colors.foreground["blue"],
-#        background_color=bullet.colors.background["black"],
-#        background_on_switch=bullet.colors.background["black"],
-#        pad_right = 5,
-#        ).launch()
-
-
-#def Check(prompt, choices, **kwargs):
-#    return bullet.Check(
-#        prompt = prompt,
-#        choices = choices,
-#        indent = 0,
-#        align = 2, 
-#        margin = 1,
-#        check = 'X',
-#        check_color=bullet.colors.background["black"],
-#        check_on_switch=bullet.colors.foreground["blue"],
-#        word_color=bullet.colors.foreground["white"],
-#        word_on_switch=bullet.colors.foreground["blue"],
-#        background_color=bullet.colors.background["black"],
-#        background_on_switch=bullet.colors.background["black"],
-#        pad_right = 5,
-#        ).launch(default=[choices.index(i) for i in precheck])
-
 

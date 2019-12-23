@@ -16,6 +16,8 @@ from past.builtins import basestring
 
 # Python 2 and 3
 def textform(*args, **kwargs):
+# Python 3 optional arguments
+#def textform(*args, sep=' ', end='\n', indent=0):
     sep = kwargs.pop('sep', ' ')
     end = kwargs.pop('end', '\n')
     indent = kwargs.pop('indent', 0)
@@ -24,13 +26,6 @@ def textform(*args, **kwargs):
         if type(arg) is list: line.append(sep.join(arg))
         elif arg: line.append(arg)
     return ' '*indent + sep.join(line) + end
-# Python 3 only
-#def textform(*args, sep=' ', end='\n', indent=0):
-#    line = [ ]
-#    for arg in args:
-#        if type(arg) is list: line.append(sep.join(arg))
-#        elif type(arg) is str: line.append(arg)
-#    return ' '*indent + sep.join(line) + end
 
 
 def q(string):
@@ -122,8 +117,9 @@ def decorate_class_methods(decorator):
 def override_class_methods(module):
     def override(cls):
         for name, fn in inspect.getmembers(cls, inspect.isroutine):
-            try: setattr(cls, name, getattr(module, name))
-            except Exception as e: print('Exception:', e)
+            if hasattr(module, name):
+                try: setattr(cls, name, getattr(module, name))
+                except Exception as e: print('Exception:', e)
         return cls
     return override
 
