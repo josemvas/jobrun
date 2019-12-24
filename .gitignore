@@ -2,3 +2,6 @@ __pycache__/
 /tests/*/
 /etc/
 /bin/
+/*.egg-info/
+/build/
+/dist/

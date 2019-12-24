@@ -1,9 +1,7 @@
 #!/bin/sh
-
+find job2q -name \*.pyc -type f -delete
+find job2q -name __pycache__ -type d -delete
 find tests -mindepth 2 -type f -delete
 find tests -mindepth 1 -type d -delete
-find etc -type f -delete
-find etc -type d -delete
-find bin -type f -delete
-find bin -type d -delete
-
+rm -rf bin
+rm -rf etc
