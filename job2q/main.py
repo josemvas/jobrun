@@ -70,7 +70,7 @@ def setup(**kwargs):
     if cfgdir and os.path.isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
         if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-            if dialog.accept('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?'):
+            if dialog.yn('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?'):
                 copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
         else:
             makedirs(specdir)
