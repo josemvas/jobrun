@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 import os
 import sys
@@ -15,7 +15,7 @@ from os.path import dirname, basename, realpath
 from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
 from job2q.parsing import loadconfig, readoptions, getelement
 from job2q.classes import Bunch, ec
-from job2q.dialogs import post, dialog
+from job2q.dialogs import post, dialogs
 from job2q.queue import queuejob
 
 
@@ -60,9 +60,9 @@ def setup(**kwargs):
     genericdir = pathjoin(srcdir, 'database', 'generic')
     platformdir = pathjoin(srcdir, 'database', 'platform')
 
-    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else dialog.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
-    bindir = kwargs['bindir'] if 'bindir' in kwargs else dialog.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
-    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialog.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
+    cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else dialogs.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
+    bindir = kwargs['bindir'] if 'bindir' in kwargs else dialogs.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
+    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
         post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
@@ -70,7 +70,7 @@ def setup(**kwargs):
     if cfgdir and os.path.isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
         if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
-            if dialog.yn('El sistema ya está configurado, ¿quiere reinstalar la configuración por defecto (si/no)?'):
+            if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto (si/no)?'):
                 copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
         else:
             makedirs(specdir)
@@ -95,15 +95,15 @@ def setup(**kwargs):
             post('No hay paquetes configurados para este host', kind=ec.warning)
             return
     
-        selected = dialog.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
-    
-        for package in selected:
-            makedirs(pathjoin(specdir, available[package]))
-            with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
-                with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
-                    ofh.write(ifh.read())
-                with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
-                    ofh.write(ifh.read())
+        selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
+        if not set(selected) & set(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
+            for package in selected:
+                makedirs(pathjoin(specdir, available[package]))
+                with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
+                    with open(pathjoin(genericdir, available[package], 'jobspecs.xml')) as ifh:
+                        ofh.write(ifh.read())
+                    with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
+                        ofh.write(ifh.read())
 
     if bindir and os.path.isdir(bindir):
         with open(pathjoin(srcdir, 'strings', 'exec.py.str')) as fh:

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 #TODO: Support different copy methods besides ssh (for shared filesystems)
-
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 import sys
 from os import path, listdir
@@ -13,7 +13,7 @@ from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 from os.path import basename, realpath
 from distutils import util
 
-from job2q.dialogs import post, dialog
+from job2q.dialogs import post, dialogs
 from job2q.utils import pathjoin, pathexpand
 from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
 from job2q.classes import ec
@@ -156,7 +156,7 @@ def readoptions(sysconf, jobconf, alias):
                         options.version = jobconf.defaults.version
                 else:
                     choices = sorted(list(jobconf.versionlist))
-                    options.version = dialog.optone('Seleccione una versión', choices=choices)
+                    options.version = dialogs.optone('Seleccione una versión', choices=choices)
             try: jobconf.program = jobconf.versionlist[options.version]
             except KeyError as e: post('La versión seleccionada', q(str(e.args[0])), 'no es válida', kind=ec.opterr)
             except TypeError: post('La lista de versiones está mal definida', kind=ec.cfgerr)
@@ -176,7 +176,7 @@ def readoptions(sysconf, jobconf, alias):
         if not choices:
             post('El directorio padre de parámetros', item, 'está vacío', kind=ec.cfgerr)
         if options.parameter is None:
-            options.parameter = choices[0] if len(choices) == 1 else dialog.optone('Seleccione un conjunto de parámetros', choices=choices)
+            options.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
         jobconf.parsets.append(pathjoin(itempath, options.parameter))
 
     return options

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 import os
 from socket import gethostname, gethostbyname
@@ -12,7 +12,7 @@ from re import sub
 
 from job2q.utils import textform, pathjoin, q, dq, copyfile, remove, makedirs
 from job2q.parsing import parse_boolexpr
-from job2q.dialogs import post, dialog
+from job2q.dialogs import post, dialogs
 from job2q.classes import ec
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
@@ -192,7 +192,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 makedirs(jobdir)
             if bool(set(os.listdir(outputdir)) & set([pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles])):
                 if options.defaultanswer is None:
-                    options.defaultanswer = dialog.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
+                    options.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
                 if options.defaultanswer is False:
                     post('El trabajo', q(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
                     return
@@ -239,7 +239,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     except RuntimeError as e:
         post('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]), kind=ec.joberr)
     else:
-        post('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU (job', jobid + ')', kind=ec.sucess)
+        post('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU con el jobid', jobid, kind=ec.sucess)
         copyfile(fh.name, pathjoin(jobdir, jobid))
         remove(fh.name)
 

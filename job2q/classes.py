@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 #simpleBool.py with modified to support custom contexts original Copyright by Paul McGuire
-
+from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
-
 
 class ec:
     sucess = 0
@@ -14,12 +15,11 @@ class ec:
     cfgerr = 4
     runerr = 5
 
-
 class cl:
     lower = list('abcdefghijklmnopqrstuvwxyz')
     upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     digit = list('0123456789')
-
+    other = list('._-')
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -35,7 +35,6 @@ class BoolOperand(object):
     __repr__ = __str__
     __nonzero__ = __bool__
 
-
 class BoolBinOp(object):
     def __init__(self, t):
         self.args = t[0][0::2]
@@ -47,16 +46,13 @@ class BoolBinOp(object):
     __nonzero__ = __bool__
     __repr__ = __str__
 
-
 class BoolAnd(BoolBinOp):
     reprsymbol = '&'
     evalop = all
 
-
 class BoolOr(BoolBinOp):
     reprsymbol = '|'
     evalop = any
-
 
 class BoolNot(object):
     def __init__(self, t):
@@ -69,7 +65,6 @@ class BoolNot(object):
     __repr__ = __str__
     __nonzero__ = __bool__
 
-
 #TODO: Implement default dict functionality to handle empty dicts without if testing
 class Bunch(dict):
     def __init__(self, **kwargs):
@@ -80,7 +75,6 @@ class Bunch(dict):
             return self[attr]
         except KeyError:
             raise AttributeError(attr)
-
 
 #TODO: Implement iff attribute for e tag and remove d tag
 class XmlTreeList(list):
@@ -102,7 +96,6 @@ class XmlTreeList(list):
                 else:
                     sys.exit('(xmlparse) invalid tag: ' + child.tag)
 
-
 class XmlTreeDict(dict):
     def __init__(self, parent):
         for child in parent:
@@ -114,7 +107,6 @@ class XmlTreeDict(dict):
                     self[child.attrib['key']] = child.text
                 else:
                     self[child.text] = child.text
-
 
 class XmlTreeBunch(Bunch):
     def __init__(self, parent):

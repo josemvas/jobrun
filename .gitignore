@@ -5,7 +5,8 @@ dist/
 
 # Distribution
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
 
 # Testing
 /tests/*/

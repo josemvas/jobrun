@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 import os
 import sys
@@ -102,7 +102,7 @@ def catch_keyboard_interrupt(fn):
 def join_positional_args(fn):
     def wrapper(*args, **kwargs):
         prompt = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
-        return fn(prompt=prompt, **kwargs)
+        return fn(prompt, **kwargs)
     return wrapper
 
 
