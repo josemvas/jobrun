@@ -1,8 +1,14 @@
-*.pyc
+# Compiled
+*.egg-info/
+build/
+dist/
+
+# Distribution
 __pycache__/
+*.py[cod]
+
+# Testing
 /tests/*/
 /etc/
 /bin/
-/*.egg-info/
-/build/
-/dist/
+
