@@ -18,7 +18,7 @@ try:
 except ImportError:
     dialog = None
 else:
-    dialog = bulletin.Dialog(margin=1, pad_left=1, pad_right=1, check='>', nocheck=None)
+    dialog = bulletin.Dialog(margin=1, pad_left=1, pad_right=1)
 
 if sys.version_info[0] < 3:
     def input(prompt):
