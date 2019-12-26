@@ -207,7 +207,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         t.write(strjoin(i + '\n' for i in jobcontrol))
         t.write(strjoin(i + '\n' for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
-        t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700', q(q('$workdir'))) + '\n')
+        t.write(' ' * 2 + 'ssh ' + master + ' ssh $ip mkdir -m 700 "\'$workdir\'"' + '\n')
         t.write(strjoin(' ' * 2 + i + '\n' for i in importfiles))
         t.write('done' + '\n')
         t.write('cd "$workdir"' + '\n')

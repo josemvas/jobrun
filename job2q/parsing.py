@@ -156,7 +156,7 @@ def readoptions(sysconf, jobconf, alias):
 
     #TODO: Implement default parameter sets
     jobconf.parsets = []
-    for item in jobconf.get('parameteroot', []):
+    for item in jobconf.get('parametersets', []):
         itempath = realpath(pathexpand(item))
         try:
             choices = sorted(listdir(itempath))

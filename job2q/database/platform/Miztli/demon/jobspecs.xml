@@ -6,9 +6,9 @@
    </profile>
 </e></versionlist>
 
-<parameteroot>
+<parametersets>
    <e>$TMPU/software/parameters/deMon2k</e>
-</parameteroot>
+</parametersets>
 
 <defaults>
    <version>6.0.1</version>

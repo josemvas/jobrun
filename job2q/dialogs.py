@@ -139,13 +139,13 @@ class messages(object):
         print(colors.red + message + colors.default)
     @staticmethod
     def opterr(message=''):
-        sys.exit(colors.red + '¡Error! {0}'.format(message) + colors.default)
+        raise SystemExit(colors.red + '¡Error! {0}'.format(message) + colors.default)
     @staticmethod
     def cfgerr(message=''):
-        sys.exit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
+        raise SystemExit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
     @staticmethod
     def runerr(message=''):
-        frame = sys._getframe(1)
-        sys.exit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
-        sys.exit(colors.red + '{0}:{1} {2}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message) + colors.default)
+        fcode = sys._getframe(1).f_code
+        raise SystemExit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
+        raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 

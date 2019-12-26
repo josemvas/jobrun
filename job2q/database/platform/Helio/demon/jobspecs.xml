@@ -12,9 +12,9 @@
    <executable>/opt/packages/deMon2k/demon/6.0.1.roy/object.mpi-ic17AVX/deMon.6.0.1.mpi</executable-->
 </e></versionlist>
 
-<parameteroot>
+<parametersets>
    <e>/opt/parameters/deMon2k</e>
-</parameteroot>
+</parametersets>
 
 <defaults>
    <version>6.0.1</version>

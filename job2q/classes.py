@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-import sys
+from job2q.strings import listTags, dictTags
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -12,7 +12,7 @@ class BoolOperand(object):
         try:
             self.value = context[t[0]]
         except KeyError as e:
-            sys.exit('(boolparse) undefined key: ' + e.args[0])
+            raise Exception('Undefined BoolOperand value: ' + e.args[0])
     def __bool__(self):
         return self.value
     def __str__(self):
@@ -79,7 +79,7 @@ class XmlTreeList(list):
                 elif child.tag == 'load':
                     self.append('module' + ' ' + 'load' + ' ' + child.text)
                 else:
-                    sys.exit('(xmlparse) invalid tag: ' + child.tag)
+                    raise Exception('Invalid XmlTreeList tag: ' + child.tag)
 
 class XmlTreeDict(dict):
     def __init__(self, parent):
@@ -97,9 +97,9 @@ class XmlTreeBunch(Bunch):
     def __init__(self, parent):
         for child in parent:
             if len(child):
-                if child.tag in ('inputfiles', 'outputfiles', 'positionargs', 'profile', 'parameteroot', 'prescript', 'postscript','offscript'):
+                if child.tag in listTags:
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in ('fileexts', 'filevars', 'optionargs', 'versionlist'):
+                elif child.tag in dictTags:
                     self[child.tag] = XmlTreeDict(child)
                 else:
                     self[child.tag] = XmlTreeBunch(child)

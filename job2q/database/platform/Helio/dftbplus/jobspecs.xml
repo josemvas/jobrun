@@ -5,6 +5,6 @@
    <e key="17jm"><executable>/opt/packages/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+</executable></e>
 </versionlist>
 
-<parameteroot>
+<parametersets>
    <e>/opt/parameters/DFTB+/slako_bundles</e>
-</parameteroot>
+</parametersets>
