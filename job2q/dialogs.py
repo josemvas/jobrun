@@ -5,14 +5,12 @@ from __future__ import absolute_import
 from __future__ import division
 
 import sys
+import inspect
 import readline
-import job2q.colors
 from glob import glob
 from builtins import str
-from termcolor import colored
-from re import match, IGNORECASE 
-from job2q.classes import ec, cl
-from job2q.utils import basename, pathexpand, decorate_class_methods, catch_keyboard_interrupt, join_positional_args, override_class_methods
+from job2q.utils import basename, pathexpand
+from job2q import colors
 
 try:
     import bulletin
@@ -27,26 +25,57 @@ if sys.version_info[0] < 3:
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
 
+def catch_keyboard_interrupt(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            notices.runerr('Cancelado por el usuario')
+    return wrapper
+
+def join_positional_args(fn):
+    def wrapper(*args, **kwargs):
+        prompt = ' '.join([i if isinstance(i, str) else str(i) for i in args])
+        return fn(prompt, **kwargs)
+    return wrapper
+
+def decorate_class_methods(decorator):
+    def decorate(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isroutine):
+            setattr(cls, name, decorator(fn))
+        return cls
+    return decorate
+
+def override_class_methods(module):
+    def override(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isroutine):
+            if hasattr(module, name):
+                try: setattr(cls, name, getattr(module, name))
+                except Exception as e: print('Exception:', e)
+        return cls
+    return override
+
 class tabCompleter(object):
     def __init__(self, options=[], maxtcs=1):
         self.options = options
         self.maxtcs = maxtcs
         return
-    def tcpath(self, text, state):
-        return [i + '/' for i in glob(readline.get_line_buffer() + '*')][state]
-    def tclist(self, text, state):
-        completions = readline.get_line_buffer().split()
-        if self.maxtcs is None or len(completions) <= int(self.maxtcs):
-            return [i + ' ' for i in self.options if i.startswith(text) if i not in completions][state]
+    def tcpath(self, text, n):
+        return [i + '/' for i in glob(readline.get_line_buffer() + '*')][n]
+    def tclist(self, text, n):
+        completed = readline.get_line_buffer().split()[:-1]
+        if self.maxtcs is None or len(completed) < int(self.maxtcs):
+            return [i + ' ' for i in self.options if i.startswith(text) and i not in completed][n]
 
-#TODO: Validate path, autocomplete path and choices
 @decorate_class_methods(catch_keyboard_interrupt)
 @decorate_class_methods(join_positional_args)
 @override_class_methods(bulletin_dialogs)
 class dialogs(object):
+    @staticmethod
     def path(prompt=''):
         readline.set_completer(tabCompleter().path)
         return pathexpand(input(prompt + ': '))
+    @staticmethod
     def yn(prompt='', default=None):
         while True:
             readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
@@ -59,6 +88,7 @@ class dialogs(object):
             else:
                 if isinstance(default, bool):
                     return default
+    @staticmethod
     def yesno(prompt='', default=None):
         while True:
             readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
@@ -74,6 +104,7 @@ class dialogs(object):
             else:
                 if isinstance(default, bool):
                     return default
+    @staticmethod
     def optone(prompt='', choices=[]):
         readline.set_completer(tabCompleter(choices).tclist)
         print(prompt)
@@ -84,7 +115,8 @@ class dialogs(object):
             if chosen in choices:
                 return chosen
             else:
-                post('Elección inválida, intente de nuevo', kind=ec.warning)
+                notices.warning('Elección inválida, intente de nuevo')
+    @staticmethod
     def optany(prompt='', choices=[], default=[]):
         readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)
         print(prompt)
@@ -95,42 +127,28 @@ class dialogs(object):
             if set(chosen) <= set(choices):
                 return chosen
             else:
-                post('Selección inválida, intente de nuevo', kind=ec.warning)
+                notices.warning('Selección inválida, intente de nuevo')
     
-
 @decorate_class_methods(join_positional_args)
 class notices(object):
+    @staticmethod
     def success(message=''):
         print(colors.green + message + colors.default)
+    @staticmethod
     def warning(message=''):
         print(colors.yellow + message + colors.default)
+    @staticmethod
     def error(message=''):
         print(colors.red + message + colors.default)
+    @staticmethod
     def opterr(message=''):
         sys.exit(colors.red + '¡Error! {0}'.format(message) + colors.default)
+    @staticmethod
     def cfgerr(message=''):
         sys.exit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
+    @staticmethod
     def runerr(message=''):
         frame = sys._getframe(1)
         sys.exit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
         sys.exit(colors.red + '{0}:{1} {2}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message) + colors.default)
-
-def post(*args, **kwargs):
-    message = ' '.join([i if isinstance(i, str) else str(i) for i in args])
-    kind = kwargs.pop('kind')
-    if kind == ec.sucess:
-        print(colored(message, 'green'))
-    elif kind == ec.warning:
-        print(colored(message, 'yellow'))
-    elif kind == ec.joberr:
-        print(colored(message, 'red'))
-    elif kind == ec.opterr:
-        sys.exit(colored('¡Error! ' + message, 'red'))
-    elif kind == ec.cfgerr:
-        sys.exit(colored('¡Error de configuración! ' + message, 'red'))
-    elif kind == ec.runerr:
-        frame = sys._getframe(1)
-        sys.exit(colored('{}:{} {}'.format(basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
-    else:
-        message('Tipo de aviso inválido:', kind, kind=cfgkind)
 

@@ -12,8 +12,7 @@ from re import sub
 
 from job2q.utils import textform, pathjoin, q, dq, copyfile, remove, makedirs
 from job2q.parsing import parse_boolexpr
-from job2q.dialogs import post, dialogs
-from job2q.classes import ec
+from job2q.dialogs import notices, dialogs
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -27,11 +26,11 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]
-        except KeyError: post('La extensión de archivo de salida', ext, 'no fue definida', kind=ec.cfgerr)
+        except KeyError: notices.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
 
     for ext in jobconf.outputfiles:
         try: jobconf.fileexts[ext]
-        except KeyError: post('La extensión de archivo de salida', ext, 'no fue definida', kind=ec.cfgerr)
+        except KeyError: notices.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
 
     filename = os.path.basename(inputfile)
     master = gethostbyname(gethostname())
@@ -48,7 +47,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     try: basename
     except NameError:
-        post('Se esperaba un archivo de entrada de', jobconf.title, kind=ec.joberr)
+        notices.error('Se esperaba un archivo de entrada de', jobconf.title)
         return
 
     for ext in jobconf.fileexts:
@@ -56,12 +55,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     if 'filecheck' in jobconf:
         if not parse_boolexpr(jobconf.filecheck, filebool):
-            post('No existen algunos de los archivos de entrada requeridos', kind=ec.joberr)
+            notices.error('No existen algunos de los archivos de entrada requeridos')
             return
 
     if 'fileclash' in jobconf:
         if parse_boolexpr(jobconf.fileclash, filebool):
-            post('Hay un conflicto entre algunos de los archivos de entrada', kind=ec.joberr)
+            notices.error('Hay un conflicto entre algunos de los archivos de entrada')
             return
 
     jobname = basename
@@ -112,7 +111,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
          jobcontrol.append(scheduler.stdout.format(pathjoin(outputdir, [scheduler.jobid, 'out'])))
          jobcontrol.append(scheduler.stderr.format(pathjoin(outputdir, [scheduler.jobid, 'err'])))
     else:
-         post(sysconf.storage + ' no es un tipo de almacenamiento soportado por este script', kind=ec.cfgerr)
+         notices.cfgerr(sysconf.storage + ' no es un tipo de almacenamiento soportado por este script')
 
     jobcommand = jobconf.program.executable
 
@@ -129,7 +128,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
             jobcontrol.append(scheduler.span.format(options.nodes))
         if jobconf.mpiwrapper is True:
             jobcommand = scheduler.mpiwrapper[jobconf.runtype] + ' ' + jobcommand
-    else: post('El tipo de paralelización ' + jobconf.runtype + ' no es válido', kind=ec.cfgerr)
+    else: notices.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
 
     for ext in jobconf.inputfiles:
         importfiles.append(['ssh', master, 'scp', q(q(pathjoin(outputdir, [jobname, iosuffix[ext]]))), \
@@ -151,13 +150,13 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     if 'stdin' in jobconf:
         try: redirections.append('0<' + ' ' + jobconf.fileexts[jobconf.stdin])
-        except KeyError: post('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.', kind=ec.cfgerr)
+        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.')
     if 'stdout' in jobconf:
         try: redirections.append('1>' + ' ' + jobconf.fileexts[jobconf.stdout])
-        except KeyError: post('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.', kind=ec.cfgerr)
+        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.')
     if 'stderr' in jobconf:
         try: redirections.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
-        except KeyError: post('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.', kind=ec.cfgerr)
+        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
 
     if 'positionargs' in jobconf:
         for item in jobconf.positionargs:
@@ -184,8 +183,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 else:
                     jobstate = scheduler.checkjob(lastjob)
                     if jobstate in scheduler.jobstates:
-                        post('El trabajo', q(jobname), 'no se envió porque', scheduler.jobstates[jobstate], \
-                            '(job {})'.format(lastjob), kind=ec.joberr)
+                        notices.error('El trabajo', q(jobname), 'no se envió porque', scheduler.jobstates[jobstate], '(jobid {0})'.format(lastjob))
                         return
             elif os.path.exists(jobdir):
                 remove(jobdir)
@@ -194,12 +192,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 if options.defaultanswer is None:
                     options.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
                 if options.defaultanswer is False:
-                    post('El trabajo', q(jobname), 'no se envió por solicitud del usuario', kind=ec.joberr)
+                    notices.error('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
                     return
             for ext in jobconf.inputfiles + jobconf.outputfiles:
                 remove(pathjoin(outputdir, [jobname, iosuffix[ext]]))
         elif os.path.exists(outputdir):
-            post('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre', kind=ec.joberr)
+            notices.error('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
             return
         else:
             makedirs(outputdir)
@@ -237,9 +235,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     try:
         jobid = scheduler.submit(fh.name)
     except RuntimeError as e:
-        post('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]), kind=ec.joberr)
+        notices.error('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
     else:
-        post('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU con el jobid', jobid, kind=ec.sucess)
+        notices.success('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU con el jobid', jobid)
         copyfile(fh.name, pathjoin(jobdir, jobid))
         remove(fh.name)
 

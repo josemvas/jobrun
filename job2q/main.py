@@ -8,14 +8,14 @@ import os
 import sys
 import errno
 from time import sleep
-from termcolor import colored
 from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
+
+from job2q.classes import Bunch
 from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
 from job2q.parsing import loadconfig, readoptions, getelement
-from job2q.classes import Bunch, ec
-from job2q.dialogs import post, dialogs
+from job2q.dialogs import notices, dialogs
 from job2q.queue import queuejob
 
 
@@ -51,7 +51,7 @@ def run(hostspecs, jobspecs):
             sleep(options.waitime)
             queuejob(sysconf, jobconf, options, scheduler, inputfile)
     except KeyboardInterrupt:
-        sys.exit(colored('Cancelado por el usario', 'red'))
+        dialogs.runerr('Cancelado por el usario')
 
 
 def setup(**kwargs):
@@ -65,7 +65,7 @@ def setup(**kwargs):
     hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
     if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
-        post('El archivo de configuración del host', hostname, 'no existe', kind=ec.cfgerr)
+        notices.cfgerr('El archivo de configuración del host', hostname, 'no existe')
 
     if cfgdir and os.path.isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
@@ -84,7 +84,7 @@ def setup(**kwargs):
                 try:
                     title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
                 except AttributeError:
-                    post('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título', kind=ec.cfgerr)
+                    notices.cfgerr('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título')
                 available[title] = package
                 if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                     configured.append(title)
@@ -92,7 +92,7 @@ def setup(**kwargs):
         packagelist = list(available)
     
         if not packagelist:
-            post('No hay paquetes configurados para este host', kind=ec.warning)
+            notices.warning('No hay paquetes configurados para este host')
             return
     
         selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
@@ -115,6 +115,6 @@ def setup(**kwargs):
                     with open(pathjoin(bindir, package), 'w') as fh:
                         fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
                 except IOError as e:
-                    post('Se produjo el siguiente error al intentar instalar un enlace:', e, kind=ec.runerr)
+                    notices.runerr('Se produjo el siguiente error al intentar instalar un enlace:', e)
                 else:
                     chmod(pathjoin(bindir, package), 0o755)

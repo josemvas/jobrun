@@ -1,25 +1,10 @@
 # -*- coding: utf-8 -*-
-#simpleBool.py with modified to support custom contexts original Copyright by Paul McGuire
 from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
 import sys
-
-class ec:
-    sucess = 0
-    warning = 1
-    joberr = 2
-    opterr = 3
-    cfgerr = 4
-    runerr = 5
-
-class cl:
-    lower = list('abcdefghijklmnopqrstuvwxyz')
-    upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-    digit = list('0123456789')
-    other = list('._-')
 
 class BoolOperand(object):
     def __init__(self, t, context):
