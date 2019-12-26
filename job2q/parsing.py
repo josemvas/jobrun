@@ -13,42 +13,32 @@ from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 from os.path import basename, realpath
 from distutils import util
 
-from job2q.dialogs import notices, dialogs
+from job2q.dialogs import messages, dialogs
 from job2q.utils import pathjoin, pathexpand
 from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
 
-
 def getelement(xmlfile, element):
-
     try:
         with open(xmlfile) as f:
-            try:
-                xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
+            try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
             except ElementTree.ParseError as e:
-                notices.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
+                messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
     except IOError:
-        notices.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
-    try:
-        return xmlroot.find(element).text
-    except AttributeError:
-        raise
-
+        messages.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
+    try: return xmlroot.find(element).text
+    except AttributeError: raise
 
 def loadconfig(xmlfile):
-
     try:
         with open(xmlfile) as f:
-            try:
-                xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
+            try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
             except ElementTree.ParseError as e:
-                notices.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
+                messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
     except IOError:
-        notices.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
+        messages.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
     return XmlTreeBunch(xmlroot)
 
-
 def parse_boolexpr(boolstring, context):
-
     TRUE = Keyword("True")
     FALSE = Keyword("False")
     boolOperand = TRUE | FALSE | Word(alphas, alphanums + '._-')
@@ -61,7 +51,6 @@ def parse_boolexpr(boolstring, context):
         ("or",  2, opAssoc.LEFT,  BoolOr),
     ])
     return bool(boolExpr.parseString(boolstring)[0])
-
 
 #TODO: Move listings to utils.py
 def readoptions(sysconf, jobconf, alias):
@@ -79,7 +68,7 @@ def readoptions(sysconf, jobconf, alias):
                     print(' '*3 + key + ' ' + '(default)')
                 else:
                     print(' '*3 + key)
-        #TODO: fix parameterlist
+        #TODO: Fix broken parameterlist printing
         if 'parameterlist' in jobconf:
             print('Conjuntos de parámetros disponibles:')
             for key in jobconf.parameterlist:
@@ -89,6 +78,7 @@ def readoptions(sysconf, jobconf, alias):
                     print(' '*3 + key + ' ' + '(default)')
                 else:
                     print(' '*3 + key)
+        # Exit after printing available options
         sys.exit(0)
 
     parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
@@ -112,40 +102,40 @@ def readoptions(sysconf, jobconf, alias):
     options.update(vars(parser.parse_args(args[1])))
 
     if not options.inputlist:
-        notices.opterr('Debe especificar al menos un archivo de entrada')
+        messages.opterr('Debe especificar al menos un archivo de entrada')
 
     try: sysconf.scheduler
-    except AttributeError: notices.cfgerr('No se especificó el nombre del sistema de colas (scheduler)')
+    except AttributeError: messages.cfgerr('No se especificó el nombre del sistema de colas (scheduler)')
 
     try: sysconf.storage
-    except AttributeError: notices.cfgerr('No se especificó el tipo de almacenamiento (storage)')
+    except AttributeError: messages.cfgerr('No se especificó el tipo de almacenamiento (storage)')
 
     if options.scratch is None:
         try: options.scratch = pathexpand(sysconf.defaults.scratch)
-        except AttributeError: notices.cfgerr('No se especificó el directorio temporal de escritura por defecto (scratch)')
+        except AttributeError: messages.cfgerr('No se especificó el directorio temporal de escritura por defecto (scratch)')
 
     if options.queue is None:
         try: options.queue = sysconf.defaults.queue
-        except AttributeError: notices.cfgerr('No se especificó la cola por defecto (queue)')
+        except AttributeError: messages.cfgerr('No se especificó la cola por defecto (queue)')
 
     if options.waitime is None:
         try: options.waitime = float(sysconf.defaults.waitime)
-        except AttributeError: notices.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
+        except AttributeError: messages.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
 
     try: jobconf.outputdir = bool(util.strtobool(jobconf.outputdir))
-    except AttributeError: notices.cfgerr('No se especificó si se debe crear una carpeta de salida (outputdir)')
-    except ValueError: notices.cfgerr('El valor debe ser True or False (outputdir)')
+    except AttributeError: messages.cfgerr('No se especificó si se debe crear una carpeta de salida (outputdir)')
+    except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
 
     if options.interactive is True:
         jobconf.get('defaults', None)
 
     try: jobconf.runtype
-    except AttributeError: notices.cfgerr('No se especificó el tipo de paralelización del programa')
+    except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
 
     if jobconf.runtype in ('intelmpi', 'openmpi', 'mpich'):
         try: jobconf.mpiwrapper = bool(util.strtobool(jobconf.mpiwrapper))
-        except AttributeError: notices.cfgerr('No se especificó ningún wrapper MPI (mpiwrapper)')
-        except ValueError: notices.cfgerr('El valor de debe ser True or False (mpiwrapper)')
+        except AttributeError: messages.cfgerr('No se especificó ningún wrapper MPI (mpiwrapper)')
+        except ValueError: messages.cfgerr('El valor de debe ser True or False (mpiwrapper)')
 
     if 'versionlist' in jobconf:
         if len(jobconf.versionlist):
@@ -157,23 +147,23 @@ def readoptions(sysconf, jobconf, alias):
                     choices = sorted(list(jobconf.versionlist))
                     options.version = dialogs.optone('Seleccione una versión', choices=choices)
             try: jobconf.program = jobconf.versionlist[options.version]
-            except KeyError as e: notices.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
-            except TypeError: notices.cfgerr('La lista de versiones está mal definida')
+            except KeyError as e: messages.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
+            except TypeError: messages.cfgerr('La lista de versiones está mal definida')
             try: jobconf.program.executable = pathexpand(jobconf.program.executable)
-            except AttributeError: notices.cfgerr('No se especificó el ejecutable para la versión', options.version)
-        else: notices.cfgerr('La lista de versiones está vacía (versionlist)')
-    else: notices.cfgerr('No se definió ninguna lista de versiones (versionlist)')
+            except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', options.version)
+        else: messages.cfgerr('La lista de versiones está vacía (versionlist)')
+    else: messages.cfgerr('No se definió ninguna lista de versiones (versionlist)')
 
     #TODO: Implement default parameter sets
-    jobconf.parsets = [ ]
+    jobconf.parsets = []
     for item in jobconf.get('parameteroot', []):
         itempath = realpath(pathexpand(item))
         try:
             choices = sorted(listdir(itempath))
         except IOError:
-            notices.cfgerr('El directorio padre de parámetros', item, 'no existe o no es un directorio')
+            messages.cfgerr('El directorio padre de parámetros', item, 'no existe o no es un directorio')
         if not choices:
-            notices.cfgerr('El directorio padre de parámetros', item, 'está vacío')
+            messages.cfgerr('El directorio padre de parámetros', item, 'está vacío')
         if options.parameter is None:
             options.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
         jobconf.parsets.append(pathjoin(itempath, options.parameter))

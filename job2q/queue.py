@@ -10,9 +10,10 @@ from tempfile import NamedTemporaryFile
 from subprocess import call
 from re import sub
 
-from job2q.utils import textform, pathjoin, q, dq, copyfile, remove, makedirs
+from job2q.utils import strjoin, wordjoin, pathjoin, q, dq, copyfile, remove, makedirs
 from job2q.parsing import parse_boolexpr
-from job2q.dialogs import notices, dialogs
+from job2q.dialogs import messages, dialogs
+from job2q.strings import fpsep
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -26,11 +27,11 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]
-        except KeyError: notices.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
+        except KeyError: messages.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
 
     for ext in jobconf.outputfiles:
         try: jobconf.fileexts[ext]
-        except KeyError: notices.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
+        except KeyError: messages.cfgerr('La extensión de archivo de salida', ext, 'no fue definida')
 
     filename = os.path.basename(inputfile)
     master = gethostbyname(gethostname())
@@ -47,20 +48,20 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     try: basename
     except NameError:
-        notices.error('Se esperaba un archivo de entrada de', jobconf.title)
+        messages.error('Se esperaba un archivo de entrada de', jobconf.title)
         return
 
     for ext in jobconf.fileexts:
-        filebool[ext] = os.path.isfile(pathjoin(localdir, [basename, ext]))
+        filebool[ext] = os.path.isfile(pathjoin(localdir, (basename, ext)))
 
     if 'filecheck' in jobconf:
         if not parse_boolexpr(jobconf.filecheck, filebool):
-            notices.error('No existen algunos de los archivos de entrada requeridos')
+            messages.error('No existen algunos de los archivos de entrada requeridos')
             return
 
     if 'fileclash' in jobconf:
         if parse_boolexpr(jobconf.fileclash, filebool):
-            notices.error('Hay un conflicto entre algunos de los archivos de entrada')
+            messages.error('Hay un conflicto entre algunos de los archivos de entrada')
             return
 
     jobname = basename
@@ -105,13 +106,13 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         jobcontrol.append(scheduler.host.format(options.exechost))
 
     if sysconf.storage == 'pooled':
-         jobcontrol.append(scheduler.stdout.format(pathjoin(options.scratch, [scheduler.jobid, 'out'])))
-         jobcontrol.append(scheduler.stderr.format(pathjoin(options.scratch, [scheduler.jobid, 'err'])))
+         jobcontrol.append(scheduler.stdout.format(pathjoin(options.scratch, (scheduler.jobid, 'out'))))
+         jobcontrol.append(scheduler.stderr.format(pathjoin(options.scratch, (scheduler.jobid, 'err'))))
     elif sysconf.storage == 'shared':
-         jobcontrol.append(scheduler.stdout.format(pathjoin(outputdir, [scheduler.jobid, 'out'])))
-         jobcontrol.append(scheduler.stderr.format(pathjoin(outputdir, [scheduler.jobid, 'err'])))
+         jobcontrol.append(scheduler.stdout.format(pathjoin(outputdir, (scheduler.jobid, 'out'))))
+         jobcontrol.append(scheduler.stderr.format(pathjoin(outputdir, (scheduler.jobid, 'err'))))
     else:
-         notices.cfgerr(sysconf.storage + ' no es un tipo de almacenamiento soportado por este script')
+         messages.cfgerr(sysconf.storage + ' no es un tipo de almacenamiento soportado por este script')
 
     jobcommand = jobconf.program.executable
 
@@ -128,35 +129,35 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
             jobcontrol.append(scheduler.span.format(options.nodes))
         if jobconf.mpiwrapper is True:
             jobcommand = scheduler.mpiwrapper[jobconf.runtype] + ' ' + jobcommand
-    else: notices.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
+    else: messages.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
 
     for ext in jobconf.inputfiles:
-        importfiles.append(['ssh', master, 'scp', q(q(pathjoin(outputdir, [jobname, iosuffix[ext]]))), \
-           '$ip:' + q(q(pathjoin('$workdir', jobconf.fileexts[ext])))])
+        importfiles.append(wordjoin('ssh', master, 'scp', q(q(pathjoin(outputdir, (jobname, iosuffix[ext])))), \
+           '$ip:' + q(q(pathjoin('$workdir', jobconf.fileexts[ext])))))
 
     for ext in jobconf.inputfiles + jobconf.outputfiles:
-        exportfiles.append(['scp', q(pathjoin('$workdir', jobconf.fileexts[ext])), \
-            master + ':' + q(q(pathjoin(outputdir, [jobname, iosuffix[ext]])))])
+        exportfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.fileexts[ext])), \
+            master + ':' + q(q(pathjoin(outputdir, (jobname, iosuffix[ext]))))))
 
     for parset in jobconf.parsets:
         if not os.path.isabs(parset):
             parset = pathjoin(localdir, parset)
         if os.path.isdir(parset):
             parset = pathjoin(parset, '.')
-        importfiles.append(['ssh', master, 'scp -r', q(q(parset)), '$ip:' + q(q('$workdir'))])
+        importfiles.append(wordjoin('ssh', master, 'scp -r', q(q(parset)), '$ip:' + q(q('$workdir'))))
 
     for profile in jobconf.setdefault('profile', []) + jobconf.program.setdefault('profile', []):
         environment.append(profile)
 
     if 'stdin' in jobconf:
         try: redirections.append('0<' + ' ' + jobconf.fileexts[jobconf.stdin])
-        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.')
+        except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.')
     if 'stdout' in jobconf:
         try: redirections.append('1>' + ' ' + jobconf.fileexts[jobconf.stdout])
-        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.')
+        except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.')
     if 'stderr' in jobconf:
         try: redirections.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
-        except KeyError: notices.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
+        except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
 
     if 'positionargs' in jobconf:
         for item in jobconf.positionargs:
@@ -183,61 +184,59 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
                 else:
                     jobstate = scheduler.checkjob(lastjob)
                     if jobstate in scheduler.jobstates:
-                        notices.error('El trabajo', q(jobname), 'no se envió porque', scheduler.jobstates[jobstate], '(jobid {0})'.format(lastjob))
+                        messages.error('El trabajo', q(jobname), 'no se envió porque', scheduler.jobstates[jobstate], '(jobid {0})'.format(lastjob))
                         return
             elif os.path.exists(jobdir):
                 remove(jobdir)
                 makedirs(jobdir)
-            if bool(set(os.listdir(outputdir)) & set([pathjoin([jobname, iosuffix[ext]]) for ext in jobconf.outputfiles])):
+            if not set(os.listdir(outputdir)).isdisjoint(pathjoin((jobname, iosuffix[ext])) for ext in jobconf.outputfiles):
                 if options.defaultanswer is None:
                     options.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
                 if options.defaultanswer is False:
-                    notices.error('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
+                    messages.error('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
                     return
             for ext in jobconf.inputfiles + jobconf.outputfiles:
-                remove(pathjoin(outputdir, [jobname, iosuffix[ext]]))
+                remove(pathjoin(outputdir, (jobname, iosuffix[ext])))
         elif os.path.exists(outputdir):
-            notices.error('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
+            messages.error('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
             return
         else:
             makedirs(outputdir)
             makedirs(jobdir)
 
     try:
-        #TODO textform: do not write newlines or spaces if lists are empty
-        fh = NamedTemporaryFile(mode='w+t', delete=False)
-        fh.write(textform([textform(line, end='') for line in jobcontrol], sep='\n'))
-        fh.write(textform(environment, sep='\n'))
-        fh.write(textform('for ip in ${iplist[*]}; do'))
-        fh.write(textform('ssh', master, 'ssh $ip mkdir -m 700', q(q('$workdir')), indent=4))
-        fh.write(textform([textform(line, indent=4, end='') for line in importfiles], sep='\n'))
-        fh.write(textform('done'))
-        fh.write(textform('cd', q('$workdir')))
-        fh.write(textform([i.repr for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]], sep='\n')) \
-            if 'prescript' in jobconf else None
-        fh.write(textform(jobcommand, arguments, redirections))
-        fh.write(textform([textform(line, end='') for line in exportfiles], sep='\n'))
-        fh.write(textform('for ip in ${iplist[*]}; do'))
-        fh.write(textform('ssh $ip rm -f', q(q('$workdir') + '/*'), indent=4))
-        fh.write(textform('ssh $ip rmdir', q(q('$workdir')), indent=4))
-        fh.write(textform('done'))
+        #TODO: Avoid writing unnecessary newlines or spaces
+        t = NamedTemporaryFile(mode='w+t', delete=False)
+        t.write(strjoin(i + '\n' for i in jobcontrol))
+        t.write(strjoin(i + '\n' for i in environment))
+        t.write('for ip in ${iplist[*]}; do' + '\n')
+        t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700', q(q('$workdir'))) + '\n')
+        t.write(strjoin(' ' * 2 + i + '\n' for i in importfiles))
+        t.write('done' + '\n')
+        t.write('cd "$workdir"' + '\n')
+        t.write(strjoin(i.repr + '\n' for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]))
+        t.write(wordjoin(jobcommand, arguments, redirections) + '\n')
+        t.write(strjoin(i + '\n' for i in exportfiles))
+        t.write('for ip in ${iplist[*]}; do' + '\n')
+        t.write(' ' * 2 + 'ssh $ip rm -f "\'$workdir\'/*"' + '\n')
+        t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
+        t.write('done' + '\n')
         if 'offscript' in sysconf:
             for command in sysconf.offscript:
                 if command.ifv in os.environ:
-                    fh.write(textform('ssh', master, dq(command.repr.format(jobname=jobname, packagename=jobconf.title))))
+                    t.write(wordjoin('ssh', master, dq(command.repr.format(jobname=jobname, packagename=jobconf.title))) + '\n')
     finally:
-        fh.close()
+        t.close()
 
     for ext in jobconf.inputfiles:
-        if os.path.isfile(pathjoin(localdir, [basename, ext])):
-            copyfile(pathjoin(localdir, [basename, ext]), pathjoin(outputdir, [jobname, iosuffix[ext]]))
+        if os.path.isfile(pathjoin(localdir, (basename, ext))):
+            copyfile(pathjoin(localdir, (basename, ext)), pathjoin(outputdir, (jobname, iosuffix[ext])))
 
-    try:
-        jobid = scheduler.submit(fh.name)
+    try: jobid = scheduler.submit(t.name)
     except RuntimeError as e:
-        notices.error('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
+        messages.error('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
     else:
-        notices.success('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU con el jobid', jobid)
-        copyfile(fh.name, pathjoin(jobdir, jobid))
-        remove(fh.name)
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncpu), 'núcleo(s) de CPU con el jobid', jobid)
+        copyfile(t.name, pathjoin(jobdir, jobid))
+        remove(t.name)
 

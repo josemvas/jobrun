@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-lower = list('abcdefghijklmnopqrstuvwxyz')
-upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-digit = list('0123456789')
-other = list('._-')
+from os import sep
+
+# File path separator
+fpsep =  sep + '.-'
+
+# Allowed character classes
+lower = 'abcdefghijklmnopqrstuvwxyz'
+upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+digit = '0123456789'
+other = '._-'
 

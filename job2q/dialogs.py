@@ -8,8 +8,7 @@ import sys
 import inspect
 import readline
 from glob import glob
-from builtins import str
-from job2q.utils import basename, pathexpand
+from job2q.utils import basename, pathexpand, wordjoin
 from job2q import colors
 
 try:
@@ -25,30 +24,28 @@ if sys.version_info[0] < 3:
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
 
-def catch_keyboard_interrupt(fn):
+def catch_keyboard_interrupt(f):
     def wrapper(*args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
+        try: return f(*args, **kwargs)
         except KeyboardInterrupt:
-            notices.runerr('Cancelado por el usuario')
+            messages.runerr('Cancelado por el usuario')
     return wrapper
 
-def join_positional_args(fn):
+def join_positional_args(f):
     def wrapper(*args, **kwargs):
-        prompt = ' '.join([i if isinstance(i, str) else str(i) for i in args])
-        return fn(prompt, **kwargs)
+        return f(wordjoin(*args), **kwargs)
     return wrapper
 
 def decorate_class_methods(decorator):
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isroutine):
-            setattr(cls, name, decorator(fn))
+        for name, f in inspect.getmembers(cls, inspect.isroutine):
+            setattr(cls, name, decorator(f))
         return cls
     return decorate
 
 def override_class_methods(module):
     def override(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isroutine):
+        for name, _ in inspect.getmembers(cls, inspect.isroutine):
             if hasattr(module, name):
                 try: setattr(cls, name, getattr(module, name))
                 except Exception as e: print('Exception:', e)
@@ -115,7 +112,7 @@ class dialogs(object):
             if chosen in choices:
                 return chosen
             else:
-                notices.warning('Elección inválida, intente de nuevo')
+                messages.warning('Elección inválida, intente de nuevo')
     @staticmethod
     def optany(prompt='', choices=[], default=[]):
         readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)
@@ -127,10 +124,10 @@ class dialogs(object):
             if set(chosen) <= set(choices):
                 return chosen
             else:
-                notices.warning('Selección inválida, intente de nuevo')
+                messages.warning('Selección inválida, intente de nuevo')
     
 @decorate_class_methods(join_positional_args)
-class notices(object):
+class messages(object):
     @staticmethod
     def success(message=''):
         print(colors.green + message + colors.default)

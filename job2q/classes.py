@@ -97,9 +97,9 @@ class XmlTreeBunch(Bunch):
     def __init__(self, parent):
         for child in parent:
             if len(child):
-                if child.tag in ['inputfiles', 'outputfiles', 'positionargs', 'profile', 'parameteroot', 'prescript', 'postscript','offscript']:
+                if child.tag in ('inputfiles', 'outputfiles', 'positionargs', 'profile', 'parameteroot', 'prescript', 'postscript','offscript'):
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in ['fileexts', 'filevars', 'optionargs', 'versionlist']:
+                elif child.tag in ('fileexts', 'filevars', 'optionargs', 'versionlist'):
                     self[child.tag] = XmlTreeDict(child)
                 else:
                     self[child.tag] = XmlTreeBunch(child)
