@@ -38,7 +38,7 @@ def loadconfig(xmlfile):
         messages.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
     return XmlTreeBunch(xmlroot)
 
-def parse_boolexpr(boolstring, context):
+def parsebool(boolstring, context):
     TRUE = Keyword("True")
     FALSE = Keyword("False")
     boolOperand = TRUE | FALSE | Word(alphas, alphanums + '._-')

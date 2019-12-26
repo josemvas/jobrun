@@ -7,13 +7,10 @@ from __future__ import division
 import os
 from socket import gethostname, gethostbyname
 from tempfile import NamedTemporaryFile
-from subprocess import call
-from re import sub
 
+from job2q.parsing import parsebool
 from job2q.utils import strjoin, wordjoin, pathjoin, q, dq, copyfile, remove, makedirs
-from job2q.parsing import parse_boolexpr
 from job2q.dialogs import messages, dialogs
-from job2q.strings import fpsep
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
@@ -55,12 +52,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         filebool[ext] = os.path.isfile(pathjoin(localdir, (basename, ext)))
 
     if 'filecheck' in jobconf:
-        if not parse_boolexpr(jobconf.filecheck, filebool):
+        if not parsebool(jobconf.filecheck, filebool):
             messages.error('No existen algunos de los archivos de entrada requeridos')
             return
 
     if 'fileclash' in jobconf:
-        if parse_boolexpr(jobconf.fileclash, filebool):
+        if parsebool(jobconf.fileclash, filebool):
             messages.error('Hay un conflicto entre algunos de los archivos de entrada')
             return
 
