@@ -1,16 +1,16 @@
-<versionlist><e key="09C">
+<versionlist><e key='09C'>
    <executable>g09</executable>
    <profile>
        <export>g09root=/opt/packages/Gaussian/G09/C01</export>
        <source>/opt/packages/Gaussian/G09/C01/g09/bsd/g09.profile</source>
    </profile>
-</e><e key="09D">
+</e><e key='09D'>
    <executable>g09</executable>
    <profile>
        <export>g09root=/opt/packages/Gaussian/G09/D01</export>
        <source>/opt/packages/Gaussian/G09/D01/g09/bsd/g09.profile</source>
    </profile>
-</e><e key="09E">
+</e><e key='09E'>
    <executable>g09</executable>
    <profile>
        <export>g09root=/opt/packages/Gaussian/G09/E01</export>

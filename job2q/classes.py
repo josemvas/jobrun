@@ -52,14 +52,20 @@ class BoolNot(object):
 
 #TODO: Implement default dict functionality to handle empty dicts without if testing
 class Bunch(dict):
-    def __init__(self, **kwargs):
-        for key in kwargs:
-            self[key] = kwargs[key]
     def __getattr__(self, attr):
-        try:
-            return self[attr]
+        try: return self[attr]
         except KeyError:
             raise AttributeError(attr)
+
+class DictTest(dict):
+    def __init__(self, script='', testres=True):
+        self.script = script
+        self.testres = testres
+    def __bool__(self):
+        return not self.testres if 'not' in self else self.testres
+    __nonzero__ = __bool__
+    def __str__(self):
+        return self.script
 
 #TODO: Implement iff attribute for e tag and remove d tag
 class XmlTreeList(list):
@@ -69,7 +75,7 @@ class XmlTreeList(list):
                 if child.tag == 'e':
                     self.append(child.text)
                 elif child.tag == 's':
-                    self.append(Bunch(repr=child.text))
+                    self.append(DictTest(script=child.text))
                     for attr in child.attrib:
                         self[-1][attr] = child.attrib[attr]
                 elif child.tag == 'export':

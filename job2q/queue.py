@@ -14,13 +14,13 @@ from job2q.dialogs import messages, dialogs
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
+    filebool = { }
     jobcontrol = [ ]
     exportfiles = [ ]
     importfiles = [ ]
     redirections = [ ]
     environment = [ ]
     arguments = [ ]
-    filebool = { }
 
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]
@@ -50,6 +50,14 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
 
     for ext in jobconf.fileexts:
         filebool[ext] = os.path.isfile(pathjoin(localdir, (basename, ext)))
+
+    for item in jobconf.prescript:
+        if 'file' in item:
+            item.testres = filebool[item['file']]
+        elif 'var' in item:
+            item.testres = item['var'] in os.environ
+        else:
+            item.testres = True
 
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebool):
@@ -207,11 +215,11 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         t.write(strjoin(i + '\n' for i in jobcontrol))
         t.write(strjoin(i + '\n' for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
-        t.write(' ' * 2 + 'ssh ' + master + ' ssh $ip mkdir -m 700 "\'$workdir\'"' + '\n')
+        t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
         t.write(strjoin(' ' * 2 + i + '\n' for i in importfiles))
         t.write('done' + '\n')
         t.write('cd "$workdir"' + '\n')
-        t.write(strjoin(i.repr + '\n' for i in jobconf.prescript if 'iff' not in i or filebool[i.iff]))
+        t.write(strjoin(str(i) + '\n' for i in jobconf.prescript if i))
         t.write(wordjoin(jobcommand, arguments, redirections) + '\n')
         t.write(strjoin(i + '\n' for i in exportfiles))
         t.write('for ip in ${iplist[*]}; do' + '\n')
@@ -219,9 +227,9 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
         t.write('done' + '\n')
         if 'offscript' in sysconf:
-            for command in sysconf.offscript:
-                if command.ifv in os.environ:
-                    t.write(wordjoin('ssh', master, dq(command.repr.format(jobname=jobname, packagename=jobconf.title))) + '\n')
+            for i in sysconf.offscript:
+                if i:
+                    t.write(wordjoin('ssh', master, dq(str(i).format(jobname=jobname, packagename=jobconf.title))) + '\n')
     finally:
         t.close()
 

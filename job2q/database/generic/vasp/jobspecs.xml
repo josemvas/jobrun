@@ -35,8 +35,8 @@
    <e>AECCAR1</e>
    <e>AECCAR2</e>
    <e>BSEFATBAND</e>
-   <e key="run">vasprun.xml</e>
-   <e key="log">logfile</e>
+   <e key='run'>vasprun.xml</e>
+   <e key='log'>logfile</e>
 </fileexts>
 
 <inputfiles>

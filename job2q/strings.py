@@ -12,14 +12,15 @@ other = '._-'
 
 # List tags
 listTags = (
+    'profile',
     'inputfiles',
     'outputfiles',
     'positionargs',
     'parametersets',
     'prescript',
     'postscript',
+    'initscript',
     'offscript',
-    'profile',
 )
 
 # Dicg tags

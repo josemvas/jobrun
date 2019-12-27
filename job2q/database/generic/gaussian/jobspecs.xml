@@ -6,13 +6,13 @@
 <fileclash>gjf and com</fileclash>
 
 <fileexts>
-   <e key="com">job.com</e>
-   <e key="gjf">job.gjf</e>
-   <e key="log">job.log</e>
-   <e key="chk">job.chk</e>
-   <e key="wfn">job.wfn</e>
-   <e key="cub">job.cub</e>
-   <e key="oldchk">job.oldchk</e>
+   <e key='com'>job.com</e>
+   <e key='gjf'>job.gjf</e>
+   <e key='log'>job.log</e>
+   <e key='chk'>job.chk</e>
+   <e key='wfn'>job.wfn</e>
+   <e key='cub'>job.cub</e>
+   <e key='oldchk'>job.oldchk</e>
 </fileexts>
 
 <filevars>
@@ -47,5 +47,5 @@
    <s>sed -i "/^%/d" @($gjf|$com)</s>
    <s>sed -i "1i%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</s>
    <s>sed -i "/--Link1--/a%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</s>
-   <s iff="oldchk">sed -i "1i%OldChk=$oldchk" @($gjf|$com)</s>
+   <s file='oldchk'>sed -i "1i%OldChk=$oldchk" @($gjf|$com)</s>
 </prescript>

@@ -6,15 +6,15 @@
 <filecheck>inp</filecheck>
 
 <fileexts>
-   <e key="inp">deMon.inp</e>
-   <e key="rst">deMon.rst</e>
-   <e key="trj">deMon.trj</e>
-   <e key="out">deMon.out</e>
-   <e key="mol">deMon.mol</e>
-   <e key="new">deMon.new</e>
-   <e key="mem">deMon.mem</e>
-   <e key="pie">deMon.pie</e>
-   <e key="bin">deMon.bin</e>
+   <e key='inp'>deMon.inp</e>
+   <e key='rst'>deMon.rst</e>
+   <e key='trj'>deMon.trj</e>
+   <e key='out'>deMon.out</e>
+   <e key='mol'>deMon.mol</e>
+   <e key='new'>deMon.new</e>
+   <e key='mem'>deMon.mem</e>
+   <e key='pie'>deMon.pie</e>
+   <e key='bin'>deMon.bin</e>
 </fileexts>
 
 <inputfiles>

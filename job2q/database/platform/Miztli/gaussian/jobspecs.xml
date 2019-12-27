@@ -1,7 +1,7 @@
-<versionlist><e key="09E">
+<versionlist><e key='09E'>
    <profile><load>gaussian/G09-E.01</load></profile>
    <executable>g09</executable>
-</e><e key="16.3">
+</e><e key='16.3'>
    <profile><load>gaussian/2016.03</load></profile>
    <executable>g16</executable>
 </e></versionlist>
