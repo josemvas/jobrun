@@ -1,7 +1,7 @@
 <title>Sistema</title>
 <storage>shared</storage>
 <scheduler>platformlsf</scheduler>
-<init>module purge</init>
+<initscript>module purge</initscript>
 
 <defaults>
    <queue>q_htc</queue>

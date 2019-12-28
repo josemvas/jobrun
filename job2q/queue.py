@@ -9,7 +9,7 @@ from socket import gethostname, gethostbyname
 from tempfile import NamedTemporaryFile
 
 from job2q.parsing import parsebool
-from job2q.utils import strjoin, wordjoin, pathjoin, q, dq, copyfile, remove, makedirs
+from job2q.utils import wordjoin, linejoin, pathjoin, q, dq, copyfile, remove, makedirs
 from job2q.dialogs import messages, dialogs
 
 def queuejob(sysconf, jobconf, options, scheduler, inputfile):
@@ -35,7 +35,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     localdir = os.path.abspath(os.path.dirname(inputfile))
     version = ''.join(c for c in options.version if c.isalnum()).lower()
     version = jobconf.versionprefix + version if 'versionprefix' in jobconf else 'v' + version
-    versionlist = [ ''.join(c for c in version if c.isalnum()).lower() for version in jobconf.get('versionlist', []) ]
+    versions = (''.join(c for c in version if c.isalnum()).lower() for version in jobconf.versions)
     iosuffix = { ext : version + '.' + ext for ext in jobconf.fileexts }
 
     for ext in jobconf.inputfiles:
@@ -51,13 +51,14 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     for ext in jobconf.fileexts:
         filebool[ext] = os.path.isfile(pathjoin(localdir, (basename, ext)))
 
-    for item in jobconf.prescript:
-        if 'file' in item:
-            item.testres = filebool[item['file']]
-        elif 'var' in item:
-            item.testres = item['var'] in os.environ
-        else:
-            item.testres = True
+    for script in (jobconf.prescript, jobconf.postscript, sysconf.offscript):
+        for item in script:
+            if 'file' in item:
+                item.testres = filebool[item['file']]
+            elif 'var' in item:
+                item.testres = item['var'] in os.environ
+            else:
+                item.testres = True
 
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebool):
@@ -75,12 +76,12 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         if basename.endswith('.' + jobconf.versionprefix):
             jobname = basename[:-len('.' + jobconf.versionprefix)]
         else:
-            for key in versionlist:
+            for key in versions:
                 if basename.endswith('.' + jobconf.versionprefix + key):
                     jobname = basename[:-len('.' + jobconf.versionprefix + key)]
                     break
     else:
-        for key in versionlist:
+        for key in versions:
             if basename.endswith('.v' + key):
                 jobname = basename[:-len('.v' + key)]
                 break
@@ -89,17 +90,18 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         outputdir = pathjoin(localdir, jobname)
     else: outputdir = localdir
 
-    for var in jobconf.get('filevars', []):
+    for var in jobconf.filevars:
         environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
 
-    environment.extend(sysconf.get('init', []))
+    environment.extend(sysconf.initscript)
     environment.extend(scheduler.environment)
-
     environment.append("shopt -s nullglob extglob")
-    environment.append("workdir=" + options.scratch + "/" + scheduler.jobidvar)
+    environment.append("workdir=" + pathjoin(options.scratch, scheduler.jobidvar))
     environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     environment.append("jobram=$(($ncpu*$totalram/$(nproc --all)))")
+    environment.append("progname=" + jobconf.title)
+    environment.append("jobname=" + jobname)
 
     #TODO: Test if parameter directory exists in the filesystem
 
@@ -212,24 +214,22 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
     try:
         #TODO: Avoid writing unnecessary newlines or spaces
         t = NamedTemporaryFile(mode='w+t', delete=False)
-        t.write(strjoin(i + '\n' for i in jobcontrol))
-        t.write(strjoin(i + '\n' for i in environment))
+        t.write(linejoin(i for i in jobcontrol))
+        t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
-        t.write(strjoin(' ' * 2 + i + '\n' for i in importfiles))
+        t.write(linejoin(' ' * 2 + i for i in importfiles))
         t.write('done' + '\n')
         t.write('cd "$workdir"' + '\n')
-        t.write(strjoin(str(i) + '\n' for i in jobconf.prescript if i))
+        t.write(linejoin(str(i) for i in jobconf.prescript if i))
         t.write(wordjoin(jobcommand, arguments, redirections) + '\n')
-        t.write(strjoin(i + '\n' for i in exportfiles))
+        t.write(linejoin(str(i) for i in jobconf.postscript if i))
+        t.write(linejoin(i for i in exportfiles))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + 'ssh $ip rm -f "\'$workdir\'/*"' + '\n')
         t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
         t.write('done' + '\n')
-        if 'offscript' in sysconf:
-            for i in sysconf.offscript:
-                if i:
-                    t.write(wordjoin('ssh', master, dq(str(i).format(jobname=jobname, packagename=jobconf.title))) + '\n')
+        t.write(linejoin(wordjoin('ssh', master, dq(str(i))) for i in sysconf.offscript if i))
     finally:
         t.close()
 

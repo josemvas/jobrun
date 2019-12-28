@@ -1,4 +1,4 @@
-<versionlist><e key='6.0.1'>
+<versions><e key='6.0.1'>
    <profile><source>/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh</source></profile>
    <executable>/opt/packages/deMon2k/deMon/6.0.1/object.mpi-ic17SSE42/deMon.6.0.1.mpi</executable>
 </e><e key='6.0.1.d2a'>
@@ -10,11 +10,11 @@
 <!--/e><e key='6.0.1.d2avx'>
    <profile><source>/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh</source></profile>
    <executable>/opt/packages/deMon2k/demon/6.0.1.roy/object.mpi-ic17AVX/deMon.6.0.1.mpi</executable-->
-</e></versionlist>
+</e></versions>
 
-<parametersets>
+<parameters>
    <e>/opt/parameters/deMon2k</e>
-</parametersets>
+</parameters>
 
 <defaults>
    <version>6.0.1</version>

@@ -1,6 +1,6 @@
-<versionlist><e key='4'>
+<versions><e key='4'>
    <executable>/opt/packages/autodocksuite-4.2.6-src/autodock/x86_64/autodock4</executable>
-</e></versionlist>
+</e></versions>
 
 <defaults>
    <version>4</version>

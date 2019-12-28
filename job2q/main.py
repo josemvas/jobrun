@@ -28,11 +28,10 @@ def run(hostspecs, jobspecs):
     #TODO: commonspecs = ??? 
     userspecs = pathjoin(path.expanduser('~'), '.j2q', 'userspecs.xml')
 
-    sysconf = Bunch()
+    sysconf = Bunch(initscript=[], offscript=[])
     sysconf.update(loadconfig(hostspecs))
 
-    #jobconf = Bunch(package=package)
-    jobconf = Bunch(prescript = [])
+    jobconf = Bunch(defaults={}, versions={}, parameters=[], filevars=[], prescript=[], postscript=[])
     jobconf.update(loadconfig(jobspecs))
 
     if path.isfile(userspecs):

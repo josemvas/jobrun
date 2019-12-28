@@ -110,7 +110,7 @@ class XmlTreeBunch(Bunch):
                 else:
                     self[child.tag] = XmlTreeBunch(child)
             else:
-                if child.tag == 'init':
+                if child.tag == 'initscript':
                     self.setdefault(child.tag, []).append(child.text)
                 else:
                     self[child.tag] = child.text

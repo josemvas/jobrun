@@ -16,7 +16,7 @@ listTags = (
     'inputfiles',
     'outputfiles',
     'positionargs',
-    'parametersets',
+    'parameters',
     'prescript',
     'postscript',
     'initscript',
@@ -28,5 +28,6 @@ dictTags = (
     'fileexts',
     'filevars',
     'optionargs',
-    'versionlist',
+    'versions',
 ) 
+

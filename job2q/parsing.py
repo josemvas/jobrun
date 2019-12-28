@@ -14,7 +14,7 @@ from os.path import basename, realpath
 from distutils import util
 
 from job2q.dialogs import messages, dialogs
-from job2q.utils import pathjoin, pathexpand
+from job2q.utils import pathjoin, pathexpand, q
 from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
 
 def getelement(xmlfile, element):
@@ -59,9 +59,9 @@ def readoptions(sysconf, jobconf, alias):
     parser.add_argument('-l', '--list', dest='listonly', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
     args = parser.parse_known_args()
     if args[0].listonly:
-        if 'versionlist' in jobconf:
+        if 'versions' in jobconf:
             print('Versiones disponibles:')
-            for key in jobconf.versionlist:
+            for key in jobconf.versions:
                 try: isdefault = key == jobconf.defaults.version
                 except AttributeError: isdefault = False
                 if isdefault:
@@ -127,7 +127,7 @@ def readoptions(sysconf, jobconf, alias):
     except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
 
     if options.interactive is True:
-        jobconf.get('defaults', None)
+        jobconf.pop('defaults')
 
     try: jobconf.runtype
     except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
@@ -137,26 +137,24 @@ def readoptions(sysconf, jobconf, alias):
         except AttributeError: messages.cfgerr('No se especificó ningún wrapper MPI (mpiwrapper)')
         except ValueError: messages.cfgerr('El valor de debe ser True or False (mpiwrapper)')
 
-    if 'versionlist' in jobconf:
-        if len(jobconf.versionlist):
-            if options.version is None:
-                if 'defaults' in jobconf:
-                    if 'version' in jobconf.defaults:
-                        options.version = jobconf.defaults.version
-                else:
-                    choices = sorted(list(jobconf.versionlist))
-                    options.version = dialogs.optone('Seleccione una versión', choices=choices)
-            try: jobconf.program = jobconf.versionlist[options.version]
-            except KeyError as e: messages.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
-            except TypeError: messages.cfgerr('La lista de versiones está mal definida')
-            try: jobconf.program.executable = pathexpand(jobconf.program.executable)
-            except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', options.version)
-        else: messages.cfgerr('La lista de versiones está vacía (versionlist)')
-    else: messages.cfgerr('No se definió ninguna lista de versiones (versionlist)')
+    if jobconf.versions:
+        if options.version is None:
+            if 'defaults' in jobconf:
+                if 'version' in jobconf.defaults:
+                    options.version = jobconf.defaults.version
+            else:
+                choices = sorted(list(jobconf.versions))
+                options.version = dialogs.optone('Seleccione una versión', choices=choices)
+        try: jobconf.program = jobconf.versions[options.version]
+        except KeyError as e: messages.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
+        except TypeError: messages.cfgerr('La lista de versiones está mal definida')
+        try: jobconf.program.executable = pathexpand(jobconf.program.executable)
+        except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', options.version)
+    else: messages.cfgerr('La lista de versiones está vacía (versions)')
 
     #TODO: Implement default parameter sets
     jobconf.parsets = []
-    for item in jobconf.get('parametersets', []):
+    for item in jobconf.parameters:
         itempath = realpath(pathexpand(item))
         try:
             choices = sorted(listdir(itempath))

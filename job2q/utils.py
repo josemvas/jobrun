@@ -61,14 +61,17 @@ def copyfile(source, dest):
         if e.errno == errno.EEXIST:
             messages.runerr('Ya existe el archivo de destino', dest)
 
-def strjoin(*args, sep=repeat('')):
-    return next(sep).join(i if isinstance(i, str) else strjoin(*i, sep=sep) if isinstance(i, Iterable) else str(i) for i in args if i)
+def strjoin(*args, sepgen):
+    return next(sepgen).join(i if isinstance(i, str) else strjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
 
-def wordjoin(*args):
-    return strjoin(*args, sep=repeat(' '))
+def wordjoin(*args, sep=' ', gen=repeat):
+    return strjoin(*args, sepgen=gen(sep))
+
+def linejoin(*args):
+    return wordjoin(wordjoin(*args, sep='\n'), '\n', sep='')
 
 def pathjoin(*args):
-    return strjoin(*args, sep=iter(fpsep))
+    return wordjoin(*args, sep=fpsep, gen=iter)
     #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
 
 def basename(path):
