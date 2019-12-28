@@ -17,7 +17,7 @@ from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
 from job2q.parsing import loadconfig, readoptions, getelement
 from job2q.dialogs import messages, dialogs
 from job2q.queue import queuejob
-
+from job2q.strings import pyscript
 
 def run(hostspecs, jobspecs):
 
@@ -106,14 +106,12 @@ def setup(**kwargs):
                         ofh.write(ifh.read())
 
     if bindir and os.path.isdir(bindir):
-        with open(pathjoin(srcdir, 'strings', 'exec.py.str')) as fh:
-            pyrun = fh.read()
         #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
                     with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(pyrun.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                        fh.write(pyscript.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
                 except IOError as e:
                     messages.runerr('Se produjo el siguiente error al intentar instalar un enlace:', e)
                 else:

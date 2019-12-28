@@ -127,7 +127,7 @@ def readoptions(sysconf, jobconf, alias):
     except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
 
     if options.interactive is True:
-        jobconf.pop('defaults')
+        jobconf.defaults = []
 
     try: jobconf.runtype
     except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
@@ -139,9 +139,8 @@ def readoptions(sysconf, jobconf, alias):
 
     if jobconf.versions:
         if options.version is None:
-            if 'defaults' in jobconf:
-                if 'version' in jobconf.defaults:
-                    options.version = jobconf.defaults.version
+            if 'version' in jobconf.defaults:
+                options.version = jobconf.defaults.version
             else:
                 choices = sorted(list(jobconf.versions))
                 options.version = dialogs.optone('Seleccione una versión', choices=choices)

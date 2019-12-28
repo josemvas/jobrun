@@ -215,6 +215,7 @@ def queuejob(sysconf, jobconf, options, scheduler, inputfile):
         #TODO: Avoid writing unnecessary newlines or spaces
         t = NamedTemporaryFile(mode='w+t', delete=False)
         t.write(linejoin(i for i in jobcontrol))
+        t.write(linejoin(str(i) for i in sysconf.initscript if i))
         t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
