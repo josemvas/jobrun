@@ -56,29 +56,20 @@ def parsebool(boolstring, context):
 def readoptions(sysconf, jobconf, alias):
 
     parser = ArgumentParser(prog=alias, add_help=False)
-    parser.add_argument('-l', '--list', dest='listonly', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
-    args = parser.parse_known_args()
-    if args[0].listonly:
-        if 'versions' in jobconf:
-            print('Versiones disponibles:')
-            for key in jobconf.versions:
-                try: isdefault = key == jobconf.defaults.version
-                except AttributeError: isdefault = False
-                if isdefault:
-                    print(' '*3 + key + ' ' + '(default)')
-                else:
-                    print(' '*3 + key)
-        #TODO: Fix broken parameterlist printing
-        if 'parameterlist' in jobconf:
-            print('Conjuntos de parámetros disponibles:')
-            for key in jobconf.parameterlist:
-                try: isdefault = key == jobconf.defaults.parameter
-                except AttributeError: isdefault = False
-                if isdefault:
-                    print(' '*3 + key + ' ' + '(default)')
-                else:
-                    print(' '*3 + key)
-        # Exit after printing available options
+    parser.add_argument('-l', '--listoptions', dest='listoptions', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
+    parsed, parsing = parser.parse_known_args()
+
+    if parsed.listoptions:
+        for alternative in (jobconf.versions, jobconf.parameters):
+            if alternative:
+                print('Opciones disponibles:')
+                for key in alternative:
+                    try: isdefault = key == jobconf.defaults.version
+                    except AttributeError: isdefault = False
+                    if isdefault:
+                        print(' '*3 + key + ' ' + '(default)')
+                    else:
+                        print(' '*3 + key)
         sys.exit(0)
 
     parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
@@ -99,7 +90,7 @@ def readoptions(sysconf, jobconf, alias):
     parser.add_argument('inputlist', nargs='+', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
 
     options = Bunch()
-    options.update(vars(parser.parse_args(args[1])))
+    options.update(vars(parser.parse_args(parsing)))
 
     if not options.inputlist:
         messages.opterr('Debe especificar al menos un archivo de entrada')
