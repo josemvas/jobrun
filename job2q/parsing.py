@@ -53,7 +53,7 @@ def parsebool(boolstring, context):
     return bool(boolExpr.parseString(boolstring)[0])
 
 #TODO: Move listings to utils.py
-def readoptions(sysconf, jobconf, alias):
+def parseoptions(sysconf, jobconf, alias):
 
     parser = ArgumentParser(prog=alias, add_help=False)
     parser.add_argument('-l', '--listoptions', dest='listoptions', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
@@ -89,10 +89,11 @@ def readoptions(sysconf, jobconf, alias):
     parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
     parser.add_argument('inputlist', nargs='+', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
 
-    options = Bunch()
-    options.update(vars(parser.parse_args(parsing)))
+    #userconf = Bunch()
+    #userconf.update(vars(parser.parse_args(parsing)))
+    userconf = Bunch(vars(parser.parse_args(parsing)))
 
-    if not options.inputlist:
+    if not userconf.inputlist:
         messages.opterr('Debe especificar al menos un archivo de entrada')
 
     try: sysconf.scheduler
@@ -101,23 +102,23 @@ def readoptions(sysconf, jobconf, alias):
     try: sysconf.storage
     except AttributeError: messages.cfgerr('No se especificó el tipo de almacenamiento (storage)')
 
-    if options.scratch is None:
-        try: options.scratch = pathexpand(sysconf.defaults.scratch)
+    if userconf.scratch is None:
+        try: userconf.scratch = pathexpand(sysconf.defaults.scratch)
         except AttributeError: messages.cfgerr('No se especificó el directorio temporal de escritura por defecto (scratch)')
 
-    if options.queue is None:
-        try: options.queue = sysconf.defaults.queue
+    if userconf.queue is None:
+        try: userconf.queue = sysconf.defaults.queue
         except AttributeError: messages.cfgerr('No se especificó la cola por defecto (queue)')
 
-    if options.waitime is None:
-        try: options.waitime = float(sysconf.defaults.waitime)
+    if userconf.waitime is None:
+        try: userconf.waitime = float(sysconf.defaults.waitime)
         except AttributeError: messages.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
 
     try: jobconf.outputdir = bool(util.strtobool(jobconf.outputdir))
     except AttributeError: messages.cfgerr('No se especificó si se debe crear una carpeta de salida (outputdir)')
     except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
 
-    if options.interactive is True:
+    if userconf.interactive is True:
         jobconf.defaults = []
 
     try: jobconf.runtype
@@ -129,17 +130,17 @@ def readoptions(sysconf, jobconf, alias):
         except ValueError: messages.cfgerr('El valor de debe ser True or False (mpiwrapper)')
 
     if jobconf.versions:
-        if options.version is None:
+        if userconf.version is None:
             if 'version' in jobconf.defaults:
-                options.version = jobconf.defaults.version
+                userconf.version = jobconf.defaults.version
             else:
                 choices = sorted(list(jobconf.versions))
-                options.version = dialogs.optone('Seleccione una versión', choices=choices)
-        try: jobconf.program = jobconf.versions[options.version]
+                userconf.version = dialogs.optone('Seleccione una versión', choices=choices)
+        try: jobconf.program = jobconf.versions[userconf.version]
         except KeyError as e: messages.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
         except TypeError: messages.cfgerr('La lista de versiones está mal definida')
         try: jobconf.program.executable = pathexpand(jobconf.program.executable)
-        except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', options.version)
+        except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', userconf.version)
     else: messages.cfgerr('La lista de versiones está vacía (versions)')
 
     #TODO: Implement default parameter sets
@@ -152,8 +153,8 @@ def readoptions(sysconf, jobconf, alias):
             messages.cfgerr('El directorio padre de parámetros', item, 'no existe o no es un directorio')
         if not choices:
             messages.cfgerr('El directorio padre de parámetros', item, 'está vacío')
-        if options.parameter is None:
-            options.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
-        jobconf.parsets.append(pathjoin(itempath, options.parameter))
+        if userconf.parameter is None:
+            userconf.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
+        jobconf.parsets.append(pathjoin(itempath, userconf.parameter))
 
-    return options
+    return userconf

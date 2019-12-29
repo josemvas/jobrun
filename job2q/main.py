@@ -12,20 +12,20 @@ from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
 
-from job2q.classes import Bunch
-from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
-from job2q.parsing import loadconfig, readoptions, getelement
 from job2q.dialogs import messages, dialogs
-from job2q.queue import queuejob
+from job2q.parsing import loadconfig, parseoptions, getelement
+from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
 from job2q.strings import pyscript
+from job2q.classes import Bunch
+from job2q.submit import queuejob
 
 def run(hostspecs, jobspecs):
 
     alias = basename(sys.argv[0])
     srcdir = dirname(realpath(__file__))
 
-    #WTF!
-    #TODO: commonspecs = ??? 
+    # What is commonspecs?!!!
+    #TODO: commonspecs =
     userspecs = pathjoin(path.expanduser('~'), '.j2q', 'userspecs.xml')
 
     sysconf = Bunch(initscript=[], offscript=[])
@@ -37,19 +37,19 @@ def run(hostspecs, jobspecs):
     if path.isfile(userspecs):
         jobconf.update(loadconfig(userspecs))
 
-    scheduler = import_module('.schedulers.' + sysconf.scheduler, package='job2q')
+    queueconf = import_module('.schedulers.' + sysconf.scheduler, package='job2q')
 
-    options = readoptions(sysconf, jobconf, alias)
+    userconf = parseoptions(sysconf, jobconf, alias)
 
     #TODO: Sort in alphabetical or numerical order
-    if 'r' in options.sort:
-        options.inputlist.sort(reverse=True)
+    if 'r' in userconf.sort:
+        userconf.inputlist.sort(reverse=True)
 
     try:
-        queuejob(sysconf, jobconf, options, scheduler, options.inputlist.pop(0))
-        for inputfile in options.inputlist:
-            sleep(options.waitime)
-            queuejob(sysconf, jobconf, options, scheduler, inputfile)
+        queuejob(sysconf, jobconf, userconf, queueconf, userconf.inputlist.pop(0))
+        for inputfile in userconf.inputlist:
+            sleep(userconf.waitime)
+            queuejob(sysconf, jobconf, userconf, queueconf, inputfile)
     except KeyboardInterrupt:
         dialogs.runerr('Cancelado por el usario')
 
@@ -106,7 +106,6 @@ def setup(**kwargs):
                         ofh.write(ifh.read())
 
     if bindir and os.path.isdir(bindir):
-        #environ = { k : os.environ[k] for k in ('PATH', 'LD_LIBRARY_PATH') }
         for package in listdir(specdir):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
