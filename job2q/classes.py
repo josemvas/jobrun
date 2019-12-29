@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from job2q.strings import listTags, dictTags, listChildren
+from job2q.strings import XmlListTags, XmlDictTags, XmlListChildren
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -78,8 +78,8 @@ class XmlTreeList(list):
                     self.append(DictTest(script=child.text))
                     for attr in child.attrib:
                         self[-1][attr] = child.attrib[attr]
-                elif child.tag in listChildren:
-                    self.append(listChildren[child.tag] + ' ' + child.text)
+                elif child.tag in XmlListChildren:
+                    self.append(XmlListChildren[child.tag] + ' ' + child.text)
                 else:
                     raise Exception('Invalid XmlTreeList tag:' + ' ' + child.tag)
 
@@ -99,9 +99,9 @@ class XmlTreeBunch(Bunch):
     def __init__(self, parent):
         for child in parent:
             if len(child):
-                if child.tag in listTags:
+                if child.tag in XmlListTags:
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in dictTags:
+                elif child.tag in XmlDictTags:
                     self[child.tag] = XmlTreeDict(child)
                 else:
                     self[child.tag] = XmlTreeBunch(child)

@@ -110,7 +110,13 @@ def setup(**kwargs):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
                     with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(pyscript.format(version=tuple(sys.version_info), python=sys.executable, syspath=sys.path, hostspecs=pathjoin(specdir, 'hostspecs.xml'), jobspecs=pathjoin(specdir, package, 'jobspecs.xml')))
+                        fh.write(pyscript.lstrip('\n').format(
+                            version=tuple(sys.version_info),
+                            python=sys.executable,
+                            syspath=sys.path,
+                            hostspecs=pathjoin(specdir, 'hostspecs.xml'),
+                            jobspecs=pathjoin(specdir, package, 'jobspecs.xml')
+                        ))
                 except IOError as e:
                     messages.runerr('Se produjo el siguiente error al intentar instalar un enlace:', e)
                 else:

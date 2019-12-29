@@ -9,34 +9,44 @@ upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 digit = '0123456789'
 other = '._-'
 
-listTags = (
+XmlListTags = (
     'profile',
+    'parameters',
     'inputfiles',
     'outputfiles',
     'positionargs',
-    'parameters',
-    'prescript',
-    'postscript',
     'initscript',
     'offscript',
+    'prescript',
+    'postscript',
 )
 
-dictTags = (
+XmlDictTags = (
+    'versions',
     'fileexts',
     'filevars',
     'optionargs',
-    'versions',
 ) 
 
-listChildren = {
+XmlListChildren = {
     'export' : 'export',
     'source' : 'source',
     'load' : 'module load',
 }
 
-pyscript='''#!{python}
+scriptTags = {
+    'initscript',
+    'offscript',
+    'prescript',
+    'postscript',
+)
+    
+
+pyscript = '''
+#!{python}
 import sys
 sys.path = {syspath}
 from job2q import main
 main.run('{hostspecs}', '{jobspecs}')
 '''
+

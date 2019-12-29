@@ -11,10 +11,10 @@ from tempfile import NamedTemporaryFile
 from job2q.parsing import parsebool
 from job2q.dialogs import messages, dialogs
 from job2q.utils import wordjoin, linejoin, pathjoin, q, dq, copyfile, remove, makedirs
+from strings import scriptTags
 #from job2q.config import sysconf, queueconf, jobconf, userconf
 
 def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
-    filebool = { }
     jobcontrol = [ ]
     exportfiles = [ ]
     importfiles = [ ]
@@ -48,28 +48,29 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
         messages.error('Se esperaba un archivo de entrada de', jobconf.title)
         return
     
-    for ext in jobconf.fileexts:
-        filebool[ext] = os.path.isfile(pathjoin(localdir, (basename, ext)))
-    
-    for script in (jobconf.prescript, jobconf.postscript, sysconf.offscript):
-        for item in script:
-            if 'file' in item:
-                item.testres = filebool[item['file']]
-            elif 'var' in item:
-                item.testres = item['var'] in os.environ
-            else:
-                item.testres = True
-    
+    jobenviron['var'] = os.environ
+    jobenviron['file'] = (i for i in jobconf.fileexts if os.path.isfile(pathjoin(localdir, (basename, i))))
+
+    for script in scriptTags:
+        for line in jobconf[script]:
+            for attr in line:
+                if attr in jobenviron:
+                    item.testres = line[attr] in jobenviron[attr]
+                else messages.cfgerr(attr, 'no es un atributo válido de', script)
+
+    filebools = (True if i in jobenviron['file'] else False for i in jobconf.fileexts)
+
     if 'filecheck' in jobconf:
-        if not parsebool(jobconf.filecheck, filebool):
+        if not parsebool(jobconf.filecheck, filebools):
             messages.error('No existen algunos de los archivos de entrada requeridos')
             return
     
     if 'fileclash' in jobconf:
-        if parsebool(jobconf.fileclash, filebool):
+        if parsebool(jobconf.fileclash, filebools):
             messages.error('Hay un conflicto entre algunos de los archivos de entrada')
             return
     
+    #TODO: Get jobname in a better way
     jobname = basename
     
     if 'versionprefix' in jobconf:
@@ -169,7 +170,7 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
     if 'positionargs' in jobconf:
         for item in jobconf.positionargs:
             for ext in item.split('|'):
-                if filebool[ext]:
+                if ext in jobenviron['file']:
                     arguments.append(jobconf.fileexts[ext])
                     break
     
