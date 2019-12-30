@@ -1,23 +1,149 @@
 # -*- coding: utf-8 -*-
-#TODO: Support different copy methods besides ssh (for shared filesystems)
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-import sys
-from os import path, listdir
-from argparse import ArgumentParser
 from xml.etree import ElementTree
 from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
-from os.path import basename, realpath
-from distutils import util
 
-from job2q.dialogs import messages, dialogs
-from job2q.utils import pathjoin, pathexpand, q
-from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeDict
+from job2q.dialogs import messages
+from job2q.strings import xmlListTags, xmlDictTags, xmlProfileChildren, xmlTextTags
 
-def loadconfig(xmlfile, xmltag=None):
+class BoolOperand(object):
+    def __init__(self, t, context):
+        self.label = t[0]
+        try:
+            self.value = context[t[0]]
+        except KeyError as e:
+            raise Exception('Undefined BoolOperand context {0}'.format(e.args[0]))
+    def __bool__(self):
+        return self.value
+    def __str__(self):
+        return self.label
+    __repr__ = __str__
+    __nonzero__ = __bool__
+
+class BoolBinOp(object):
+    def __init__(self, t):
+        self.args = t[0][0::2]
+    def __str__(self):
+        sep = ' %s ' % self.reprsymbol
+        return '(' + sep.join(map(str,self.args)) + ')'
+    def __bool__(self):
+        return self.evalop(bool(a) for a in self.args)
+    __nonzero__ = __bool__
+    __repr__ = __str__
+
+class BoolAnd(BoolBinOp):
+    reprsymbol = '&'
+    evalop = all
+
+class BoolOr(BoolBinOp):
+    reprsymbol = '|'
+    evalop = any
+
+class BoolNot(object):
+    def __init__(self, t):
+        self.arg = t[0][1]
+    def __bool__(self):
+        v = bool(self.arg)
+        return not v
+    def __str__(self):
+        return "~" + str(self.arg)
+    __repr__ = __str__
+    __nonzero__ = __bool__
+
+#TODO: Implement default dict functionality to handle empty dicts without if testing
+class BunchDict(dict):
+    def __getattr__(self, attr):
+        try: return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
+    def __missing__(self, key):
+        return []
+
+class ScriptTestDict(dict):
+    def __init__(self, script='', boolean=True):
+        self.script = script
+        self.boolean = boolean
+    def __bool__(self):
+        return not self.boolean if 'not' in self else self.boolean
+    __nonzero__ = __bool__
+    def __str__(self):
+        return self.script
+
+class XmlTreeList(list):
+    def __init__(self, parent):
+        for child in parent:
+            if not len(child):
+                if child.tag == 'e':
+                    self.append(child.text)
+                elif child.tag == 's':
+                    self.append(ScriptTestDict(script=child.text))
+                    for attr in child.attrib:
+                        self[-1][attr] = child.attrib[attr]
+                elif child.tag in xmlProfileChildren:
+                    self.append(xmlProfileChildren[child.tag] + ' ' + child.text)
+                else:
+                    raise Exception('Invalid XmlTreeList Tag <{0}>'.format(child.tag))
+            else:
+                raise Exception('XmlTreeList Tag <{0}> must not have grandchildren: <{0}>'.format(child.tag))
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
+                else:
+                    raise Exception('Conflict at' + ' ' + str(i))
+            else:
+                self.append(other[i])
+
+
+class XmlTreeDict(BunchDict):
+    def __init__(self, parent):
+        for child in parent:
+            if len(child):
+                if child.tag == 'e':
+                    if 'key' in child.attrib:
+                        self[child.attrib['key']] = XmlTreeDict(child)
+                    else:
+                        raise Exception('XmlTreeDict Tag <e> must have a key attribute {0}'.format(parent))
+                elif child.tag in xmlListTags:
+                    self[child.tag] = XmlTreeList(child)
+                elif child.tag in xmlDictTags:
+                    self[child.tag] = XmlTreeDict(child)
+                elif child.tag in xmlTextTags:
+                    raise Exception('XmlTreeDict Tag must <{0}> have grandchildren'.format(child.tag))
+                else:
+                    raise Exception('Invalid XmlTreeDict Tag {0} <{1}>'.format(parent, child.tag))
+            else:
+                if child.tag == 'e':
+                    if 'key' in child.attrib:
+                        self[child.attrib['key']] = child.text
+                    else:
+                        self[child.text] = child.text
+                elif child.tag in xmlListTags or child.tag in xmlDictTags:
+                    raise Exception('This XmlTreeList must not have grandchildren <{0}>'.format(child.tag))
+                elif child.tag in xmlTextTags:
+                    self[child.tag] = child.text
+                else:
+                    raise Exception('Invalid XmlTreeDict Tag {0} <{1}>'.format(parent, child.tag))
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
+                else:
+                    raise Exception('Conflict at' + ' ' + str(i))
+            else:
+                self[i] = other[i]
+
+def parsexml(xmlfile, xmltag=None):
     with open(xmlfile) as f:
         try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
         except ElementTree.ParseError as e:
@@ -25,7 +151,7 @@ def loadconfig(xmlfile, xmltag=None):
     if xmltag is None:
         return XmlTreeDict(xmlroot)
     else:
-        try: return xmlroot.find(element).text
+        try: return xmlroot.find(xmltag).text
         except AttributeError:
             return None
 
@@ -43,110 +169,3 @@ def parsebool(boolstring, context):
     ])
     return bool(boolExpr.parseString(boolstring)[0])
 
-def listoptions(prompt, options, default=None):
-    if options:
-        print(prompt)
-        for key in options:
-            if key == default:
-                print(' '*3 + key + ' ' + '(default)')
-            else:
-                print(' '*3 + key)
-
-#TODO: Move listings to utils.py
-def parseoptions(jobconf, alias):
-
-    parser = ArgumentParser(prog=alias, add_help=False)
-    parser.add_argument('-l', '--listoptions', dest='listoptions', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
-    parsed, parsing = parser.parse_known_args()
-
-    if parsed.listoptions:
-        listoptions('Versiones del binario disponibles', jobconf.versions, jobconf.defaults.version)
-        listoptions('Conjuntos de parámetros disponibles', jobconf.parameters)
-        raise SystemExit()
-
-    parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
-    parser.add_argument('-l', '--list', dest='listonly', action='store_true', help='Lista las versiones de los programas y conjuntos de parámetros disponibles.')
-    parser.add_argument('-v', '--version', metavar = 'PROGVERSION', type=str, dest='version', help='Versión del ejecutable.')
-    parser.add_argument('-p', '--parameter', metavar = 'PARAMETERSET', type=str, dest='parameter', help='Versión del conjunto de parámetros.')
-    parser.add_argument('-q', '--queue', metavar = 'QUEUENAME', type=str, dest='queue', help='Nombre de la cola requerida.')
-    parser.add_argument('-n', '--ncpu', metavar ='CPUCORES', type=int, dest='ncpu', default=1, help='Número de núcleos de procesador requeridos.')
-    parser.add_argument('-N', '--nodes', metavar ='NODELIST', type=int, dest='nodes', help='Lista de los nodos requeridos.')
-    parser.add_argument('-H', '--hostname', metavar = 'HOSTNAME', type=str, dest='exechost', help='Nombre del host requerido.')
-    parser.add_argument('-s', '--scratch', metavar = 'SCRATCHDIR', type=str, dest='scratch', help='Directorio temporal de escritura.')
-    parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Selección interactiva de las versiones de los programas y los parámetros.')
-    parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
-    parser.add_argument('-w', '--wait', metavar='WAITTIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    parser.add_argument('--sort', dest='sort', type=str, default='', help='Ordena la lista de argumentos en el orden especificado')
-    parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
-    parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
-    parser.add_argument('inputlist', nargs='+', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
-
-    #userconf = Bunch()
-    #userconf.update(vars(parser.parse_args(parsing)))
-    userconf = Bunch(vars(parser.parse_args(parsing)))
-
-    if not userconf.inputlist:
-        messages.opterr('Debe especificar al menos un archivo de entrada')
-
-    try: jobconf.scheduler
-    except AttributeError: messages.cfgerr('No se especificó el nombre del sistema de colas (scheduler)')
-
-    try: jobconf.storage
-    except AttributeError: messages.cfgerr('No se especificó el tipo de almacenamiento (storage)')
-
-    if userconf.scratch is None:
-        try: userconf.scratch = pathexpand(jobconf.defaults.scratch)
-        except AttributeError: messages.cfgerr('No se especificó el directorio temporal de escritura por defecto (scratch)')
-
-    if userconf.queue is None:
-        try: userconf.queue = jobconf.defaults.queue
-        except AttributeError: messages.cfgerr('No se especificó la cola por defecto (queue)')
-
-    if userconf.waitime is None:
-        try: userconf.waitime = float(jobconf.defaults.waitime)
-        except AttributeError: messages.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
-
-    try: jobconf.outputdir = bool(util.strtobool(jobconf.outputdir))
-    except AttributeError: messages.cfgerr('No se especificó si se debe crear una carpeta de salida (outputdir)')
-    except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
-
-    if userconf.interactive is True:
-        jobconf.defaults = []
-
-    try: jobconf.runtype
-    except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
-
-    if jobconf.runtype in ('intelmpi', 'openmpi', 'mpich'):
-        try: jobconf.mpiwrapper = bool(util.strtobool(jobconf.mpiwrapper))
-        except AttributeError: messages.cfgerr('No se especificó ningún wrapper MPI (mpiwrapper)')
-        except ValueError: messages.cfgerr('El valor de debe ser True or False (mpiwrapper)')
-
-    if jobconf.versions:
-        if userconf.version is None:
-            if 'version' in jobconf.defaults:
-                userconf.version = jobconf.defaults.version
-            else:
-                choices = sorted(list(jobconf.versions))
-                userconf.version = dialogs.optone('Seleccione una versión', choices=choices)
-        try: jobconf.program = jobconf.versions[userconf.version]
-        except KeyError as e: messages.opterr('La versión seleccionada', q(str(e.args[0])), 'no es válida')
-        except TypeError: messages.cfgerr('La lista de versiones está mal definida')
-        try: jobconf.program.executable = pathexpand(jobconf.program.executable)
-        except AttributeError: messages.cfgerr('No se especificó el ejecutable para la versión', userconf.version)
-    else: messages.cfgerr('La lista de versiones está vacía (versions)')
-
-    #TODO: Implement default parameter sets
-    jobconf.parsets = []
-    for item in jobconf.parameters:
-        itempath = realpath(pathexpand(item))
-        try:
-            choices = sorted(listdir(itempath))
-        except IOError:
-            messages.cfgerr('El directorio padre de parámetros', item, 'no existe o no es un directorio')
-        if not choices:
-            messages.cfgerr('El directorio padre de parámetros', item, 'está vacío')
-        if userconf.parameter is None:
-            userconf.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
-        jobconf.parsets.append(pathjoin(itempath, userconf.parameter))
-
-    return userconf

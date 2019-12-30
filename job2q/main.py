@@ -8,38 +8,18 @@ import os
 import sys
 import errno
 from time import sleep
-from importlib import import_module
-from os import path, listdir, remove, chmod
-from os.path import dirname, basename, realpath
+from os.path import dirname, basename, realpath, isdir, isfile
+from os import listdir, chmod
 
-from job2q.classes import XmlTreeDict
 from job2q.dialogs import messages, dialogs
-from job2q.parsing import loadconfig, parseoptions
-from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
+from job2q.utils import rmdir, makedirs, copyfile, pathjoin, pathexpand
 from job2q.strings import consoleScript
 from job2q.submit import queuejob
+from job2q.parsing import parsexml
 
-def run(hostspecs, jobspecs):
+def run():
 
-    alias = basename(sys.argv[0])
-    srcdir = dirname(realpath(__file__))
-    homedir = path.expanduser('~')
-
-    userspecs = pathjoin(homedir, '.j2q', 'jobspecs.xml')
-
-    jobconf = loadconfig(hostspecs)
-    jobconf.merge(loadconfig(jobspecs))
-
-    #TODO: commonspecs =
-    try: jobconf.update(loadconfig(userspecs))
-    except IOError: pass
-
-    queueconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
-    userconf = parseoptions(jobconf, alias)
-
-    #TODO: Sort in alphabetical or numerical order
-    if 'r' in userconf.sort:
-        userconf.inputlist.sort(reverse=True)
+    from job2q.getconf import jobconf, userconf, queueconf
 
     try:
         queuejob(jobconf, userconf, queueconf, userconf.inputlist.pop(0))
@@ -52,20 +32,20 @@ def run(hostspecs, jobspecs):
 
 def setup(**kwargs):
 
-    srcdir = dirname(realpath(__file__))
-    genericdir = pathjoin(srcdir, 'database', 'generic')
-    platformdir = pathjoin(srcdir, 'database', 'platform')
+    sourcedir = dirname(realpath(__file__))
+    genericdir = pathjoin(sourcedir, 'database', 'generic')
+    platformdir = pathjoin(sourcedir, 'database', 'platform')
 
     cfgdir = kwargs['cfgdir'] if 'cfgdir' in kwargs else dialogs.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
     bindir = kwargs['bindir'] if 'bindir' in kwargs else dialogs.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
     hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
-    if not path.isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
+    if not isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
 
-    if cfgdir and os.path.isdir(cfgdir):
+    if cfgdir and isdir(cfgdir):
         specdir = pathjoin(cfgdir, 'j2q')
-        if path.isfile(pathjoin(specdir, 'hostspecs.xml')):
+        if isfile(pathjoin(specdir, 'hostspecs.xml')):
             if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto (si/no)?'):
                 copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
         else:
@@ -76,13 +56,13 @@ def setup(**kwargs):
         configured = [ ]
     
         for package in listdir(pathjoin(platformdir, hostname)):
-            if path.isdir(pathjoin(platformdir, hostname, package)):
+            if isdir(pathjoin(platformdir, hostname, package)):
                 try:
-                    title = loadconfig(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
+                    title = parsexml(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
                 except AttributeError:
                     messages.cfgerr('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título')
                 available[title] = package
-                if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                if isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                     configured.append(title)
     
         packagelist = list(available)
@@ -101,9 +81,9 @@ def setup(**kwargs):
                     with open(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml')) as ifh:
                         ofh.write(ifh.read())
 
-    if bindir and os.path.isdir(bindir):
+    if bindir and isdir(bindir):
         for package in listdir(specdir):
-            if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+            if isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
                     with open(pathjoin(bindir, package), 'w') as fh:
                         fh.write(consoleScript.lstrip('\n').format(

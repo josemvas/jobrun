@@ -65,7 +65,9 @@ consoleScript = '''
 #!{python}
 import sys
 sys.path = {syspath}
-from job2q import main
-main.run('{hostspecs}', '{jobspecs}')
+from job2q import main, config
+config.hostspecs = '{hostspecs}'
+config.jobspecs = '{jobspecs}'
+main.run()
 '''
 
