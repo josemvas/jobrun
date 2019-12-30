@@ -12,44 +12,40 @@ from importlib import import_module
 from os import path, listdir, remove, chmod
 from os.path import dirname, basename, realpath
 
+from job2q.classes import XmlTreeDict
 from job2q.dialogs import messages, dialogs
-from job2q.parsing import loadconfig, parseoptions, getelement
+from job2q.parsing import loadconfig, parseoptions
 from job2q.utils import rmdir, remove, makedirs, copyfile, pathjoin, pathexpand
-from job2q.strings import pyscript
-from job2q.classes import Bunch
+from job2q.strings import consoleScript
 from job2q.submit import queuejob
 
 def run(hostspecs, jobspecs):
 
     alias = basename(sys.argv[0])
     srcdir = dirname(realpath(__file__))
+    homedir = path.expanduser('~')
 
-    # What is commonspecs?!!!
+    userspecs = pathjoin(homedir, '.j2q', 'jobspecs.xml')
+
+    jobconf = loadconfig(hostspecs)
+    jobconf.merge(loadconfig(jobspecs))
+
     #TODO: commonspecs =
-    userspecs = pathjoin(path.expanduser('~'), '.j2q', 'userspecs.xml')
+    try: jobconf.update(loadconfig(userspecs))
+    except IOError: pass
 
-    sysconf = Bunch(initscript=[], offscript=[])
-    sysconf.update(loadconfig(hostspecs))
-
-    jobconf = Bunch(defaults={}, versions={}, parameters=[], filevars=[], prescript=[], postscript=[])
-    jobconf.update(loadconfig(jobspecs))
-
-    if path.isfile(userspecs):
-        jobconf.update(loadconfig(userspecs))
-
-    queueconf = import_module('.schedulers.' + sysconf.scheduler, package='job2q')
-
-    userconf = parseoptions(sysconf, jobconf, alias)
+    queueconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
+    userconf = parseoptions(jobconf, alias)
 
     #TODO: Sort in alphabetical or numerical order
     if 'r' in userconf.sort:
         userconf.inputlist.sort(reverse=True)
 
     try:
-        queuejob(sysconf, jobconf, userconf, queueconf, userconf.inputlist.pop(0))
+        queuejob(jobconf, userconf, queueconf, userconf.inputlist.pop(0))
         for inputfile in userconf.inputlist:
             sleep(userconf.waitime)
-            queuejob(sysconf, jobconf, userconf, queueconf, inputfile)
+            queuejob(jobconf, userconf, queueconf, inputfile)
     except KeyboardInterrupt:
         dialogs.runerr('Cancelado por el usario')
 
@@ -82,7 +78,7 @@ def setup(**kwargs):
         for package in listdir(pathjoin(platformdir, hostname)):
             if path.isdir(pathjoin(platformdir, hostname, package)):
                 try:
-                    title = getelement(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
+                    title = loadconfig(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
                 except AttributeError:
                     messages.cfgerr('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título')
                 available[title] = package
@@ -96,7 +92,7 @@ def setup(**kwargs):
             return
     
         selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
-        if not set(selected) & set(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
+        if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
             for package in selected:
                 makedirs(pathjoin(specdir, available[package]))
                 with open(pathjoin(specdir, available[package], 'jobspecs.xml'), 'w') as ofh:
@@ -110,7 +106,7 @@ def setup(**kwargs):
             if path.isfile(pathjoin(specdir, package, 'jobspecs.xml')):
                 try:
                     with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(pyscript.lstrip('\n').format(
+                        fh.write(consoleScript.lstrip('\n').format(
                             version=tuple(sys.version_info),
                             python=sys.executable,
                             syspath=sys.path,

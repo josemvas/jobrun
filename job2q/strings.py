@@ -9,7 +9,14 @@ upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 digit = '0123456789'
 other = '._-'
 
-XmlListTags = (
+xmlScriptTags = [
+    'initscript',
+    'offscript',
+    'prescript',
+    'postscript',
+]
+    
+xmlListTags = [
     'profile',
     'parameters',
     'inputfiles',
@@ -19,30 +26,42 @@ XmlListTags = (
     'offscript',
     'prescript',
     'postscript',
-)
+]
 
-XmlDictTags = (
-    'versions',
+xmlDictTags = [
+    'defaults',
     'fileexts',
     'filevars',
     'optionargs',
-) 
+    'versions',
+] 
 
-XmlListChildren = {
+xmlTextTags = [
+    'storage',
+    'scheduler',
+    'title',
+    'runtype',
+    'mpiwrapper',
+    'outputdir',
+    'versionprefix',
+    'filecheck',
+    'fileclash',
+    'queue',
+    'scratch',
+    'waitime',
+    'executable',
+    'version',
+    'stdout',
+    'stderr',
+]
+
+xmlProfileChildren = {
     'export' : 'export',
     'source' : 'source',
     'load' : 'module load',
 }
 
-scriptTags = {
-    'initscript',
-    'offscript',
-    'prescript',
-    'postscript',
-)
-    
-
-pyscript = '''
+consoleScript = '''
 #!{python}
 import sys
 sys.path = {syspath}

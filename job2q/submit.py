@@ -11,16 +11,18 @@ from tempfile import NamedTemporaryFile
 from job2q.parsing import parsebool
 from job2q.dialogs import messages, dialogs
 from job2q.utils import wordjoin, linejoin, pathjoin, q, dq, copyfile, remove, makedirs
-from strings import scriptTags
-#from job2q.config import sysconf, queueconf, jobconf, userconf
+from job2q.strings import xmlScriptTags
+#from job2q.config import queueconf, jobconf, userconf
 
-def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
-    jobcontrol = [ ]
-    exportfiles = [ ]
-    importfiles = [ ]
-    redirections = [ ]
-    environment = [ ]
-    arguments = [ ]
+def queuejob(jobconf, userconf, queueconf, inputfile):
+
+    jobcontrol = []
+    jobenviron = {}
+    exportfiles = []
+    importfiles = []
+    redirections = []
+    environment = []
+    arguments = []
     
     for ext in jobconf.inputfiles:
         try: jobconf.fileexts[ext]
@@ -49,16 +51,18 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
         return
     
     jobenviron['var'] = os.environ
-    jobenviron['file'] = (i for i in jobconf.fileexts if os.path.isfile(pathjoin(localdir, (basename, i))))
+    jobenviron['file'] = [ i for i in jobconf.fileexts if os.path.isfile(pathjoin(localdir, (basename, i))) ]
 
-    for script in scriptTags:
-        for line in jobconf[script]:
-            for attr in line:
-                if attr in jobenviron:
-                    item.testres = line[attr] in jobenviron[attr]
-                else messages.cfgerr(attr, 'no es un atributo válido de', script)
+    for script in xmlScriptTags:
+        if script in jobconf:
+            for line in jobconf[script]:
+                for attr in line:
+                    if attr in jobenviron:
+                        line.boolean = line[attr] in jobenviron[attr]
+                    else:
+                        messages.cfgerr(attr, 'no es un atributo válido de', script)
 
-    filebools = (True if i in jobenviron['file'] else False for i in jobconf.fileexts)
+    filebools = { i : True if i in jobenviron['file'] else False for i in jobconf.fileexts }
 
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebools):
@@ -94,7 +98,7 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
     for var in jobconf.filevars:
         environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
     
-    environment.extend(sysconf.initscript)
+    environment.extend(jobconf.initscript)
     environment.extend(queueconf.environment)
     environment.append("shopt -s nullglob extglob")
     environment.append("workdir=" + pathjoin(userconf.scratch, queueconf.jobidvar))
@@ -113,14 +117,14 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
     if userconf.exechost is not None: 
         jobcontrol.append(queueconf.host.format(userconf.exechost))
     
-    if sysconf.storage == 'pooled':
+    if jobconf.storage == 'pooled':
          jobcontrol.append(queueconf.stdout.format(pathjoin(userconf.scratch, (queueconf.jobid, 'out'))))
          jobcontrol.append(queueconf.stderr.format(pathjoin(userconf.scratch, (queueconf.jobid, 'err'))))
-    elif sysconf.storage == 'shared':
+    elif jobconf.storage == 'shared':
          jobcontrol.append(queueconf.stdout.format(pathjoin(outputdir, (queueconf.jobid, 'out'))))
          jobcontrol.append(queueconf.stderr.format(pathjoin(outputdir, (queueconf.jobid, 'err'))))
     else:
-         messages.cfgerr(sysconf.storage + ' no es un tipo de almacenamiento soportado por este script')
+         messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
     
     jobcommand = jobconf.program.executable
     
@@ -216,7 +220,7 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
         #TODO: Avoid writing unnecessary newlines or spaces
         t = NamedTemporaryFile(mode='w+t', delete=False)
         t.write(linejoin(i for i in jobcontrol))
-        t.write(linejoin(str(i) for i in sysconf.initscript if i))
+        t.write(linejoin(str(i) for i in jobconf.initscript if i))
         t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
@@ -231,7 +235,7 @@ def queuejob(sysconf, jobconf, userconf, queueconf, inputfile):
         t.write(' ' * 2 + 'ssh $ip rm -f "\'$workdir\'/*"' + '\n')
         t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
         t.write('done' + '\n')
-        t.write(linejoin(wordjoin('ssh', master, dq(str(i))) for i in sysconf.offscript if i))
+        t.write(linejoin(wordjoin('ssh', master, dq(str(i))) for i in jobconf.offscript if i))
     finally:
         t.close()
     

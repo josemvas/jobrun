@@ -15,28 +15,19 @@ from distutils import util
 
 from job2q.dialogs import messages, dialogs
 from job2q.utils import pathjoin, pathexpand, q
-from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeBunch
+from job2q.classes import BoolNot, BoolAnd, BoolOr, BoolOperand, Bunch, XmlTreeDict
 
-def getelement(xmlfile, element):
-    try:
-        with open(xmlfile) as f:
-            try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
-            except ElementTree.ParseError as e:
-                messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
-    except IOError:
-        messages.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
-    try: return xmlroot.find(element).text
-    except AttributeError: raise
-
-def loadconfig(xmlfile):
-    try:
-        with open(xmlfile) as f:
-            try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
-            except ElementTree.ParseError as e:
-                messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
-    except IOError:
-        messages.cfgerr('El archivo', xmlfile, 'no existe o no es legible')
-    return XmlTreeBunch(xmlroot)
+def loadconfig(xmlfile, xmltag=None):
+    with open(xmlfile) as f:
+        try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
+        except ElementTree.ParseError as e:
+            messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
+    if xmltag is None:
+        return XmlTreeDict(xmlroot)
+    else:
+        try: return xmlroot.find(element).text
+        except AttributeError:
+            return None
 
 def parsebool(boolstring, context):
     TRUE = Keyword("True")
@@ -52,25 +43,26 @@ def parsebool(boolstring, context):
     ])
     return bool(boolExpr.parseString(boolstring)[0])
 
+def listoptions(prompt, options, default=None):
+    if options:
+        print(prompt)
+        for key in options:
+            if key == default:
+                print(' '*3 + key + ' ' + '(default)')
+            else:
+                print(' '*3 + key)
+
 #TODO: Move listings to utils.py
-def parseoptions(sysconf, jobconf, alias):
+def parseoptions(jobconf, alias):
 
     parser = ArgumentParser(prog=alias, add_help=False)
     parser.add_argument('-l', '--listoptions', dest='listoptions', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
     parsed, parsing = parser.parse_known_args()
 
     if parsed.listoptions:
-        for alternative in (jobconf.versions, jobconf.parameters):
-            if alternative:
-                print('Opciones disponibles:')
-                for key in alternative:
-                    try: isdefault = key == jobconf.defaults.version
-                    except AttributeError: isdefault = False
-                    if isdefault:
-                        print(' '*3 + key + ' ' + '(default)')
-                    else:
-                        print(' '*3 + key)
-        sys.exit(0)
+        listoptions('Versiones del binario disponibles', jobconf.versions, jobconf.defaults.version)
+        listoptions('Conjuntos de parámetros disponibles', jobconf.parameters)
+        raise SystemExit()
 
     parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--list', dest='listonly', action='store_true', help='Lista las versiones de los programas y conjuntos de parámetros disponibles.')
@@ -96,22 +88,22 @@ def parseoptions(sysconf, jobconf, alias):
     if not userconf.inputlist:
         messages.opterr('Debe especificar al menos un archivo de entrada')
 
-    try: sysconf.scheduler
+    try: jobconf.scheduler
     except AttributeError: messages.cfgerr('No se especificó el nombre del sistema de colas (scheduler)')
 
-    try: sysconf.storage
+    try: jobconf.storage
     except AttributeError: messages.cfgerr('No se especificó el tipo de almacenamiento (storage)')
 
     if userconf.scratch is None:
-        try: userconf.scratch = pathexpand(sysconf.defaults.scratch)
+        try: userconf.scratch = pathexpand(jobconf.defaults.scratch)
         except AttributeError: messages.cfgerr('No se especificó el directorio temporal de escritura por defecto (scratch)')
 
     if userconf.queue is None:
-        try: userconf.queue = sysconf.defaults.queue
+        try: userconf.queue = jobconf.defaults.queue
         except AttributeError: messages.cfgerr('No se especificó la cola por defecto (queue)')
 
     if userconf.waitime is None:
-        try: userconf.waitime = float(sysconf.defaults.waitime)
+        try: userconf.waitime = float(jobconf.defaults.waitime)
         except AttributeError: messages.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
 
     try: jobconf.outputdir = bool(util.strtobool(jobconf.outputdir))

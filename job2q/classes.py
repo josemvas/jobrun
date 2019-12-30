@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from __future__ import division
 
-from job2q.strings import XmlListTags, XmlDictTags, XmlListChildren
+from job2q.strings import xmlListTags, xmlDictTags, xmlProfileChildren, xmlTextTags
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -12,7 +12,7 @@ class BoolOperand(object):
         try:
             self.value = context[t[0]]
         except KeyError as e:
-            raise Exception('Undefined BoolOperand value: ' + e.args[0])
+            raise Exception('Undefined BoolOperand context {0}'.format(e.args[0]))
     def __bool__(self):
         return self.value
     def __str__(self):
@@ -56,18 +56,19 @@ class Bunch(dict):
         try: return self[attr]
         except KeyError:
             raise AttributeError(attr)
+    def __missing__(self, key):
+        return []
 
-class DictTest(dict):
-    def __init__(self, script='', testres=True):
+class ScriptTestDict(dict):
+    def __init__(self, script='', boolean=True):
         self.script = script
-        self.testres = testres
+        self.boolean = boolean
     def __bool__(self):
-        return not self.testres if 'not' in self else self.testres
+        return not self.boolean if 'not' in self else self.boolean
     __nonzero__ = __bool__
     def __str__(self):
         return self.script
 
-#TODO: Implement iff attribute for e tag and remove d tag
 class XmlTreeList(list):
     def __init__(self, parent):
         for child in parent:
@@ -75,36 +76,66 @@ class XmlTreeList(list):
                 if child.tag == 'e':
                     self.append(child.text)
                 elif child.tag == 's':
-                    self.append(DictTest(script=child.text))
+                    self.append(ScriptTestDict(script=child.text))
                     for attr in child.attrib:
                         self[-1][attr] = child.attrib[attr]
-                elif child.tag in XmlListChildren:
-                    self.append(XmlListChildren[child.tag] + ' ' + child.text)
+                elif child.tag in xmlProfileChildren:
+                    self.append(xmlProfileChildren[child.tag] + ' ' + child.text)
                 else:
-                    raise Exception('Invalid XmlTreeList tag:' + ' ' + child.tag)
-
-class XmlTreeDict(dict):
-    def __init__(self, parent):
-        for child in parent:
-            if len(child):
-                if 'key' in child.attrib:
-                    self[child.attrib['key']] = XmlTreeBunch(child)
+                    raise Exception('Invalid XmlTreeList Tag <{0}>'.format(child.tag))
             else:
-                if 'key' in child.attrib:
-                    self[child.attrib['key']] = child.text
+                raise Exception('XmlTreeList Tag <{0}> must not have grandchildren: <{0}>'.format(child.tag))
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
                 else:
-                    self[child.text] = child.text
+                    raise Exception('Conflict at' + ' ' + str(i))
+            else:
+                self.append(other[i])
 
-class XmlTreeBunch(Bunch):
+
+class XmlTreeDict(Bunch):
     def __init__(self, parent):
         for child in parent:
             if len(child):
-                if child.tag in XmlListTags:
+                if child.tag == 'e':
+                    if 'key' in child.attrib:
+                        self[child.attrib['key']] = XmlTreeDict(child)
+                    else:
+                        raise Exception('XmlTreeDict Tag <e> must have a key attribute {0}'.format(parent))
+                elif child.tag in xmlListTags:
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in XmlDictTags:
+                elif child.tag in xmlDictTags:
                     self[child.tag] = XmlTreeDict(child)
+                elif child.tag in xmlTextTags:
+                    raise Exception('XmlTreeDict Tag must <{0}> have grandchildren'.format(child.tag))
                 else:
-                    self[child.tag] = XmlTreeBunch(child)
+                    raise Exception('Invalid XmlTreeDict Tag {0} <{1}>'.format(parent, child.tag))
             else:
-                self[child.tag] = child.text
+                if child.tag == 'e':
+                    if 'key' in child.attrib:
+                        self[child.attrib['key']] = child.text
+                    else:
+                        self[child.text] = child.text
+                elif child.tag in xmlListTags or child.tag in xmlDictTags:
+                    raise Exception('This XmlTreeList must not have grandchildren <{0}>'.format(child.tag))
+                elif child.tag in xmlTextTags:
+                    self[child.tag] = child.text
+                else:
+                    raise Exception('Invalid XmlTreeDict Tag {0} <{1}>'.format(parent, child.tag))
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
+                else:
+                    raise Exception('Conflict at' + ' ' + str(i))
+            else:
+                self[i] = other[i]
 
