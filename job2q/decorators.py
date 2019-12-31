@@ -12,7 +12,7 @@ def catch_keyboard_interrupt(f):
     def wrapper(*args, **kwargs):
         try: return f(*args, **kwargs)
         except KeyboardInterrupt:
-            raise SystemExit(colors.red + 'Cancelado por el usuario' + colors.normal)
+            raise SystemExit(colors.red + 'Cancelado por el usuario' + colors.default)
     return wrapper
 
 def join_positional_args(f):
