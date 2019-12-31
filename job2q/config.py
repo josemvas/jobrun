@@ -56,7 +56,7 @@ import sys
 sys.path = {syspath}
 from job2q import config
 config.specdir = '{specdir}'
-from job2q import getconf
+from job2q import getconf, messages
 while getconf.inputlist:
     try:
         if 'job2q.submit' in sys.modules:
@@ -65,7 +65,7 @@ while getconf.inputlist:
         else:
             from job2q import submit
     except KeyboardInterrupt:
-        dialogs.error('Cancelado por el usario')
+        messages.error('Cancelado por el usario')
     except RuntimeError:
         pass
 '''

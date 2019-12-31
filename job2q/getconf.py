@@ -11,8 +11,8 @@ from importlib import import_module
 from distutils.util import strtobool
 from os.path import dirname, basename, realpath
 
-from job2q.dialogs import dialogs
-from job2q.messages import messages
+from job2q import dialogs
+from job2q import messages
 from job2q.parsing import BunchDict, parsexml
 from job2q.utils import pathjoin, pathexpand
 from job2q.config import specdir

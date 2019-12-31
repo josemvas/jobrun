@@ -8,8 +8,8 @@ import sys
 from os import listdir, chmod
 from os.path import dirname, basename, realpath, isdir, isfile
 
-from job2q.dialogs import dialogs
-from job2q.messages import messages
+from job2q import dialogs
+from job2q import messages
 from job2q.utils import rmdir, makedirs, copyfile, hardlink, pathjoin, pathexpand
 from job2q.config import consoleScript
 from job2q.parsing import parsexml

@@ -7,7 +7,7 @@ from __future__ import division
 from xml.etree import ElementTree
 from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 
-from job2q.messages import messages
+from job2q import messages
 from job2q.config import xmlListTags, xmlScriptTags, xmlDictTags, xmlProfileChildren, xmlTextTags
 
 class BoolOperand(object):

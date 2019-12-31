@@ -12,7 +12,7 @@ from builtins import str
 from collections import Iterable
 from itertools import repeat
 
-from job2q.messages import messages
+from job2q import messages
 
 def q(string):
     if '"' in string and "'" in string: messages.runerr('El texto contiene comillas simples y dobles:', string )

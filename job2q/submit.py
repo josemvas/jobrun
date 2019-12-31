@@ -9,8 +9,8 @@ from socket import gethostname, gethostbyname
 from tempfile import NamedTemporaryFile
 from time import sleep
 
-from job2q.dialogs import dialogs
-from job2q.messages import messages
+from job2q import dialogs
+from job2q import messages
 from job2q.parsing import parsebool
 from job2q.config import xmlScriptTags
 from job2q.utils import wordjoin, linejoin, pathjoin, q, dq, copyfile, remove, makedirs

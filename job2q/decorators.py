@@ -20,6 +20,16 @@ def join_positional_args(f):
         return f(' '.join(args), **kwargs)
     return wrapper
 
+def override_with_method(cls):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            if hasattr(cls, f.__name__):
+                return getattr(cls, f.__name__)(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
 def decorate_class_methods(decorator):
     def decorate(cls):
         for name, f in inspect.getmembers(cls, inspect.isroutine):
@@ -27,11 +37,11 @@ def decorate_class_methods(decorator):
         return cls
     return decorate
 
-def override_class_methods(module):
+def override_class_methods(cls):
     def override(cls):
         for name, _ in inspect.getmembers(cls, inspect.isroutine):
-            if hasattr(module, name):
-                try: setattr(cls, name, getattr(module, name))
+            if hasattr(cls, name):
+                try: setattr(cls, name, getattr(cls, name))
                 except Exception as e: print('Exception:', e)
         return cls
     return override
