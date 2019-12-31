@@ -1,3 +1,2 @@
-hostspecs = None
-jobspecs = None
+specdir = None
 

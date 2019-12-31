@@ -12,7 +12,7 @@ from builtins import str
 from collections import Iterable
 from itertools import repeat
 
-from job2q.strings import fpsep
+from job2q.messages import messages
 
 def q(string):
     if '"' in string and "'" in string: messages.runerr('El texto contiene comillas simples y dobles:', string )
@@ -27,55 +27,61 @@ def dq(string):
 
 def makedirs(*args):
     for path in args:
-        try:
-            os.makedirs(path)
+        try: os.makedirs(path)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 pass
-            else:
-                messages.runerr('No se pudo crear el directorio', e)
+            else: raise
+
 def remove(path):
-    try:
-        os.remove(path)
+    try: os.remove(path)
     except OSError as e:
         if e.errno == errno.ENOENT:
             pass
-        else:
-            messages.runerr('No se pudo eliminar el archivo:', e)
+        else: raise
 
 def rmdir(path):
-    try:
-        os.rmdir(path)
+    try: os.rmdir(path)
     except OSError as e:
         if e.errno == errno.ENOENT:
             pass
-        else:
-            messages.runerr('No se pudo eliminar el directorio:', e)
+        else: raise
 
 def copyfile(source, dest):
-    try:
-        shutil.copyfile(source, dest)
+    try: shutil.copyfile(source, dest)
     except IOError as e:
         if e.errno == errno.ENOENT:
-            messages.runerr('No existe el archivo de origen', source + ',', 'o el directorio de destino', os.path.dirname(dest))
+            if not os.path.isfile(source):
+                messages.runerr('No existe el archivo de origen', source)
+            else: raise
         if e.errno == errno.EEXIST:
-            messages.runerr('Ya existe el archivo de destino', dest)
+            raise
 
-def strjoin(*args, sepgen):
-    return next(sepgen).join(i if isinstance(i, str) else strjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
+def hardlink(source, dest):
+    try: os.link(source, dest)
+    except IOError as e:
+        if e.errno == errno.ENOENT:
+            if not os.path.isfile(source):
+                messages.runerr('No existe el archivo de origen', source)
+            else: raise
+        if e.errno == errno.EEXIST:
+            os.remove(dest)
+            os.link(source, dest)
 
-def wordjoin(*args, sep=' ', gen=repeat):
-    return strjoin(*args, sepgen=gen(sep))
+def strjoin(*args, sep='', gen=repeat):
+    def rejoin(*args, sepgen):
+        return next(sepgen).join(i if isinstance(i, str) else rejoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
+    return rejoin(*args, sepgen=gen(sep))
+
+def wordjoin(*args):
+    return strjoin(*args, sep=' ')
 
 def linejoin(*args):
-    return wordjoin(wordjoin(*args, sep='\n'), '\n', sep='')
+    return strjoin(strjoin(*args, sep='\n'), '\n')
 
 def pathjoin(*args):
-    return wordjoin(*args, sep=fpsep, gen=iter)
+    return strjoin(*args, sep=os.sep+'.-', gen=iter)
     #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
-
-def basename(path):
-    return os.path.basename(path)
 
 def pathexpand(path):
     return os.path.expanduser(os.path.expandvars(path))

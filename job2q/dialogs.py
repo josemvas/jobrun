@@ -5,11 +5,12 @@ from __future__ import absolute_import
 from __future__ import division
 
 import sys
-import inspect
 import readline
 from glob import glob
-from job2q.utils import basename, pathexpand, wordjoin
-from job2q import colors
+
+from job2q.utils import pathexpand, wordjoin
+from job2q.decorators import decorate_class_methods, override_class_methods, catch_keyboard_interrupt, join_positional_args
+from job2q.messages import messages
 
 try:
     import bulletin
@@ -23,34 +24,6 @@ if sys.version_info[0] < 3:
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
-
-def catch_keyboard_interrupt(f):
-    def wrapper(*args, **kwargs):
-        try: return f(*args, **kwargs)
-        except KeyboardInterrupt:
-            messages.runerr('Cancelado por el usuario')
-    return wrapper
-
-def join_positional_args(f):
-    def wrapper(*args, **kwargs):
-        return f(wordjoin(*args), **kwargs)
-    return wrapper
-
-def decorate_class_methods(decorator):
-    def decorate(cls):
-        for name, f in inspect.getmembers(cls, inspect.isroutine):
-            setattr(cls, name, decorator(f))
-        return cls
-    return decorate
-
-def override_class_methods(module):
-    def override(cls):
-        for name, _ in inspect.getmembers(cls, inspect.isroutine):
-            if hasattr(module, name):
-                try: setattr(cls, name, getattr(module, name))
-                except Exception as e: print('Exception:', e)
-        return cls
-    return override
 
 class tabCompleter(object):
     def __init__(self, options=[], maxtcs=1):
@@ -70,7 +43,7 @@ class tabCompleter(object):
 @decorate_class_methods(staticmethod)
 class dialogs(object):
     def path(prompt=''):
-        readline.set_completer(tabCompleter().path)
+        readline.set_completer(tabCompleter().tcpath)
         return pathexpand(input(prompt + ': '))
     def yn(prompt='', default=None):
         while True:
@@ -121,31 +94,4 @@ class dialogs(object):
                 return chosen
             else:
                 messages.warning('Selección inválida, intente de nuevo')
-    
-@decorate_class_methods(join_positional_args)
-@decorate_class_methods(staticmethod)
-class messages(object):
-    def success(message=''):
-        print(colors.green + message + colors.default)
-    def warning(message=''):
-        print(colors.yellow + message + colors.default)
-    def error(message=''):
-        print(colors.red + message + colors.default)
-    def opterr(message=''):
-        raise SystemExit(colors.red + '¡Error! {0}'.format(message) + colors.default)
-    def cfgerr(message=''):
-        raise SystemExit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
-    def runerr(message=''):
-        fcode = sys._getframe(1).f_code
-        raise SystemExit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
-        raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
-    def lsinfo(message='', info=[], default=None):
-        if message:
-            print(message)
-        for key in info:
-            if key == default:
-                print(' '*3 + key + ' ' + '(default)')
-            else:
-                print(' '*3 + key)
-
     

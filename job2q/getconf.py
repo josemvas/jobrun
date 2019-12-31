@@ -11,21 +11,26 @@ from importlib import import_module
 from distutils.util import strtobool
 from os.path import dirname, basename, realpath
 
-from job2q.dialogs import messages, dialogs
+from job2q.dialogs import dialogs
+from job2q.messages import messages
 from job2q.parsing import BunchDict, parsexml
 from job2q.utils import pathjoin, pathexpand
-from job2q.config import hostspecs, jobspecs
+from job2q.config import specdir
 
 alias = basename(sys.argv[0])
 homedir = path.expanduser('~')
 
+hostspecs = pathjoin(specdir, 'hostspecs.xml')
+corespecs = pathjoin(specdir, 'corespecs.xml')
+customspecs = pathjoin(specdir, 'customspecs.xml')
 userspecs = pathjoin(homedir, '.j2q', 'jobspecs.xml')
 
 jobconf = parsexml(hostspecs)
-jobconf.merge(parsexml(jobspecs))
+jobconf.merge(parsexml(corespecs))
+jobconf.merge(parsexml(customspecs))
 
 #TODO: commonspecs =
-try: jobconf.update(parsexml(userspecs))
+try: jobconf.merge(parsexml(userspecs))
 except IOError: pass
 
 queueconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
@@ -127,4 +132,14 @@ for item in jobconf.parameters:
     if userconf.parameter is None:
         userconf.parameter = choices[0] if len(choices) == 1 else dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
     jobconf.parsets.append(pathjoin(itempath, userconf.parameter))
+
+for ext in jobconf.inputfiles:
+    try: jobconf.fileexts[ext]
+    except KeyError:
+        messages.cfgerr('El nombre del archivo de entrada con llave', ext, 'no está definido')
+
+for ext in jobconf.outputfiles:
+    try: jobconf.fileexts[ext]
+    except KeyError:
+        messages.cfgerr('El nombre del archivo de salida con llave', ext, 'no está definido')
 

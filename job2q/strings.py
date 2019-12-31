@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-from os import sep
-
-# File path separators
-fpsep =  sep + '.-'
-
-lower = 'abcdefghijklmnopqrstuvwxyz'
-upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-digit = '0123456789'
-other = '._-'
 
 xmlScriptTags = [
     'initscript',
@@ -66,8 +57,7 @@ consoleScript = '''
 import sys
 sys.path = {syspath}
 from job2q import main, config
-config.hostspecs = '{hostspecs}'
-config.jobspecs = '{jobspecs}'
+config.specdir = '{specdir}'
 main.run()
 '''
 
