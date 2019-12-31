@@ -20,17 +20,17 @@ from job2q.config import specdir
 alias = basename(sys.argv[0])
 homedir = path.expanduser('~')
 
-hostspecs = pathjoin(specdir, 'hostspecs.xml')
-corespecs = pathjoin(specdir, 'corespecs.xml')
-customspecs = pathjoin(specdir, 'customspecs.xml')
-userspecs = pathjoin(homedir, '.j2q', 'jobspecs.xml')
+platform = pathjoin(specdir, 'platform.xml')
+corespec = pathjoin(specdir, 'corespec.xml')
+hostspec = pathjoin(specdir, 'hostspec.xml')
+userspec = pathjoin(homedir, '.j2q', 'jobspec.xml')
+#TODO: commonspec =
 
-jobconf = parsexml(hostspecs)
-jobconf.merge(parsexml(corespecs))
-jobconf.merge(parsexml(customspecs))
+jobconf = parsexml(platform)
+jobconf.merge(parsexml(corespec))
+jobconf.merge(parsexml(hostspec))
 
-#TODO: commonspecs =
-try: jobconf.merge(parsexml(userspecs))
+try: jobconf.merge(parsexml(userspec))
 except IOError: pass
 
 queueconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
@@ -61,12 +61,18 @@ parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', 
 parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
 parser.add_argument('inputlist', nargs='+', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
 
-#userconf = BunchDict()
-#userconf.update(vars(parser.parse_args(parsing)))
-userconf = BunchDict(vars(parser.parse_args(parsing)))
+userconf = parser.parse_args(parsing)
 
 if not userconf.inputlist:
     messages.opterr('Debe especificar al menos un archivo de entrada')
+else:
+    inputlist = userconf.inputlist
+
+if userconf.waitime is None:
+    try: waitime = float(jobconf.defaults.waitime)
+    except AttributeError:  waitime = 0
+else:
+    waitime = userconf.waitime
 
 #TODO: Sort in alphabetical or numerical order
 if 'r' in userconf.sort:
@@ -85,10 +91,6 @@ if userconf.scratch is None:
 if userconf.queue is None:
     try: userconf.queue = jobconf.defaults.queue
     except AttributeError: messages.cfgerr('No se especificó la cola por defecto (queue)')
-
-if userconf.waitime is None:
-    try: userconf.waitime = float(jobconf.defaults.waitime)
-    except AttributeError: messages.cfgerr('No se especificó el tiempo de pausa por defecto (waitime)')
 
 try: jobconf.outputdir = bool(strtobool(jobconf.outputdir))
 except AttributeError: messages.cfgerr('No se especificó si se debe crear una carpeta de salida (outputdir)')

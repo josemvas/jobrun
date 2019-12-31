@@ -12,9 +12,9 @@ from time import sleep
 from job2q.dialogs import dialogs
 from job2q.messages import messages
 from job2q.parsing import parsebool
-from job2q.strings import xmlScriptTags
+from job2q.config import xmlScriptTags
 from job2q.utils import wordjoin, linejoin, pathjoin, q, dq, copyfile, remove, makedirs
-from job2q.getconf import jobconf, userconf, queueconf
+from job2q.getconf import jobconf, userconf, queueconf, inputlist
 
 jobcontrol = []
 jobenviron = {}
@@ -24,7 +24,7 @@ redirections = []
 environment = []
 arguments = []
 
-inputfile = userconf.inputlist.pop(0)
+inputfile = inputlist.pop(0)
 filename = os.path.basename(inputfile)
 master = gethostbyname(gethostname())
 localdir = os.path.abspath(os.path.dirname(inputfile))

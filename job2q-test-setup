@@ -3,7 +3,7 @@ import sys
 assert sys.version_info >= (2, 6)
 
 from os.path import abspath
-from job2q.main import setup
+from job2q.console import setup
 from job2q.utils import makedirs
 
 etcdir = abspath('./etc')

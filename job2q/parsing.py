@@ -8,7 +8,7 @@ from xml.etree import ElementTree
 from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
 
 from job2q.messages import messages
-from job2q.strings import xmlListTags, xmlDictTags, xmlProfileChildren, xmlTextTags
+from job2q.config import xmlListTags, xmlScriptTags, xmlDictTags, xmlProfileChildren, xmlTextTags
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -111,7 +111,7 @@ class XmlTreeDict(BunchDict):
                         self[child.attrib['key']] = XmlTreeDict(child)
                     else:
                         raise Exception('XmlTreeDict Tag <e> must have a key attribute {0}'.format(parent))
-                elif child.tag in xmlListTags:
+                elif child.tag in xmlListTags + xmlScriptTags:
                     self[child.tag] = XmlTreeList(child)
                 elif child.tag in xmlDictTags:
                     self[child.tag] = XmlTreeDict(child)
@@ -125,7 +125,7 @@ class XmlTreeDict(BunchDict):
                         self[child.attrib['key']] = child.text
                     else:
                         self[child.text] = child.text
-                elif child.tag in xmlListTags or child.tag in xmlDictTags:
+                elif child.tag in xmlListTags + xmlScriptTags + xmlDictTags:
                     raise Exception('This XmlTreeList must not have grandchildren <{0}>'.format(child.tag))
                 elif child.tag in xmlTextTags:
                     self[child.tag] = child.text

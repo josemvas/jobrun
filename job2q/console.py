@@ -4,32 +4,15 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-import os
 import sys
-import errno
-from os.path import dirname, basename, realpath, isdir, isfile
 from os import listdir, chmod
-from importlib import reload
+from os.path import dirname, basename, realpath, isdir, isfile
 
 from job2q.dialogs import dialogs
 from job2q.messages import messages
 from job2q.utils import rmdir, makedirs, copyfile, hardlink, pathjoin, pathexpand
-from job2q.strings import consoleScript
+from job2q.config import consoleScript
 from job2q.parsing import parsexml
-
-def run():
-    import job2q.getconf
-    while job2q.getconf.userconf.inputlist:
-        try:
-            if 'job2q.submit' in sys.modules:
-                sleep(job2q.getconf.jobconf.waitime)
-                reload(job2q.submit)
-            else:
-                import job2q.submit
-        except KeyboardInterrupt:
-            dialogs.error('Cancelado por el usario')
-        except RuntimeError:
-            pass
 
 def setup(**kwargs):
 
@@ -37,22 +20,22 @@ def setup(**kwargs):
     bindir = kwargs['bindir'] if 'bindir' in kwargs else dialogs.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
 
     sourcedir = dirname(realpath(__file__))
-    genericdir = pathjoin(sourcedir, 'database', 'generic')
+    corespecdir = pathjoin(sourcedir, 'database', 'corespec')
     platformdir = pathjoin(sourcedir, 'database', 'platform')
 
     hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
-    if not isfile(pathjoin(platformdir, hostname, 'hostspecs.xml')):
+    if not isfile(pathjoin(platformdir, hostname, 'platform.xml')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
 
     if etcdir and isdir(etcdir):
         specdir = pathjoin(etcdir, 'j2q')
-        if isfile(pathjoin(specdir, 'hostspecs.xml')):
+        if isfile(pathjoin(specdir, 'platform.xml')):
             if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto (si/no)?'):
-                copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+                copyfile(pathjoin(platformdir, hostname, 'platform.xml'), pathjoin(specdir, 'platform.xml'))
         else:
             makedirs(specdir)
-            copyfile(pathjoin(platformdir, hostname, 'hostspecs.xml'), pathjoin(specdir, 'hostspecs.xml'))
+            copyfile(pathjoin(platformdir, hostname, 'platform.xml'), pathjoin(specdir, 'platform.xml'))
              
         available = { }
         configured = [ ]
@@ -60,11 +43,11 @@ def setup(**kwargs):
         for package in listdir(pathjoin(platformdir, hostname)):
             if isdir(pathjoin(platformdir, hostname, package)):
                 try:
-                    title = parsexml(pathjoin(genericdir, package, 'jobspecs.xml'), 'title')
+                    title = parsexml(pathjoin(corespecdir, package, 'corespec.xml'), 'title')
                 except AttributeError:
-                    messages.cfgerr('El archivo', pathjoin(genericdir, package, 'jobspecs.xml'), 'no tiene un título')
+                    messages.cfgerr('El archivo', pathjoin(corespecdir, package, 'corespec.xml'), 'no tiene un título')
                 available[title] = package
-                if isfile(pathjoin(specdir, package, 'jobspecs.xml')):
+                if isdir(pathjoin(specdir, package)):
                     configured.append(title)
     
         packagelist = list(available)
@@ -78,9 +61,9 @@ def setup(**kwargs):
         if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
             for package in selected:
                 makedirs(pathjoin(specdir, available[package]))
-                hardlink(pathjoin(specdir, 'hostspecs.xml'), pathjoin(specdir, available[package], 'hostspecs.xml'))
-                copyfile(pathjoin(genericdir, available[package], 'jobspecs.xml'), pathjoin(specdir, available[package], 'corespecs.xml'))
-                copyfile(pathjoin(platformdir, hostname, available[package], 'jobspecs.xml'), pathjoin(specdir, available[package], 'customspecs.xml'))
+                hardlink(pathjoin(specdir, 'platform.xml'), pathjoin(specdir, available[package], 'platform.xml'))
+                copyfile(pathjoin(corespecdir, available[package], 'corespec.xml'), pathjoin(specdir, available[package], 'corespec.xml'))
+                copyfile(pathjoin(platformdir, hostname, available[package], 'hostspec.xml'), pathjoin(specdir, available[package], 'hostspec.xml'))
 
     if bindir and isdir(bindir):
         for package in listdir(specdir):
