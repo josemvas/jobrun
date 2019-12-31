@@ -11,8 +11,27 @@ from os.path import dirname, basename, realpath, isdir, isfile
 from job2q import dialogs
 from job2q import messages
 from job2q.utils import rmdir, makedirs, copyfile, hardlink, pathjoin, pathexpand
-from job2q.config import consoleScript
 from job2q.parsing import parsexml
+
+main_template = '''
+#!/opt/anaconda/bin/python
+import sys
+sys.path = {syspath}
+from job2q import config
+config.specdir = '{specdir}'
+from job2q import getconf, messages
+while getconf.inputlist:
+    try:
+        if 'job2q.submit' in sys.modules:
+            sleep(getconf.waitime)
+            reload(job2q.submit)
+        else:
+            from job2q import submit
+    except KeyboardInterrupt:
+        messages.error('Cancelado por el usario')
+    except RuntimeError:
+        pass
+'''
 
 def setup(**kwargs):
 
@@ -70,7 +89,7 @@ def setup(**kwargs):
             if isdir(pathjoin(specdir, package)):
                 try:
                     with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(consoleScript.lstrip('\n').format(
+                        fh.write(main_template.lstrip('\n').format(
                             version=tuple(sys.version_info),
                             python=sys.executable,
                             syspath=sys.path,
