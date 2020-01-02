@@ -23,6 +23,7 @@
 </optionargs>
 
 <parameters>
-   <e>.</e>
+   <e key='ligand'>.</e>
+   <e key='protein'>.</e>
 </parameters>
 

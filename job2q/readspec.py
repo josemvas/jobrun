@@ -8,17 +8,6 @@ from xml.etree import ElementTree
 from job2q.details import xmlListTags, xmlScriptTags, xmlDictTags, xmlProfileChildren, xmlTextTags
 from job2q import messages
 
-class BunchDict(dict):
-    def __getattr__(self, attr):
-        try: return self[attr]
-        except KeyError:
-            raise AttributeError(attr)
-    def __missing__(self, key):
-        if key in xmlListTags + xmlScriptTags:
-            #self[key] = []
-            #return self[key]
-            return []
-
 class ScriptTestDict(dict):
     def __init__(self, script='', boolean=True):
         self.script = script
@@ -59,7 +48,7 @@ class XmlTreeList(list):
                 self.append(other[i])
 
 
-class XmlTreeDict(BunchDict):
+class XmlTreeDict(dict):
     def __init__(self, parent):
         for child in parent:
             if len(child):
@@ -88,6 +77,15 @@ class XmlTreeDict(BunchDict):
                     self[child.tag] = child.text
                 else:
                     raise Exception('Invalid XmlTreeDict Tag {0} <{1}>'.format(parent, child.tag))
+    def __getattr__(self, attr):
+        try: return self[attr]
+        except KeyError:
+            raise AttributeError(attr)
+    def __missing__(self, key):
+        if key in xmlListTags + xmlScriptTags + xmlDictTags:
+            #self[key] = []
+            #return self[key]
+            return []
     def merge(self, other):
         for i in other:
             if i in self:

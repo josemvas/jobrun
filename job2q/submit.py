@@ -16,7 +16,7 @@ from job2q import messages
 from job2q.parsing import parsebool
 from job2q.details import xmlScriptTags
 from job2q.getconf import jobconf, sysconf, optconf
-from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, q, qq
+from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, p, q, qq
 from job2q.decorators import catch_keyboard_interrupt
 from job2q.exceptions import * 
 
@@ -105,7 +105,7 @@ def submit():
             elif key + 'set' in jobconf.defaults:
                 parset = jobconf.defaults[key + 'set']
             else:
-                parset = dialogs.optone('Seleccione un conjunto de parámetros', choices=choices)
+                parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key) + ':', choices=choices)
         parameters.append(path.join(pardir, parset))
 
     version = jobconf.versionprefix + strjoin(c.lower() for c in optconf.version if c.isalnum())
