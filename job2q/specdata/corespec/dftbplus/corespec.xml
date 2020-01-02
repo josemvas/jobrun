@@ -65,5 +65,5 @@
 </outputfiles>
 
 <prescript>
-   <s>sed -ri 's,(^|[{;])\s*OutputPrefix\s*=\s*"[^"]*"\s*($|[;}]),\1\2,I' $dftbin</s>
+   <e>sed -ri 's,(^|[{;])\s*OutputPrefix\s*=\s*"[^"]*"\s*($|[;}]),\1\2,I' $dftbin</e>
 </prescript>

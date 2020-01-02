@@ -8,6 +8,7 @@ from job2q.utils import makedirs
 
 etcdir = abspath('./etc')
 bindir = abspath('./bin')
-makedirs(etcdir, bindir)
+makedirs(etcdir)
+makedirs(bindir)
 setup(etcdir=etcdir, bindir=bindir)
 

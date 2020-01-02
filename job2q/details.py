@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-specdir = None
-
 xmlScriptTags = [
     'initscript',
     'offscript',
@@ -11,7 +9,6 @@ xmlScriptTags = [
     
 xmlListTags = [
     'profile',
-    'parameters',
     'inputfiles',
     'outputfiles',
     'positionargs',
@@ -22,6 +19,7 @@ xmlDictTags = [
     'fileexts',
     'filevars',
     'optionargs',
+    'parameters',
     'versions',
 ] 
 

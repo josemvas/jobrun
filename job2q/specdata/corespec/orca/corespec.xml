@@ -42,5 +42,5 @@
 </outputfiles>
 
 <prescript>
-   <s>sed -i '/\s*%pal\s\s*end/Id;1i'"%pal nprocs $ncpu end" $inp</s>
+   <e>sed -i '/\s*%pal\s\s*end/Id;1i'"%pal nprocs $ncpu end" $inp</e>
 </prescript>

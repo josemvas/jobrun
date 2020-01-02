@@ -6,5 +6,5 @@
 </versions>
 
 <parameters>
-   <e>/opt/parameters/DFTB+/slako_bundles</e>
+   <e key=''>/opt/parameters/DFTB+/slako_bundles</e>
 </parameters>

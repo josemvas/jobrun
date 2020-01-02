@@ -8,19 +8,19 @@ import sys
 import readline
 from glob import glob
 
+from job2q import messages
 from job2q.utils import pathexpand, wordjoin
 from job2q.decorators import override_with_method, catch_keyboard_interrupt, join_positional_args
-from job2q import messages
+
+if sys.version_info[0] < 3:
+    def input(prompt):
+       return raw_input(prompt.encode(sys.stdout.encoding))
 
 try:
     import bulletin
     bulletin_dialogs = bulletin.Dialogs(margin=1, pad_left=1, pad_right=1)
 except ImportError:
     bulletin_dialogs = None
-
-if sys.version_info[0] < 3:
-    def input(prompt):
-       return raw_input(prompt.encode(sys.stdout.encoding))
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')

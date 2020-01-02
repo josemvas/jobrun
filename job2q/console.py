@@ -5,32 +5,26 @@ from __future__ import absolute_import
 from __future__ import division
 
 import sys
-from os import listdir, chmod
-from os.path import dirname, basename, realpath, isdir, isfile
+from os import path, listdir, chmod
+from shutil import copyfile
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import rmdir, makedirs, copyfile, hardlink, pathjoin, pathexpand
-from job2q.parsing import parsexml
+from job2q.utils import rmdir, makedirs, hardlink, pathexpand
+from job2q.readspec import readspec
 
 main_template = '''
-#!/opt/anaconda/bin/python
+#!{python}
+# -*- coding: utf-8 -*-
 import sys
+from os import path
 sys.path = {syspath}
-from job2q import config
-config.specdir = '{specdir}'
-from job2q import getconf, messages
-while getconf.inputlist:
-    try:
-        if 'job2q.submit' in sys.modules:
-            sleep(getconf.waitime)
-            reload(job2q.submit)
-        else:
-            from job2q import submit
-    except KeyboardInterrupt:
-        messages.error('Cancelado por el usario')
-    except RuntimeError:
-        pass
+sys.argv[0] = path.join('{specdir}', path.basename(sys.argv[0]))
+from job2q import submit
+submit.submit()
+while submit.inputlist:
+    submit.wait()
+    submit.submit()
 '''
 
 def setup(**kwargs):
@@ -38,35 +32,35 @@ def setup(**kwargs):
     etcdir = kwargs['etcdir'] if 'etcdir' in kwargs else dialogs.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
     bindir = kwargs['bindir'] if 'bindir' in kwargs else dialogs.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
 
-    sourcedir = dirname(realpath(__file__))
-    corespecdir = pathjoin(sourcedir, 'database', 'corespec')
-    platformdir = pathjoin(sourcedir, 'database', 'platform')
+    sourcedir = path.dirname(path.realpath(__file__))
+    corespecdir = path.join(sourcedir, 'specdata', 'corespec')
+    platformdir = path.join(sourcedir, 'specdata', 'platform')
 
     hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
-    if not isfile(pathjoin(platformdir, hostname, 'platform.xml')):
+    if not path.isfile(path.join(platformdir, hostname, 'platform.xml')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
 
-    if etcdir and isdir(etcdir):
-        specdir = pathjoin(etcdir, 'j2q')
-        if isfile(pathjoin(specdir, 'platform.xml')):
+    if etcdir and path.isdir(etcdir):
+        specdir = path.join(etcdir, 'j2q')
+        if path.isfile(path.join(specdir, 'platform.xml')):
             if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto (si/no)?'):
-                copyfile(pathjoin(platformdir, hostname, 'platform.xml'), pathjoin(specdir, 'platform.xml'))
+                copyfile(path.join(platformdir, hostname, 'platform.xml'), path.join(specdir, 'platform.xml'))
         else:
             makedirs(specdir)
-            copyfile(pathjoin(platformdir, hostname, 'platform.xml'), pathjoin(specdir, 'platform.xml'))
+            copyfile(path.join(platformdir, hostname, 'platform.xml'), path.join(specdir, 'platform.xml'))
              
         available = { }
         configured = [ ]
     
-        for package in listdir(pathjoin(platformdir, hostname)):
-            if isdir(pathjoin(platformdir, hostname, package)):
+        for package in listdir(path.join(platformdir, hostname)):
+            if path.isdir(path.join(platformdir, hostname, package)):
                 try:
-                    title = parsexml(pathjoin(corespecdir, package, 'corespec.xml'), 'title')
+                    title = readspec(path.join(corespecdir, package, 'corespec.xml'), 'title')
                 except AttributeError:
-                    messages.cfgerr('El archivo', pathjoin(corespecdir, package, 'corespec.xml'), 'no tiene un título')
+                    messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.xml'), 'no tiene un título')
                 available[title] = package
-                if isdir(pathjoin(specdir, package)):
+                if path.isdir(path.join(specdir, package)):
                     configured.append(title)
     
         packagelist = list(available)
@@ -79,23 +73,18 @@ def setup(**kwargs):
 
         if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
             for package in selected:
-                makedirs(pathjoin(specdir, available[package]))
-                hardlink(pathjoin(specdir, 'platform.xml'), pathjoin(specdir, available[package], 'platform.xml'))
-                copyfile(pathjoin(corespecdir, available[package], 'corespec.xml'), pathjoin(specdir, available[package], 'corespec.xml'))
-                copyfile(pathjoin(platformdir, hostname, available[package], 'hostspec.xml'), pathjoin(specdir, available[package], 'hostspec.xml'))
+                makedirs(path.join(specdir, available[package]))
+                hardlink(path.join(specdir, 'platform.xml'), path.join(specdir, available[package], 'platform.xml'))
+                copyfile(path.join(corespecdir, available[package], 'corespec.xml'), path.join(specdir, available[package], 'corespec.xml'))
+                copyfile(path.join(platformdir, hostname, available[package], 'hostspec.xml'), path.join(specdir, available[package], 'hostspec.xml'))
 
-    if bindir and isdir(bindir):
+    if bindir and path.isdir(bindir):
         for package in listdir(specdir):
-            if isdir(pathjoin(specdir, package)):
-                try:
-                    with open(pathjoin(bindir, package), 'w') as fh:
-                        fh.write(main_template.lstrip('\n').format(
-                            version=tuple(sys.version_info),
-                            python=sys.executable,
-                            syspath=sys.path,
-                            specdir=pathjoin(specdir, package)
-                        ))
-                except IOError as e:
-                    messages.runerr('Se produjo el siguiente error al intentar instalar un enlace:', e)
-                else:
-                    chmod(pathjoin(bindir, package), 0o755)
+            if path.isdir(path.join(specdir, package)):
+                with open(path.join(bindir, package), 'w') as fh:
+                    fh.write(main_template.lstrip('\n').format(
+                        version=tuple(sys.version_info),
+                        python=sys.executable,
+                        syspath=sys.path,
+                        specdir=path.join(specdir, package)))
+                chmod(path.join(bindir, package), 0o755)

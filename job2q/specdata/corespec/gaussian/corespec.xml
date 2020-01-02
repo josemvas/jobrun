@@ -44,8 +44,8 @@
 </profile>
 
 <prescript>
-   <s>sed -i "/^%/d" @($gjf|$com)</s>
-   <s>sed -i "1i%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</s>
-   <s>sed -i "/--Link1--/a%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</s>
-   <s file='oldchk'>sed -i "1i%OldChk=$oldchk" @($gjf|$com)</s>
+   <e>sed -i "/^%/d" @($gjf|$com)</e>
+   <e>sed -i "1i%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</e>
+   <e>sed -i "/--Link1--/a%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</e>
+   <e file='oldchk'>sed -i "1i%OldChk=$oldchk" @($gjf|$com)</e>
 </prescript>
