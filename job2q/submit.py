@@ -220,7 +220,7 @@ def submit():
             ext = jobconf.optionargs[opt]
             arguments.append('-' + opt + ' ' + jobconf.fileexts[ext])
     
-    jobdir = pathjoin(outputdir, ['', jobname, version])
+    jobdir = pathjoin(outputdir, ('.' + jobname, version))
     
     if path.isdir(outputdir):
         if path.isdir(jobdir):
