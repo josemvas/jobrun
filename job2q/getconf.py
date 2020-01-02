@@ -87,8 +87,9 @@ try: jobconf.storage
 except AttributeError: messages.cfgerr('No se indicó el tipo de almacenamiento (storage)')
 
 if optconf.scratch is None:
-    try: optconf.scratch = pathexpand(jobconf.defaults.scratch)
+    try: optconf.scratch = jobconf.defaults.scratch
     except AttributeError: messages.cfgerr('No se indicó el directorio temporal de escritura por defecto (scratch)')
+optconf.scratch = pathexpand(optconf.scratch)
 
 if optconf.queue is None:
     try: optconf.queue = jobconf.defaults.queue

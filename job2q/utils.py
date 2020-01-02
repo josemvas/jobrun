@@ -43,7 +43,7 @@ def hardlink(source, dest):
             raise
 
 def pathexpand(path):
-    return os.path.expanduser(os.path.expandvars(path))
+    return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 def strjoin(*args, sep='', gen=repeat):
     def rejoin(*args, sepgen):
@@ -59,9 +59,6 @@ def linejoin(*args):
 def pathjoin(*args):
     return strjoin(*args, sep=os.sep+'.-', gen=iter)
     #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
-
-def p(string):
-    return '({0})'.format(string)
 
 def q(string):
     return '"{0}"'.format(string)

@@ -16,7 +16,7 @@ from job2q import messages
 from job2q.parsing import parsebool
 from job2q.details import xmlScriptTags
 from job2q.getconf import jobconf, sysconf, optconf
-from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, p, q, qq
+from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, q, qq
 from job2q.decorators import catch_keyboard_interrupt
 from job2q.exceptions import * 
 
@@ -85,8 +85,9 @@ def submit():
         try: jobconf.program = jobconf.versions[optconf.version]
         except KeyError as e: messages.opterr('La versión seleccionada', str(e.args[0]), 'es inválida')
         except TypeError: messages.cfgerr('La lista de versiones está mal definida')
-        try: jobconf.program.executable = pathexpand(jobconf.program.executable)
+        try: executable = jobconf.program.executable
         except AttributeError: messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
+        executable = pathexpand(executable) if '/' in executable else executable
     else: messages.cfgerr('La lista de versiones está vacía (versions)')
     
     #TODO: Implement default parameter sets
@@ -105,7 +106,7 @@ def submit():
             elif key + 'set' in jobconf.defaults:
                 parset = jobconf.defaults[key + 'set']
             else:
-                parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key) + ':', choices=choices)
+                parset = dialogs.optone('Seleccione un conjunto de parámetros', key, choices=choices)
         parameters.append(path.join(pardir, parset))
 
     version = jobconf.versionprefix + strjoin(c.lower() for c in optconf.version if c.isalnum())
@@ -164,8 +165,6 @@ def submit():
     else:
          messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
     
-    jobcommand = jobconf.program.executable
-    
     #TODO: MPI support for Slurm
     if jobconf.runtype == 'serial':
         jobcontrol.append(sysconf.ncpu.format(1))
@@ -178,7 +177,7 @@ def submit():
         if optconf.nodes is not None:
             jobcontrol.append(sysconf.span.format(optconf.nodes))
         if jobconf.mpiwrapper is True:
-            jobcommand = sysconf.mpiwrapper[jobconf.runtype] + ' ' + jobcommand
+            executable = sysconf.mpiwrapper[jobconf.runtype] + ' ' + executable
     else: messages.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
     
     for ext in jobconf.inputfiles:
@@ -266,7 +265,7 @@ def submit():
         t.write('done' + '\n')
         t.write('cd "$workdir"' + '\n')
         t.write(linejoin(str(i) for i in jobconf.prescript if i))
-        t.write(wordjoin(jobcommand, arguments, redirections) + '\n')
+        t.write(wordjoin(executable, arguments, redirections) + '\n')
         t.write(linejoin(str(i) for i in jobconf.postscript if i))
         t.write(linejoin(i for i in exportfiles))
         t.write('for ip in ${iplist[*]}; do' + '\n')
