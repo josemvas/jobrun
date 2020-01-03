@@ -13,7 +13,7 @@ from distutils.util import strtobool
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import pathexpand
+from job2q.utils import pathexpand, p
 from job2q.readspec import readspec
 from job2q.exceptions import * 
 
@@ -68,8 +68,8 @@ optconf = parser.parse_args()
 if optconf.listing:
     messages.lsinfo('Versiones disponibles:', info=jobconf.versions, default=jobconf.defaults.version)
     for key in jobconf.parameters:
-        messages.lsinfo('Conjuntos de parámetros disponibles:', info=listdir(jobconf.parameters[key]))
-        raise SystemExit()
+        messages.lsinfo('Conjuntos de parámetros disponibles', p(key), info=listdir(jobconf.parameters[key]))
+    raise SystemExit()
 
 if not optconf.inputlist:
     messages.opterr('No se definió ningún archivo de entrada')

@@ -133,9 +133,7 @@ def submit():
         if not choices:
             messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
         if parset is None:
-            if len(choices) == 1:
-                parset = choices[0]
-            elif key in jobconf.defaults:
+            if key in jobconf.defaults:
                 parset = jobconf.defaults[key]
             else:
                 parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
