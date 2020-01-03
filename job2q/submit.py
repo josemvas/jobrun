@@ -13,7 +13,7 @@ from time import sleep
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, expandall, loalnum, p, q, qq
+from job2q.utils import wordjoin, linejoin, pathjoin, remove, makedirs, expandall, loalnum, p, q, qq
 from job2q.parsing import parsebool
 from job2q.getconf import jobconf, sysconf, optconf
 from job2q.spectags import scriptTags, MPILibs
@@ -36,36 +36,35 @@ def submit():
     parameters = []
     arguments = []
     
-    inputfile = path.abspath(inputlist.pop(0))
-    basename = path.basename(inputfile)
+    filepath = path.abspath(inputlist.pop(0))
+    basename = path.basename(filepath)
     master = gethostbyname(gethostname())
     
-    if not path.exists(inputfile):
-        messages.failure('El archivo de entrada', inputfile, 'no existe')
+    if not path.exists(filepath):
+        messages.failure('El archivo de entrada', filepath, 'no existe')
         return
 
     filename = None
-    if path.isdir(inputfile):
-        localdir = inputfile
-        makeoutdir = False
-        for item in listdir(inputfile):
-            if item.startswith(basename + '.'):
-                for ext in jobconf.inputfiles:
-                    if item.endswith('.' + ext):
-                        filename = item[:-len(ext)-1]
-                        break
+    if path.isdir(filepath):
+        localdir = filepath
+        useoutputdir = False
+        for item in listdir(filepath):
+            for ext in jobconf.inputfiles:
+                if item == pathjoin((basename, jobconf.packagekey, ext)):
+                    filename = item[:-len(ext)-1]
+                    break
         if filename is None:
-            messages.failure('Este trabajo no se envió porque el directorio', inputfile, 'no contiene archivos de entrada asociados a ', jobconf.packagename, optconf.version)
+            messages.failure('Este trabajo no se envió porque el directorio', filepath, 'no contiene archivos de entrada asociados a ', jobconf.packagename)
             return
     else:
-        localdir = path.dirname(inputfile)
-        makeoutdir = jobconf.outputdir
+        localdir = path.dirname(filepath)
+        useoutputdir = jobconf.outputdir
         for ext in jobconf.inputfiles:
             if basename.endswith('.' + ext):
                 filename = basename[:-len(ext)-1]
                 break
         if filename is None:
-            messages.failure('Este trabajo no se envió porque el archivo', basename, 'no está asociado a', jobconf.packagename)
+            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobconf.packagename)
             return
     
     jobenviron['var'] = environ
@@ -111,25 +110,16 @@ def submit():
     version = versionprefix + loalnum(optconf.version)
     
     #TODO: Is there an easier way to get jobname?
-    jobname = None
-    if 'packagekey' in jobconf and filename.endswith('.' + jobconf.packagekey):
-        jobname = filename[:-len(jobconf.packagekey)-1]
-    else:
-        for ver in (versionprefix + loalnum(v) for v in jobconf.versions):
-            if filename.endswith('.' + ver):
-                jobname = filename[:-len(ver)-1]
-                break
-    if jobname is None:
-        jobname = filename
+    jobname = filename[:-len(jobconf.packagekey)-1] if 'packagekey' in jobconf and filename.endswith('.' + jobconf.packagekey) else filename
+    normalname = pathjoin((jobname, jobconf.packagekey))
+    versioname = pathjoin((jobname, version))
 
-    if makeoutdir:
+    if useoutputdir:
         outputdir = pathjoin(localdir, jobname)
     else:
         outputdir = localdir
 
     jobdir = pathjoin(outputdir, ('.' + jobname, version))
-    rawnames = { ext : pathjoin((jobname, ext)) for ext in jobconf.fileexts }
-    vernames = { ext : pathjoin((jobname, version, ext)) for ext in jobconf.fileexts }
     
     #TODO: Implement default parameter sets
     for key in jobconf.parameters:
@@ -140,7 +130,7 @@ def submit():
             if e.errno == ENOENT:
                 messages.cfgerr('El directorio de parámetros', pardir, 'no existe')
         if path.realpath(pardir) == path.realpath(localdir):
-            choices = [ i for i in choices if i not in rawnames.values() and i != jobname ]
+            choices = list(set(choices) - set(pathjoin((filename, i)) for i in jobconf.fileexts) - set([jobname]))
         if not choices:
             messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
         if parset is None:
@@ -199,12 +189,12 @@ def submit():
     else: messages.cfgerr('El tipo de paralelización ' + jobconf.parallelization + ' no es válido')
     
     for ext in jobconf.inputfiles:
-        importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, vernames[ext])), \
+        importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, (normalname, ext))), \
            '$ip:' + qq(pathjoin('$workdir', jobconf.fileexts[ext]))))
     
-    for ext in jobconf.inputfiles + jobconf.outputfiles:
+    for ext in jobconf.outputfiles:
         exportfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.fileexts[ext])), \
-            master + ':' + qq(pathjoin(outputdir, vernames[ext]))))
+            master + ':' + qq(pathjoin(outputdir, (versioname, ext)))))
     
     for parset in parameters:
         if not path.isabs(parset):
@@ -254,17 +244,17 @@ def submit():
             return
         else:
             makedirs(jobdir)
-        if not set(listdir(outputdir)).isdisjoint(pathjoin(vernames[ext]) for ext in jobconf.outputfiles):
+        if not set(listdir(outputdir)).isdisjoint(pathjoin((versioname, ext)) for ext in jobconf.outputfiles):
             if optconf.defaultanswer is None:
                 optconf.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
             if optconf.defaultanswer is False:
                 messages.failure('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
                 return
-        for ext in list(set(jobconf.outputfiles) - set(jobconf.inputfiles)):
-            remove(pathjoin(outputdir, vernames[ext]))
+        for ext in jobconf.outputfiles:
+            remove(pathjoin(outputdir, (versioname, ext)))
         if localdir != outputdir:
             for ext in jobconf.inputfiles:
-                remove(pathjoin(outputdir, vernames[ext]))
+                remove(pathjoin(outputdir, (normalname, ext)))
     elif path.exists(outputdir):
         messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -272,17 +262,17 @@ def submit():
         makedirs(outputdir)
         makedirs(jobdir)
     
-    if localdir != outputdir or filename != pathjoin((jobname, version)):
+    if localdir != outputdir or filename != normalname:
         for ext in jobconf.inputfiles:
             if path.isfile(pathjoin(localdir, (filename, ext))):
-                copyfile(pathjoin(localdir, (filename, ext)), pathjoin(outputdir, vernames[ext]))
+                copyfile(pathjoin(localdir, (filename, ext)), pathjoin(outputdir, (normalname, ext)))
     
     try:
         #TODO: Avoid writing unnecessary newlines or spaces
         t = NamedTemporaryFile(mode='w+t', delete=False)
         t.write(linejoin(i for i in jobcontrol))
         t.write(linejoin(str(i) for i in jobconf.initscript if i))
-        t.write(linejoin(i for i in environment))
+        t.write(linejoin([i for i in environment]))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
         t.write(linejoin(' ' * 2 + i for i in importfiles))

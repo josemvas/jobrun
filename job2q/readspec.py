@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from xml.etree import ElementTree
-from job2q.spectags import listTags, scriptTags, dictTags, runtimeTags, commandTags, textTags
+from job2q.spectags import listTags, scriptTags, dictTags, optionTags, commandTags, textTags
 from job2q import messages
 
 class ScriptTestDict(dict):
@@ -57,9 +57,9 @@ class XmlTreeDict(dict):
                         self[child.attrib['key']] = XmlTreeDict(child)
                     else:
                         messages.cfgerr('XmlTreeDict Tag <{0}><e> must have a key attribute'.format(parent.tag))
-                elif child.tag in listTags + scriptTags:
+                elif child.tag in listTags:
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in dictTags + runtimeTags:
+                elif child.tag in dictTags:
                     self[child.tag] = XmlTreeDict(child)
                 else:
                     messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
@@ -69,7 +69,7 @@ class XmlTreeDict(dict):
                         self[child.attrib['key']] = child.text
                     else:
                         self[child.text] = child.text
-                elif child.tag in textTags or parent.tag in runtimeTags:
+                elif child.tag in textTags or parent.tag in optionTags:
                     self[child.tag] = child.text
                 else:
                     messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
@@ -80,8 +80,12 @@ class XmlTreeDict(dict):
     def __setattr__(self, item, value):
             self.__setitem__(item, value)
     def __missing__(self, item):
-        if item in listTags + scriptTags + dictTags + runtimeTags:
+        if item in listTags:
             return []
+        elif item in dictTags:
+            return {}
+        elif item in textTags:
+            return ''
     def merge(self, other):
         for i in other:
             if i in self:

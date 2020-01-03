@@ -45,19 +45,18 @@ def hardlink(source, dest):
 def expandall(path):
     return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
-def strjoin(*args, sep='', gen=repeat):
-    def iterjoin(*args, sepgen):
-        return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
-    return iterjoin(*args, sepgen=gen(sep))
+def iterjoin(*args, sepgen):
+    return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
 
 def wordjoin(*args):
-    return strjoin(*args, sep=' ')
+    return iterjoin(*args, sepgen=repeat(' '))
 
 def linejoin(*args):
-    return strjoin(strjoin(*args, sep='\n'), '\n')
+    lines = iterjoin(*args, sepgen=repeat('\n'))
+    return lines + '\n' if lines else ''
 
 def pathjoin(*args):
-    return strjoin(*args, sep=os.sep+'.-', gen=iter)
+    return iterjoin(*args, sepgen=iter(os.sep+'.-'))
     #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
 
 def p(string):

@@ -1,11 +1,10 @@
 <spec>
 
 <packagename>VASP</packagename>
-<packagekey>vasp</packagekey>
 <parallelization>intelmpi</parallelization>
 <mpiwrapper>True</mpiwrapper>
 <outputdir>True</outputdir>
-<stdout>log</stdout>
+<stdout>vasplog</stdout>
 
 <filecheck>INCAR and POSCAR and POTCAR</filecheck>
 
@@ -37,8 +36,8 @@
    <e>AECCAR1</e>
    <e>AECCAR2</e>
    <e>BSEFATBAND</e>
-   <e key='run'>vasprun.xml</e>
-   <e key='log'>logfile</e>
+   <e>vasprun.xml</e>
+   <e>vasplog</e>
 </fileexts>
 
 <inputfiles>
@@ -52,6 +51,7 @@
 
 <outputfiles>
    <e>CHG</e>
+   <e>CHGCAR</e>
    <e>CONTCAR</e>
    <e>DOSCAR</e>
    <e>EIGENVAL</e>
@@ -67,6 +67,7 @@
    <e>REPORT</e>
    <e>TMPCAR</e>
    <e>WAVEDER</e>
+   <e>WAVECAR</e>
    <e>XDATCAR</e>
    <e>AECCAR0</e>
    <e>AECCAR1</e>

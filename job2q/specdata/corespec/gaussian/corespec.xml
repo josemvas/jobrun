@@ -31,6 +31,8 @@
 </inputfiles>
 
 <outputfiles>
+   <e>com</e>
+   <e>gjf</e>
    <e>log</e>
    <e>chk</e>
    <e>wfn</e>

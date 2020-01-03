@@ -33,6 +33,7 @@
 </positionargs>
 
 <outputfiles>
+   <e>inp</e>
    <e>gbw</e>
    <e>out</e>
    <e>opt</e>

@@ -12,12 +12,17 @@ listTags = (
     'inputfiles',
     'outputfiles',
     'positionargs',
+    'initscript',
+    'offscript',
+    'prescript',
+    'postscript',
 )
 
 dictTags = (
     'defaults',
-    'optionargs',
     'versions',
+    'optionargs',
+    'parameters',
     'fileexts',
     'filevars',
 )
@@ -41,7 +46,7 @@ textTags = (
     'stderr',
 )
 
-runtimeTags = (
+optionTags = (
     'parameters',
 )
 

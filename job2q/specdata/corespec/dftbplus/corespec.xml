@@ -1,7 +1,6 @@
 <spec>
 
 <packagename>DFTB+</packagename>
-<packagekey>dftb</packagekey>
 <parallelization>openmp</parallelization>
 <outputdir>True</outputdir>
 <filecheck>dftb_in.hsd</filecheck>
@@ -43,6 +42,8 @@
 </inputfiles>
 
 <outputfiles>
+   <e>dftb_in.hsd</e>
+   <e>charges.bin</e>
    <e>dftb_pin.hsd</e>
    <e>dftb_out.log</e>
    <e>geo_end.xyz</e>

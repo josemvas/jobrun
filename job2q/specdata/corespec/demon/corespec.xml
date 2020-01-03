@@ -26,6 +26,7 @@
 </inputfiles>
 
 <outputfiles>
+   <e>trj</e>
    <e>out</e>
    <e>mol</e>
    <e>new</e>
