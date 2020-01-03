@@ -1,3 +1,5 @@
+<spec>
+
 <title>deMon2k</title>
 <runtype>intelmpi</runtype>
 <mpiwrapper>True</mpiwrapper>
@@ -31,3 +33,5 @@
    <e>pie</e>
    <e>bin</e>
 </outputfiles>
+
+</spec>

@@ -1,3 +1,5 @@
+<spec>
+
 <versions>
    <e key='17.1'><executable>/opt/packages/dftbplus-17.1.x86_64-linux/bin/dftb+</executable></e>
    <e key='18.1'><executable>/opt/packages/dftbplus-18.1.x86_64-linux/bin/dftb+</executable></e>
@@ -8,3 +10,5 @@
 <parameters>
    <slako>/opt/parameters/DFTB+/slako_bundles</slako>
 </parameters>
+
+</spec>

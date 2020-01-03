@@ -7,6 +7,7 @@ from __future__ import division
 import sys
 import readline
 from glob import glob
+from os.path import isdir, expanduser
 
 from job2q import messages
 from job2q.utils import pathexpand, wordjoin
@@ -31,7 +32,7 @@ class tabCompleter(object):
         self.maxtcs = maxtcs
         return
     def tcpath(self, text, n):
-        return [i + '/' for i in glob(readline.get_line_buffer() + '*')][n]
+        return [i + '/' if isdir(i) else i + ' ' for i in glob(expanduser(text) + '*')][n]
     def tclist(self, text, n):
         completed = readline.get_line_buffer().split()[:-1]
         if self.maxtcs is None or len(completed) < int(self.maxtcs):
@@ -41,7 +42,7 @@ class tabCompleter(object):
 @catch_keyboard_interrupt
 def path(prompt=''):
     readline.set_completer(tabCompleter().tcpath)
-    return pathexpand(input(prompt + ': '))
+    return pathexpand(input(prompt + ' (ENTER para omitir): '))
 def yn(prompt='', default=None):
     while True:
         readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)

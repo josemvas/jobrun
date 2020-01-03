@@ -1,3 +1,5 @@
+<spec>
+
 <versions><e key='5.4.4'>
    <profile>
       <load>mpi/intel-2017_update3</load>
@@ -9,3 +11,5 @@
 <defaults>
    <version>5.4.4</version>
 </defaults>
+
+</spec>

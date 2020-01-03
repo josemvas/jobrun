@@ -1,3 +1,5 @@
+<spec>
+
 <title>VASP</title>
 <runtype>intelmpi</runtype>
 <outputdir>True</outputdir>
@@ -73,3 +75,5 @@
    <e>run</e>
    <e>log</e>
 </outputfiles>
+
+</spec>

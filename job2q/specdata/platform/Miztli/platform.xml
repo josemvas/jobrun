@@ -1,3 +1,5 @@
+<spec>
+
 <title>Sistema</title>
 <storage>shared</storage>
 <scheduler>platformlsf</scheduler>
@@ -8,3 +10,5 @@
    <scratch>/scratch</scratch>
    <waitime>3</waitime>
 </defaults>
+
+</spec>

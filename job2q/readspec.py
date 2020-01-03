@@ -95,14 +95,11 @@ class XmlTreeDict(dict):
                 self[i] = other[i]
 
 def readspec(xmlfile, xmltag=None):
-    with open(xmlfile) as f:
-        try: xmlroot = ElementTree.fromstringlist(['<root>', f.read(), '</root>'])
-        except ElementTree.ParseError as e:
-            messages.cfgerr('El archivo', xmlfile, 'no es válido:', str(e))
+    root = ElementTree.parse(xmlfile).getroot()
     if xmltag is None:
-        return XmlTreeDict(xmlroot)
+        return XmlTreeDict(root)
     else:
-        try: return xmlroot.find(xmltag).text
+        try: return root.find(xmltag).text
         except AttributeError:
             return None
 

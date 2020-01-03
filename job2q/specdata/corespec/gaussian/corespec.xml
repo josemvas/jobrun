@@ -1,3 +1,5 @@
+<spec>
+
 <title>Gaussian</title>
 <runtype>openmp</runtype>
 <outputdir>True</outputdir>
@@ -49,3 +51,5 @@
    <e>sed -i "/--Link1--/a%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</e>
    <e file='oldchk'>sed -i "1i%OldChk=$oldchk" @($gjf|$com)</e>
 </prescript>
+
+</spec>

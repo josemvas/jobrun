@@ -1,3 +1,5 @@
+<spec>
+
 <versions><e key='09E'>
    <profile><load>gaussian/G09-E.01</load></profile>
    <executable>g09</executable>
@@ -9,3 +11,5 @@
 <defaults>
    <version>09E</version>
 </defaults>
+
+</spec>

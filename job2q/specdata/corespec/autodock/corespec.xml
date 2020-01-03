@@ -1,3 +1,5 @@
+<spec>
+
 <title>AutoDock</title>
 <runtype>serial</runtype>
 <outputdir>True</outputdir>
@@ -27,3 +29,4 @@
    <protein>.</protein>
 </parameters>
 
+</spec>

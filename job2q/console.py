@@ -27,16 +27,16 @@ while submit.inputlist:
     submit.submit()
 '''
 
-def setup(**kwargs):
+def setup():
 
-    etcdir = kwargs['etcdir'] if 'etcdir' in kwargs else dialogs.path('Escriba la ruta donde se instalará la configuración (o deje vacío para omitir)')
-    bindir = kwargs['bindir'] if 'bindir' in kwargs else dialogs.path('Escriba la ruta donde se instalarán los scripts configurados (o deje vacío para omitir)')
+    etcdir = dialogs.path('Escriba la ruta donde se instalará la configuración')
+    bindir = dialogs.path('Escriba la ruta donde se instalarán los scripts configurados')
 
     sourcedir = path.dirname(path.realpath(__file__))
     corespecdir = path.join(sourcedir, 'specdata', 'corespec')
     platformdir = path.join(sourcedir, 'specdata', 'platform')
 
-    hostname = kwargs['hostname'] if 'hostname' in kwargs else dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
+    hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
     if not path.isfile(path.join(platformdir, hostname, 'platform.xml')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
@@ -55,9 +55,8 @@ def setup(**kwargs):
     
         for package in listdir(path.join(platformdir, hostname)):
             if path.isdir(path.join(platformdir, hostname, package)):
-                try:
-                    title = readspec(path.join(corespecdir, package, 'corespec.xml'), 'title')
-                except AttributeError:
+                title = readspec(path.join(corespecdir, package, 'corespec.xml'), 'title')
+                if title is None:
                     messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.xml'), 'no tiene un título')
                 available[title] = package
                 if path.isdir(path.join(specdir, package)):

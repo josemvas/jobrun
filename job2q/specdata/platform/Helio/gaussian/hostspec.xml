@@ -1,3 +1,5 @@
+<spec>
+
 <versions><e key='09C'>
    <executable>g09</executable>
    <profile>
@@ -21,3 +23,5 @@
 <defaults>
    <version>09E</version>
 </defaults>
+
+</spec>

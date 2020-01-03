@@ -1,3 +1,5 @@
+<spec>
+
 <title>DFTB+</title>
 <runtype>openmp</runtype>
 <outputdir>True</outputdir>
@@ -67,3 +69,5 @@
 <prescript>
    <e>sed -ri 's,(^|[{;])\s*OutputPrefix\s*=\s*"[^"]*"\s*($|[;}]),\1\2,I' $dftbin</e>
 </prescript>
+
+</spec>
