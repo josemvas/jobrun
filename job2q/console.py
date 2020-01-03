@@ -29,8 +29,8 @@ while submit.inputlist:
 
 def setup():
 
+    bindir = dialogs.path('Escriba la ruta donde se instalarán los ejecutables')
     etcdir = dialogs.path('Escriba la ruta donde se instalará la configuración')
-    bindir = dialogs.path('Escriba la ruta donde se instalarán los scripts configurados')
 
     sourcedir = path.dirname(path.realpath(__file__))
     corespecdir = path.join(sourcedir, 'specdata', 'corespec')

@@ -13,7 +13,7 @@ from distutils.util import strtobool
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import pathexpand, p
+from job2q.utils import pathexpand, natsort, p
 from job2q.readspec import readspec
 from job2q.exceptions import * 
 
@@ -45,23 +45,24 @@ if not 'versionprefix' in jobconf:
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
 parser.add_argument('-l', '--listing', dest='listing', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
-parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, dest='version', help='Versión del ejecutable.')
-parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, dest='queue', help='Nombre de la cola requerida.')
-parser.add_argument('-n', '--ncpu', metavar='CPUCORES', type=int, dest='ncpu', default=1, help='Número de núcleos de procesador requeridos.')
-parser.add_argument('-N', '--nodes', metavar='NODELIST', type=int, dest='nodes', help='Lista de los nodos requeridos.')
-parser.add_argument('-H', '--hostname', metavar='HOSTNAME', type=str, dest='exechost', help='Nombre del host requerido.')
-parser.add_argument('-s', '--scratch', metavar='SCRATCHDIR', type=str, dest='scratch', help='Directorio temporal de escritura.')
-parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Selección interactiva de las versiones de los programas y los parámetros.')
-parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
-parser.add_argument('-w', '--wait', metavar='WAITTIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
-parser.add_argument('--sort', dest='sort', type=str, default='', help='Ordena la lista de argumentos en el orden especificado')
-parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
-parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
-parser.add_argument('inputlist', nargs='*', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
+parser.add_argument('-v', '--version', metavar='PROG VERSION', type=str, dest='version', help='Versión del ejecutable.')
+parser.add_argument('-q', '--queue', metavar='QUEUE NAME', type=str, dest='queue', help='Nombre de la cola requerida.')
+parser.add_argument('-n', '--ncpu', metavar='CPU CORES', type=int, dest='ncpu', default=1, help='Número de núcleos de procesador requeridos.')
+parser.add_argument('-w', '--wait', metavar='TIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 if jobconf.parameters:
     parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobconf.parameters)[0], help='Nombre del conjunto de parámetros.')
 for key in jobconf.parameters:
     parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
+parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Selección interactiva de las versiones de los programas y los parámetros.')
+parser.add_argument('-s', '--sort', dest='sort', action='store_true', help='Ordena la lista de argumentos en orden numérico')
+parser.add_argument('-S', '--sortreverse', dest='sortreverse', action='store_true', help='Ordena la lista de argumentos en orden numérico inverso')
+parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
+parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
+parser.add_argument('--nodes', metavar='NODE LIST', type=int, dest='nodes', help='Lista de los nodos requeridos.')
+parser.add_argument('--hostname', metavar='HOST NAME', type=str, dest='exechost', help='Nombre del host requerido.')
+parser.add_argument('--scratch', metavar='SCRATCH DIR', type=str, dest='scratch', help='Directorio temporal de escritura.')
+parser.add_argument('inputlist', nargs='*', metavar='INPUT FILE(S)', help='Nombre del archivo de entrada.')
 
 optconf = parser.parse_args()
 
@@ -78,9 +79,10 @@ if optconf.waitime is None:
     try: optconf.waitime = float(jobconf.defaults.waitime)
     except AttributeError:  optconf.waitime = 0
 
-#TODO: Sort in alphabetical or numerical order
-if 'r' in optconf.sort:
-    optconf.inputlist.sort(reverse=True)
+if optconf.sort:
+    optconf.inputlist.sort(key=natsort)
+elif optconf.sortreverse:
+    optconf.inputlist.sort(key=natsort, reverse=True)
 
 try: jobconf.scheduler
 except AttributeError: messages.cfgerr('No se indicó el nombre del sistema de colas (scheduler)')

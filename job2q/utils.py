@@ -69,3 +69,6 @@ def q(string):
 def qq(string):
     return '"\'{0}\'"'.format(string)
 
+def natsort(text):
+    return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
+
