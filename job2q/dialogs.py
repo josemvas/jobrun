@@ -7,7 +7,7 @@ from __future__ import division
 import sys
 import readline
 from glob import glob
-from os.path import isdir, expanduser
+from os.path import isdir, exists, expanduser
 
 from job2q import messages
 from job2q.utils import expandall, wordjoin
@@ -41,8 +41,14 @@ class tabCompleter(object):
 @join_positional_args
 @catch_keyboard_interrupt
 def path(prompt=''):
-    readline.set_completer(tabCompleter().tcpath)
-    return expandall(input(prompt + ' (ENTER para omitir): '))
+    while True:
+        readline.set_completer(tabCompleter().tcpath)
+        answer = input(prompt + ': ')
+        if answer:
+            if exists(expandall(answer)):
+                return expandall(answer)
+            else:
+                print('Por favor indique una ruta válida')
 def yn(prompt='', default=None):
     while True:
         readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
