@@ -10,7 +10,7 @@ from shutil import copyfile
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import rmdir, makedirs, hardlink, pathexpand
+from job2q.utils import rmdir, makedirs, hardlink, expandall
 from job2q.readspec import readspec
 
 main_template = '''
@@ -55,12 +55,12 @@ def setup():
     
         for package in listdir(path.join(platformdir, hostname)):
             if path.isdir(path.join(platformdir, hostname, package)):
-                title = readspec(path.join(corespecdir, package, 'corespec.xml'), 'title')
-                if title is None:
+                packagename = readspec(path.join(corespecdir, package, 'corespec.xml'), 'packagename')
+                if packagename is None:
                     messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.xml'), 'no tiene un título')
-                available[title] = package
+                available[packagename] = package
                 if path.isdir(path.join(specdir, package)):
-                    configured.append(title)
+                    configured.append(packagename)
     
         packagelist = list(available)
     

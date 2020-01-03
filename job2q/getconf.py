@@ -13,8 +13,9 @@ from distutils.util import strtobool
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import pathexpand, natsort, p
+from job2q.utils import expandall, natsort, p
 from job2q.readspec import readspec
+from job2q.spectags import MPILibs
 from job2q.exceptions import * 
 
 alias = path.basename(sys.argv[0])
@@ -22,7 +23,7 @@ specdir = path.dirname(sys.argv[0])
 homedir = path.expanduser('~')
 
 if specdir is None:
-    mesagges.usrerror('No se indicó el directorio de especificaciones del paquete')
+    mesagges.usrerror('No se especificó el directorio de configuración del paquete')
 
 platform = path.join(specdir, 'platform.xml')
 corespec = path.join(specdir, 'corespec.xml')
@@ -40,8 +41,6 @@ except FileNotFoundError as e:
         raise
 
 sysconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
-if not 'versionprefix' in jobconf:
-    jobconf.versionprefix = 'v'
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
 parser.add_argument('-l', '--listing', dest='listing', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
@@ -85,34 +84,34 @@ elif optconf.sortreverse:
     optconf.inputlist.sort(key=natsort, reverse=True)
 
 try: jobconf.scheduler
-except AttributeError: messages.cfgerr('No se indicó el nombre del sistema de colas (scheduler)')
+except AttributeError: messages.cfgerr('<scheduler> No se especificó el nombre del sistema de colas')
 
 try: jobconf.storage
-except AttributeError: messages.cfgerr('No se indicó el tipo de almacenamiento (storage)')
+except AttributeError: messages.cfgerr('<storage> No se especificó el tipo de almacenamiento')
 
 if optconf.scratch is None:
     try: optconf.scratch = jobconf.defaults.scratch
-    except AttributeError: messages.cfgerr('No se indicó el directorio temporal de escritura por defecto (scratch)')
-optconf.scratch = pathexpand(optconf.scratch)
+    except AttributeError: messages.cfgerr('<scratch> No se especificó el directorio temporal de escritura por defecto')
+optconf.scratch = expandall(optconf.scratch)
 
 if optconf.queue is None:
     try: optconf.queue = jobconf.defaults.queue
-    except AttributeError: messages.cfgerr('No se indicó la cola por defecto (queue)')
+    except AttributeError: messages.cfgerr('<default><queue> No se especificó la cola por defecto')
 
 try: jobconf.outputdir = bool(strtobool(jobconf.outputdir))
-except AttributeError: messages.cfgerr('No se indicó si se debe crear una carpeta de salida (outputdir)')
-except ValueError: messages.cfgerr('El valor debe ser True or False (outputdir)')
+except AttributeError: messages.cfgerr('<outputdir> No se especificó si se requiere crear una carpeta de salida')
+except ValueError: messages.cfgerr('<outputdir> El texto de este tag debe ser "True" or "False"')
 
 if optconf.interactive is True:
     jobconf.defaults = []
 
-try: jobconf.runtype
-except AttributeError: messages.cfgerr('No se indicó el tipo de paralelización del programa')
+try: jobconf.parallelization
+except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
 
-if jobconf.runtype in ('intelmpi', 'openmpi', 'mpich'):
+if jobconf.parallelization in MPILibs:
     try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
-    except AttributeError: messages.cfgerr('No se indicó ningún wrapper MPI (mpiwrapper)')
-    except ValueError: messages.cfgerr('El valor de debe ser True or False (mpiwrapper)')
+    except AttributeError: messages.cfgerr('<mpiwrapper> No se especificó ningún wrapper MPI')
+    except ValueError: messages.cfgerr('<mpiwrapper> El valor de debe ser True or False')
 
 for ext in jobconf.inputfiles:
     try: jobconf.fileexts[ext]

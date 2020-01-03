@@ -1,6 +1,6 @@
 <spec>
 
-<title>Sistema</title>
+<packagename>Sistema</packagename>
 <storage>shared</storage>
 <scheduler>platformlsf</scheduler>
 <initscript>module purge</initscript>

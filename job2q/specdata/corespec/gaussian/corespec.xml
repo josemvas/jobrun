@@ -1,9 +1,9 @@
 <spec>
 
-<title>Gaussian</title>
-<runtype>openmp</runtype>
+<packagename>Gaussian</packagename>
+<packagekey>g</packagekey>
+<parallelization>openmp</parallelization>
 <outputdir>True</outputdir>
-<versionprefix>g</versionprefix>
 <filecheck>gjf or com</filecheck>
 <fileclash>gjf and com</fileclash>
 

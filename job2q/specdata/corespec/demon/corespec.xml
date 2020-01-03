@@ -1,10 +1,10 @@
 <spec>
 
-<title>deMon2k</title>
-<runtype>intelmpi</runtype>
+<packagename>deMon2k</packagename>
+<packagekey>deMon</packagekey>
+<parallelization>intelmpi</parallelization>
 <mpiwrapper>True</mpiwrapper>
 <outputdir>True</outputdir>
-<versionprefix>deMon</versionprefix>
 <filecheck>inp</filecheck>
 
 <fileexts>

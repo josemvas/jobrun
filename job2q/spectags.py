@@ -1,39 +1,35 @@
 # -*- coding: utf-8 -*-
 
-xmlScriptTags = [
+scriptTags = (
     'initscript',
     'offscript',
     'prescript',
     'postscript',
-]
+)
     
-xmlListTags = [
+listTags = (
     'profile',
     'inputfiles',
     'outputfiles',
     'positionargs',
-]
+)
 
-xmlOpenTags = [
-    'parameters',
-]
-
-xmlDictTags = [
+dictTags = (
     'defaults',
     'optionargs',
     'versions',
     'fileexts',
     'filevars',
-] 
+)
 
-xmlTextTags = [
+textTags = (
     'storage',
     'scheduler',
-    'title',
-    'runtype',
+    'packagename',
+    'parallelization',
     'mpiwrapper',
     'outputdir',
-    'versionprefix',
+    'packagekey',
     'filecheck',
     'fileclash',
     'queue',
@@ -43,11 +39,21 @@ xmlTextTags = [
     'version',
     'stdout',
     'stderr',
-]
+)
 
-xmlProfileTags = {
+runtimeTags = (
+    'parameters',
+)
+
+commandTags = {
     'export' : 'export',
     'source' : 'source',
     'load' : 'module load',
 }
+
+MPILibs = (
+    'openmpi',
+    'intelmpi',
+    'mpich',
+)
 

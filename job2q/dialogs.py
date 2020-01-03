@@ -10,7 +10,7 @@ from glob import glob
 from os.path import isdir, expanduser
 
 from job2q import messages
-from job2q.utils import pathexpand, wordjoin
+from job2q.utils import expandall, wordjoin
 from job2q.decorators import override_with_method, catch_keyboard_interrupt, join_positional_args
 
 if sys.version_info[0] < 3:
@@ -42,7 +42,7 @@ class tabCompleter(object):
 @catch_keyboard_interrupt
 def path(prompt=''):
     readline.set_completer(tabCompleter().tcpath)
-    return pathexpand(input(prompt + ' (ENTER para omitir): '))
+    return expandall(input(prompt + ' (ENTER para omitir): '))
 def yn(prompt='', default=None):
     while True:
         readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)

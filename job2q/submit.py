@@ -13,10 +13,10 @@ from time import sleep
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, p, q, qq
+from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, expandall, loalnum, p, q, qq
 from job2q.parsing import parsebool
 from job2q.getconf import jobconf, sysconf, optconf
-from job2q.spectags import xmlScriptTags
+from job2q.spectags import scriptTags, MPILibs
 from job2q.decorators import catch_keyboard_interrupt
 from job2q.exceptions import * 
 
@@ -36,25 +36,42 @@ def submit():
     parameters = []
     arguments = []
     
-    inputfile = inputlist.pop(0)
-    filename = path.basename(inputfile)
+    inputfile = path.abspath(inputlist.pop(0))
+    basename = path.basename(inputfile)
     master = gethostbyname(gethostname())
-    localdir = path.abspath(path.dirname(inputfile))
     
-    for ext in jobconf.inputfiles:
-        if filename.endswith('.' + ext):
-            basename = filename[:-len('.' + ext)]
-            break
-    
-    try: basename
-    except NameError:
-        messages.failure('Este trabajo no se envió porque', filename, 'tiene extensión que no está asociada a', jobconf.title)
+    if not path.exists(inputfile):
+        messages.failure('El archivo de entrada', inputfile, 'no existe')
         return
+
+    filename = None
+    if path.isdir(inputfile):
+        localdir = inputfile
+        makeoutdir = False
+        for item in listdir(inputfile):
+            if item.startswith(basename + '.'):
+                for ext in jobconf.inputfiles:
+                    if item.endswith('.' + ext):
+                        filename = item[:-len(ext)-1]
+                        break
+        if filename is None:
+            messages.failure('Este trabajo no se envió porque el directorio', inputfile, 'no contiene archivos de entrada asociados a ', jobconf.packagename, optconf.version)
+            return
+    else:
+        localdir = path.dirname(inputfile)
+        makeoutdir = jobconf.outputdir
+        for ext in jobconf.inputfiles:
+            if basename.endswith('.' + ext):
+                filename = basename[:-len(ext)-1]
+                break
+        if filename is None:
+            messages.failure('Este trabajo no se envió porque el archivo', basename, 'no está asociado a', jobconf.packagename)
+            return
     
     jobenviron['var'] = environ
-    jobenviron['file'] = [ i for i in jobconf.fileexts if path.isfile(pathjoin(localdir, (basename, i))) ]
+    jobenviron['file'] = [ i for i in jobconf.fileexts if path.isfile(pathjoin(localdir, (filename, i))) ]
     
-    for script in xmlScriptTags:
+    for script in scriptTags:
         if script in jobconf:
             for line in jobconf[script]:
                 for attr in line:
@@ -67,7 +84,7 @@ def submit():
     
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebools):
-            messages.failure('Algunos de los archivos de entrada requeridos no existen')
+            messages.failure('Falta(n) alguno(s) de los archivos de entrada requeridos')
             return
     
     if 'fileclash' in jobconf:
@@ -80,49 +97,43 @@ def submit():
             if 'version' in jobconf.defaults:
                 optconf.version = jobconf.defaults.version
             else:
-                choices = sorted(list(jobconf.versions))
+                choices = list(jobconf.versions)
                 optconf.version = dialogs.optone('Seleccione una versión', choices=choices)
         try: jobconf.program = jobconf.versions[optconf.version]
         except KeyError as e: messages.opterr('La versión seleccionada', str(e.args[0]), 'es inválida')
         except TypeError: messages.cfgerr('La lista de versiones está mal definida')
         try: executable = jobconf.program.executable
         except AttributeError: messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
-        executable = pathexpand(executable) if '/' in executable else executable
-    else: messages.cfgerr('La lista de versiones está vacía (versions)')
+        executable = expandall(executable) if '/' in executable else executable
+    else: messages.cfgerr('<versions> No se especificó ninguna versión del programa')
     
-    version = jobconf.versionprefix + strjoin(c.lower() for c in optconf.version if c.isalnum())
-    versionlist = (strjoin(c.lower() for c in version if c.isalnum()) for version in jobconf.versions)
-
-    #TODO: Get jobname in a better way
-    jobname = basename
+    versionprefix = jobconf.packagekey if 'packagekey' in jobconf else 'v'
+    version = versionprefix + loalnum(optconf.version)
     
-    if 'versionprefix' in jobconf:
-        if basename.endswith('.' + jobconf.versionprefix):
-            jobname = basename[:-len('.' + jobconf.versionprefix)]
-        else:
-            for key in versionlist:
-                if basename.endswith('.' + jobconf.versionprefix + key):
-                    jobname = basename[:-len('.' + jobconf.versionprefix + key)]
-                    break
+    #TODO: Is there an easier way to get jobname?
+    jobname = None
+    if 'packagekey' in jobconf and filename.endswith('.' + jobconf.packagekey):
+        jobname = filename[:-len(jobconf.packagekey)-1]
     else:
-        for key in versionlist:
-            if basename.endswith('.v' + key):
-                jobname = basename[:-len('.v' + key)]
+        for ver in (versionprefix + loalnum(v) for v in jobconf.versions):
+            if filename.endswith('.' + ver):
+                jobname = filename[:-len(ver)-1]
                 break
-    
-    if jobconf.outputdir is True:
+    if jobname is None:
+        jobname = filename
+
+    if makeoutdir:
         outputdir = pathjoin(localdir, jobname)
-        jobdir = pathjoin(outputdir, '.' + version)
     else:
         outputdir = localdir
-        jobdir = pathjoin(outputdir, ('.' + jobname, version))
 
+    jobdir = pathjoin(outputdir, ('.' + jobname, version))
     rawnames = { ext : pathjoin((jobname, ext)) for ext in jobconf.fileexts }
     vernames = { ext : pathjoin((jobname, version, ext)) for ext in jobconf.fileexts }
     
     #TODO: Implement default parameter sets
     for key in jobconf.parameters:
-        pardir = pathexpand(jobconf.parameters[key])
+        pardir = expandall(jobconf.parameters[key])
         parset = getattr(optconf, key)
         try: choices = listdir(pardir)
         except FileNotFoundError as e:
@@ -137,7 +148,10 @@ def submit():
                 parset = jobconf.defaults.parameters[key]
             else:
                 parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
-        parameters.append(path.join(pardir, parset))
+        if path.exists(path.join(pardir, parset)):
+            parameters.append(path.join(pardir, parset))
+        else:
+            messages.opterr('El directorio de parámetros', path.join(pardir, parset), 'no existe')
 
     for var in jobconf.filevars:
         environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
@@ -148,13 +162,13 @@ def submit():
     environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     environment.append("jobram=$(($ncpu*$totalram/$(nproc --all)))")
-    environment.append("progname=" + jobconf.title)
+    environment.append("progname=" + jobconf.packagename)
     environment.append("jobname=" + jobname)
     
     #TODO: Test if parameter directory exists in the filesystem
     
     jobcontrol.append(sysconf.jobname.format(jobname))
-    jobcontrol.append(sysconf.label.format(jobconf.title))
+    jobcontrol.append(sysconf.label.format(jobconf.packagename))
     jobcontrol.append(sysconf.queue.format(optconf.queue))
     
     if optconf.exechost is not None: 
@@ -170,19 +184,19 @@ def submit():
          messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
     
     #TODO: MPI support for Slurm
-    if jobconf.runtype == 'serial':
+    if jobconf.parallelization.lower() == 'None':
         jobcontrol.append(sysconf.ncpu.format(1))
-    elif jobconf.runtype == 'openmp':
+    elif jobconf.parallelization.lower() == 'openmp':
         jobcontrol.append(sysconf.ncpu.format(optconf.ncpu))
         jobcontrol.append(sysconf.span.format(1))
         environment.append('export OMP_NUM_THREADS=' + str(optconf.ncpu))
-    elif jobconf.runtype in ['openmpi','intelmpi','mpich']:
+    elif jobconf.parallelization.lower() in MPILibs:
         jobcontrol.append(sysconf.ncpu.format(optconf.ncpu))
         if optconf.nodes is not None:
             jobcontrol.append(sysconf.span.format(optconf.nodes))
         if jobconf.mpiwrapper is True:
-            executable = sysconf.mpiwrapper[jobconf.runtype] + ' ' + executable
-    else: messages.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
+            executable = sysconf.mpiwrapper[jobconf.parallelization] + ' ' + executable
+    else: messages.cfgerr('El tipo de paralelización ' + jobconf.parallelization + ' no es válido')
     
     for ext in jobconf.inputfiles:
         importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, vernames[ext])), \
@@ -246,8 +260,11 @@ def submit():
             if optconf.defaultanswer is False:
                 messages.failure('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
                 return
-        for ext in jobconf.inputfiles + jobconf.outputfiles:
+        for ext in list(set(jobconf.outputfiles) - set(jobconf.inputfiles)):
             remove(pathjoin(outputdir, vernames[ext]))
+        if localdir != outputdir:
+            for ext in jobconf.inputfiles:
+                remove(pathjoin(outputdir, vernames[ext]))
     elif path.exists(outputdir):
         messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -255,9 +272,10 @@ def submit():
         makedirs(outputdir)
         makedirs(jobdir)
     
-    for ext in jobconf.inputfiles:
-        if path.isfile(pathjoin(localdir, (basename, ext))):
-            copyfile(pathjoin(localdir, (basename, ext)), pathjoin(outputdir, vernames[ext]))
+    if localdir != outputdir or filename != pathjoin((jobname, version)):
+        for ext in jobconf.inputfiles:
+            if path.isfile(pathjoin(localdir, (filename, ext))):
+                copyfile(pathjoin(localdir, (filename, ext)), pathjoin(outputdir, vernames[ext]))
     
     try:
         #TODO: Avoid writing unnecessary newlines or spaces

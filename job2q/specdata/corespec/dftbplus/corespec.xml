@@ -1,9 +1,9 @@
 <spec>
 
-<title>DFTB+</title>
-<runtype>openmp</runtype>
+<packagename>DFTB+</packagename>
+<packagekey>dftb</packagekey>
+<parallelization>openmp</parallelization>
 <outputdir>True</outputdir>
-<versionprefix>dftb</versionprefix>
 <filecheck>dftb_in.hsd</filecheck>
 <stdout>dftb_out.log</stdout>
 

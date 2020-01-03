@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from xml.etree import ElementTree
-from job2q.spectags import xmlListTags, xmlScriptTags, xmlDictTags, xmlOpenTags, xmlProfileTags, xmlTextTags
+from job2q.spectags import listTags, scriptTags, dictTags, runtimeTags, commandTags, textTags
 from job2q import messages
 
 class ScriptTestDict(dict):
@@ -23,14 +23,14 @@ class XmlTreeList(list):
         for child in parent:
             if not len(child):
                 if child.tag == 'e':
-                    if parent.tag in xmlScriptTags:
+                    if parent.tag in scriptTags:
                         self.append(ScriptTestDict(script=child.text))
                         for attr in child.attrib:
                             self[-1][attr] = child.attrib[attr]
                     else:
                         self.append(child.text)
-                elif child.tag in xmlProfileTags:
-                    self.append(xmlProfileTags[child.tag] + ' ' + child.text)
+                elif child.tag in commandTags:
+                    self.append(commandTags[child.tag] + ' ' + child.text)
                 else:
                     messages.cfgerr('Invalid XmlTreeList Tag <{0}><{1}>'.format(parent.tag, child.tag))
             else:
@@ -57,9 +57,9 @@ class XmlTreeDict(dict):
                         self[child.attrib['key']] = XmlTreeDict(child)
                     else:
                         messages.cfgerr('XmlTreeDict Tag <{0}><e> must have a key attribute'.format(parent.tag))
-                elif child.tag in xmlListTags + xmlScriptTags:
+                elif child.tag in listTags + scriptTags:
                     self[child.tag] = XmlTreeList(child)
-                elif child.tag in xmlDictTags + xmlOpenTags:
+                elif child.tag in dictTags + runtimeTags:
                     self[child.tag] = XmlTreeDict(child)
                 else:
                     messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
@@ -69,18 +69,18 @@ class XmlTreeDict(dict):
                         self[child.attrib['key']] = child.text
                     else:
                         self[child.text] = child.text
-                elif child.tag in xmlTextTags or parent.tag in xmlOpenTags:
+                elif child.tag in textTags or parent.tag in runtimeTags:
                     self[child.tag] = child.text
                 else:
                     messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
-    def __getattr__(self, attr):
-        try: return self[attr]
+    def __getattr__(self, item):
+        try: return self.__getitem__(item)
         except KeyError:
-            raise AttributeError(attr)
-    def __missing__(self, key):
-        if key in xmlListTags + xmlScriptTags + xmlDictTags + xmlOpenTags:
-            #self[key] = []
-            #return self[key]
+            raise AttributeError(item)
+    def __setattr__(self, item, value):
+            self.__setitem__(item, value)
+    def __missing__(self, item):
+        if item in listTags + scriptTags + dictTags + runtimeTags:
             return []
     def merge(self, other):
         for i in other:

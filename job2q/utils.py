@@ -42,13 +42,13 @@ def hardlink(source, dest):
         if e.errno != ENOENT:
             raise
 
-def pathexpand(path):
+def expandall(path):
     return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 def strjoin(*args, sep='', gen=repeat):
-    def rejoin(*args, sepgen):
-        return next(sepgen).join(i if isinstance(i, str) else rejoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
-    return rejoin(*args, sepgen=gen(sep))
+    def iterjoin(*args, sepgen):
+        return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
+    return iterjoin(*args, sepgen=gen(sep))
 
 def wordjoin(*args):
     return strjoin(*args, sep=' ')
@@ -72,3 +72,5 @@ def qq(string):
 def natsort(text):
     return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
 
+def loalnum(string): 
+    return ''.join(c.lower() for c in string if c.isalnum())

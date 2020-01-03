@@ -1,9 +1,9 @@
 <spec>
 
-<title>AutoDock</title>
-<runtype>serial</runtype>
+<packagename>AutoDock</packagename>
+<packagekey>ad</packagekey>
+<parallelization>None</parallelization>
 <outputdir>True</outputdir>
-<versionprefix>ad</versionprefix>
 <filecheck>dpf</filecheck>
 
 <fileexts>

@@ -1,10 +1,10 @@
 <spec>
 
-<title>VASP</title>
-<runtype>intelmpi</runtype>
-<outputdir>True</outputdir>
+<packagename>VASP</packagename>
+<packagekey>vasp</packagekey>
+<parallelization>intelmpi</parallelization>
 <mpiwrapper>True</mpiwrapper>
-<versionprefix>vasp</versionprefix>
+<outputdir>True</outputdir>
 <stdout>log</stdout>
 
 <filecheck>INCAR and POSCAR and POTCAR</filecheck>
