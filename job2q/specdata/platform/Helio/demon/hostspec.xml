@@ -13,7 +13,7 @@
 </e></versions>
 
 <parameters>
-   <e>/opt/parameters/deMon2k</e>
+   <basis>/opt/parameters/deMon2k</basis>
 </parameters>
 
 <defaults>

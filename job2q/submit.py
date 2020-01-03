@@ -13,10 +13,10 @@ from time import sleep
 
 from job2q import dialogs
 from job2q import messages
+from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, p, q, qq
 from job2q.parsing import parsebool
-from job2q.details import xmlScriptTags
 from job2q.getconf import jobconf, sysconf, optconf
-from job2q.utils import strjoin, wordjoin, linejoin, pathjoin, remove, makedirs, pathexpand, q, qq
+from job2q.spectags import xmlScriptTags
 from job2q.decorators import catch_keyboard_interrupt
 from job2q.exceptions import * 
 
@@ -90,28 +90,8 @@ def submit():
         executable = pathexpand(executable) if '/' in executable else executable
     else: messages.cfgerr('La lista de versiones está vacía (versions)')
     
-    #TODO: Implement default parameter sets
-    for key in jobconf.parameters:
-        pardir = pathexpand(jobconf.parameters[key])
-        parset = getattr(optconf, key + 'set')
-        try: choices = listdir(pardir)
-        except FileNotFoundError as e:
-            if e.errno == ENOENT:
-                messages.cfgerr('El direcorio de parámetros', pardir, 'no existe')
-        if not choices:
-            messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
-        if parset is None:
-            if len(choices) == 1:
-                parset = choices[0]
-            elif key + 'set' in jobconf.defaults:
-                parset = jobconf.defaults[key + 'set']
-            else:
-                parset = dialogs.optone('Seleccione un conjunto de parámetros', key, choices=choices)
-        parameters.append(path.join(pardir, parset))
-
     version = jobconf.versionprefix + strjoin(c.lower() for c in optconf.version if c.isalnum())
     versionlist = (strjoin(c.lower() for c in version if c.isalnum()) for version in jobconf.versions)
-    iosuffix = { ext : version + '.' + ext for ext in jobconf.fileexts }
 
     #TODO: Get jobname in a better way
     jobname = basename
@@ -132,11 +112,37 @@ def submit():
     
     if jobconf.outputdir is True:
         outputdir = pathjoin(localdir, jobname)
-    else: outputdir = localdir
+        jobdir = pathjoin(outputdir, '.' + version)
+    else:
+        outputdir = localdir
+        jobdir = pathjoin(outputdir, ('.' + jobname, version))
+
+    rawnames = { ext : pathjoin((jobname, ext)) for ext in jobconf.fileexts }
+    vernames = { ext : pathjoin((jobname, version, ext)) for ext in jobconf.fileexts }
     
+    #TODO: Implement default parameter sets
+    for key in jobconf.parameters:
+        pardir = pathexpand(jobconf.parameters[key])
+        parset = getattr(optconf, key)
+        try: choices = listdir(pardir)
+        except FileNotFoundError as e:
+            if e.errno == ENOENT:
+                messages.cfgerr('El directorio de parámetros', pardir, 'no existe')
+        if path.realpath(pardir) == path.realpath(localdir):
+            choices = [ i for i in choices if i not in rawnames.values() and i != jobname ]
+        if not choices:
+            messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
+        if parset is None:
+            if len(choices) == 1:
+                parset = choices[0]
+            elif key in jobconf.defaults:
+                parset = jobconf.defaults[key]
+            else:
+                parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
+        parameters.append(path.join(pardir, parset))
+
     for var in jobconf.filevars:
         environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
-    
     environment.extend(jobconf.initscript)
     environment.extend(sysconf.environment)
     environment.append("shopt -s nullglob extglob")
@@ -181,12 +187,12 @@ def submit():
     else: messages.cfgerr('El tipo de paralelización ' + jobconf.runtype + ' no es válido')
     
     for ext in jobconf.inputfiles:
-        importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, (jobname, iosuffix[ext]))), \
+        importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, vernames[ext])), \
            '$ip:' + qq(pathjoin('$workdir', jobconf.fileexts[ext]))))
     
     for ext in jobconf.inputfiles + jobconf.outputfiles:
         exportfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.fileexts[ext])), \
-            master + ':' + qq(pathjoin(outputdir, (jobname, iosuffix[ext])))))
+            master + ':' + qq(pathjoin(outputdir, vernames[ext]))))
     
     for parset in parameters:
         if not path.isabs(parset):
@@ -220,8 +226,6 @@ def submit():
             ext = jobconf.optionargs[opt]
             arguments.append('-' + opt + ' ' + jobconf.fileexts[ext])
     
-    jobdir = pathjoin(outputdir, ('.' + jobname, version))
-    
     if path.isdir(outputdir):
         if path.isdir(jobdir):
             try:
@@ -238,20 +242,24 @@ def submit():
             return
         else:
             makedirs(jobdir)
-        if not set(listdir(outputdir)).isdisjoint(pathjoin((jobname, iosuffix[ext])) for ext in jobconf.outputfiles):
+        if not set(listdir(outputdir)).isdisjoint(pathjoin(vernames[ext]) for ext in jobconf.outputfiles):
             if optconf.defaultanswer is None:
                 optconf.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
             if optconf.defaultanswer is False:
                 messages.failure('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
                 return
         for ext in jobconf.inputfiles + jobconf.outputfiles:
-            remove(pathjoin(outputdir, (jobname, iosuffix[ext])))
+            remove(pathjoin(outputdir, vernames[ext]))
     elif path.exists(outputdir):
         messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
         return
     else:
         makedirs(outputdir)
         makedirs(jobdir)
+    
+    for ext in jobconf.inputfiles:
+        if path.isfile(pathjoin(localdir, (basename, ext))):
+            copyfile(pathjoin(localdir, (basename, ext)), pathjoin(outputdir, vernames[ext]))
     
     try:
         #TODO: Avoid writing unnecessary newlines or spaces
@@ -275,10 +283,6 @@ def submit():
         t.write(linejoin(wordjoin('ssh', master, q(str(i))) for i in jobconf.offscript if i))
     finally:
         t.close()
-    
-    for ext in jobconf.inputfiles:
-        if path.isfile(pathjoin(localdir, (basename, ext))):
-            copyfile(pathjoin(localdir, (basename, ext)), pathjoin(outputdir, (jobname, iosuffix[ext])))
     
     try: jobid = sysconf.submit(t.name)
     except RuntimeError as e:

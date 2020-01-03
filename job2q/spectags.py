@@ -14,13 +14,16 @@ xmlListTags = [
     'positionargs',
 ]
 
+xmlOpenTags = [
+    'parameters',
+]
+
 xmlDictTags = [
     'defaults',
+    'optionargs',
+    'versions',
     'fileexts',
     'filevars',
-    'optionargs',
-    'parameters',
-    'versions',
 ] 
 
 xmlTextTags = [
@@ -42,7 +45,7 @@ xmlTextTags = [
     'stderr',
 ]
 
-xmlProfileChildren = {
+xmlProfileTags = {
     'export' : 'export',
     'source' : 'source',
     'load' : 'module load',

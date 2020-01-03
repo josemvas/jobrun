@@ -7,7 +7,7 @@
 </e></versions>
 
 <parameters>
-   <e>$TMPU/software/parameters/deMon2k</e>
+   <basis>$TMPU/software/parameters/deMon2k</basis>
 </parameters>
 
 <defaults>

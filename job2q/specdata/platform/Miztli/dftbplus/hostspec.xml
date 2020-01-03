@@ -6,5 +6,6 @@
 </versions>
 
 <parameters>
-   <e>$TMPU/software/parameters/DFTB+/slako_bundles</e>
+   <slako>$TMPU/software/parameters/DFTB+/slako_bundles</slako>
 </parameters>
+

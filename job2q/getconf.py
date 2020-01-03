@@ -58,8 +58,10 @@ parser.add_argument('--sort', dest='sort', type=str, default='', help='Ordena la
 parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
 parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
 parser.add_argument('inputlist', nargs='*', metavar='INPUTFILE', help='Nombre del archivo de entrada.')
+if jobconf.parameters:
+    parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobconf.parameters)[0], help='Nombre del conjunto de parámetros.')
 for key in jobconf.parameters:
-    parser.add_argument('-p' + key, '--' + key + 'set', metavar='SETNAME', type=str, dest=key+'set', help='Nombre del conjunto de parámetros.')
+    parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
 
 optconf = parser.parse_args()
 
