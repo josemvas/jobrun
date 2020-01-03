@@ -174,7 +174,7 @@ def submit():
          messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
     
     #TODO: MPI support for Slurm
-    if jobconf.parallelization.lower() == 'None':
+    if jobconf.parallelization.lower() == 'none':
         jobcontrol.append(sysconf.ncpu.format(1))
     elif jobconf.parallelization.lower() == 'openmp':
         jobcontrol.append(sysconf.ncpu.format(optconf.ncpu))
