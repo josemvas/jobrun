@@ -13,7 +13,7 @@ from distutils.util import strtobool
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import expandall, natsort, p
+from job2q.utils import realpath, natsort, p
 from job2q.readspec import readspec
 from job2q.spectags import MPILibs
 from job2q.exceptions import * 
@@ -83,43 +83,78 @@ if optconf.sort:
 elif optconf.sortreverse:
     optconf.inputlist.sort(key=natsort, reverse=True)
 
-try: jobconf.scheduler
-except AttributeError: messages.cfgerr('<scheduler> No se especificó el nombre del sistema de colas')
+if not jobconf.scheduler:
+    messages.cfgerr('<scheduler> No se especificó el nombre del sistema de colas')
 
-try: jobconf.storage
-except AttributeError: messages.cfgerr('<storage> No se especificó el tipo de almacenamiento')
+if not jobconf.storage:
+    messages.cfgerr('<storage> No se especificó el tipo de almacenamiento')
 
 if optconf.scratch is None:
-    try: optconf.scratch = jobconf.defaults.scratch
-    except AttributeError: messages.cfgerr('<scratch> No se especificó el directorio temporal de escritura por defecto')
-optconf.scratch = expandall(optconf.scratch)
+    if jobconf.defaults.scratch:
+        optconf.scratch = jobconf.defaults.scratch
+    else:
+        messages.cfgerr('<scratch> No se especificó el directorio temporal de escritura por defecto')
 
 if optconf.queue is None:
-    try: optconf.queue = jobconf.defaults.queue
-    except AttributeError: messages.cfgerr('<default><queue> No se especificó la cola por defecto')
+    if jobconf.defaults.queue:
+        optconf.queue = jobconf.defaults.queue
+    else:
+        messages.cfgerr('<default><queue> No se especificó la cola por defecto')
 
-try: jobconf.outputdir = bool(strtobool(jobconf.outputdir))
-except AttributeError: messages.cfgerr('<outputdir> No se especificó si se requiere crear una carpeta de salida')
-except ValueError: messages.cfgerr('<outputdir> El texto de este tag debe ser "True" or "False"')
+if jobconf.outputdir:
+    try: jobconf.outputdir = bool(strtobool(jobconf.outputdir))
+    except ValueError:
+        messages.cfgerr('<outputdir> El texto de este tag debe ser "True" or "False"')
+else:
+    messages.cfgerr('<outputdir> No se especificó si se requiere crear una carpeta de salida')
 
 if optconf.interactive is True:
     jobconf.defaults = []
 
-try: jobconf.parallelization
-except AttributeError: messages.cfgerr('No se especificó el tipo de paralelización del programa')
+if jobconf.parallelization:
+    if jobconf.parallelization in MPILibs:
+        if jobconf.mpiwrapper:
+            try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
+            except ValueError:
+                messages.cfgerr('<mpiwrapper> El valor de debe ser True or False')
+        else:
+            messages.cfgerr('<mpiwrapper> No se especificó ningún wrapper MPI')
+else:
+    messages.cfgerr('<mpiwrapper> No se especificó el tipo de paralelización del programa')
 
-if jobconf.parallelization in MPILibs:
-    try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
-    except AttributeError: messages.cfgerr('<mpiwrapper> No se especificó ningún wrapper MPI')
-    except ValueError: messages.cfgerr('<mpiwrapper> El valor de debe ser True or False')
+if not jobconf.fileexts:
+    messages.cfgerr('<fileexts> Falta la lista de extensiones de archivo de o la lista está vacía')
 
-for ext in jobconf.inputfiles:
-    try: jobconf.fileexts[ext]
-    except KeyError:
-        messages.cfgerr('El nombre del archivo de entrada con llave', ext, 'no está definido')
+if jobconf.inputfiles:
+    for key in jobconf.inputfiles:
+        if not key in jobconf.fileexts:
+            messages.cfgerr('<inputfiles><e key="{0}"> El nombre de este archivo de entrada no fue definido'.format(ext))
+else:
+    messages.cfgerr('<inputfiles> Falta la lista de archivos de entrada o la lista está vacía')
 
-for ext in jobconf.outputfiles:
-    try: jobconf.fileexts[ext]
-    except KeyError:
-        messages.cfgerr('El nombre del archivo de salida con llave', ext, 'no está definido')
+if jobconf.outputfiles:
+    for key in jobconf.outputfiles:
+        if not key in jobconf.fileexts:
+            messages.cfgerr('<otputfiles><e key="{0}"> El nombre de este archivo de salida no fue definido'.format(ext))
+else:
+    messages.cfgerr('<outputfiles> Falta la lista de archivos de salida o la lista está vacía')
+
+if optconf.version is None:
+    if 'version' in jobconf.defaults:
+        optconf.version = jobconf.defaults.version
+    else:
+        optconf.version = dialogs.optone('Seleccione una versión', choices=list(jobconf.versions))
+
+if jobconf.versions:
+    if optconf.version in jobconf.versions:
+        program = jobconf.versions[optconf.version]
+    else:
+        messages.opterr('La versión seleccionada', str(e.args[0]), 'es inválida')
+else:
+    messages.cfgerr('<versions> Falta la lista de versiones o la lista está vacía')
+
+if not program.executable:
+    messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
+
+optconf.scratch = realpath(optconf.scratch)
 

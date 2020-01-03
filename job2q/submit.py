@@ -13,11 +13,11 @@ from time import sleep
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import wordjoin, linejoin, pathjoin, remove, makedirs, expandall, loalnum, p, q, qq
 from job2q.parsing import parsebool
-from job2q.getconf import jobconf, sysconf, optconf
-from job2q.spectags import scriptTags, MPILibs
+from job2q.utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, loalnum, p, q, qq
+from job2q.getconf import jobconf, sysconf, optconf, program
 from job2q.decorators import catch_keyboard_interrupt
+from job2q.spectags import scriptTags, MPILibs
 from job2q.exceptions import * 
 
 @catch_keyboard_interrupt
@@ -91,39 +91,21 @@ def submit():
             messages.failure('Hay un conflicto entre algunos de los archivos de entrada')
             return
     
-    if jobconf.versions:
-        if optconf.version is None:
-            if 'version' in jobconf.defaults:
-                optconf.version = jobconf.defaults.version
-            else:
-                choices = list(jobconf.versions)
-                optconf.version = dialogs.optone('Seleccione una versión', choices=choices)
-        try: jobconf.program = jobconf.versions[optconf.version]
-        except KeyError as e: messages.opterr('La versión seleccionada', str(e.args[0]), 'es inválida')
-        except TypeError: messages.cfgerr('La lista de versiones está mal definida')
-        try: executable = jobconf.program.executable
-        except AttributeError: messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
-        executable = expandall(executable) if '/' in executable else executable
-    else: messages.cfgerr('<versions> No se especificó ninguna versión del programa')
-    
-    versionprefix = jobconf.packagekey if 'packagekey' in jobconf else 'v'
-    version = versionprefix + loalnum(optconf.version)
-    
-    #TODO: Is there an easier way to get jobname?
-    jobname = filename[:-len(jobconf.packagekey)-1] if 'packagekey' in jobconf and filename.endswith('.' + jobconf.packagekey) else filename
+    jobname = filename[:-len(jobconf.packagekey)-1] if filename.endswith('.' + jobconf.packagekey) else filename
+    versionkey = jobconf.packagekey + loalnum(optconf.version)
     normalname = pathjoin((jobname, jobconf.packagekey))
-    versioname = pathjoin((jobname, version))
+    versioname = pathjoin((jobname, versionkey))
 
     if useoutputdir:
         outputdir = pathjoin(localdir, jobname)
     else:
         outputdir = localdir
 
-    jobdir = pathjoin(outputdir, ('.' + jobname, version))
+    jobdir = pathjoin(outputdir, ('.' + jobname, versionkey))
     
     #TODO: Implement default parameter sets
     for key in jobconf.parameters:
-        pardir = expandall(jobconf.parameters[key])
+        pardir = realpath(jobconf.parameters[key])
         parset = getattr(optconf, key)
         try: choices = listdir(pardir)
         except FileNotFoundError as e:
@@ -137,7 +119,7 @@ def submit():
             if key in jobconf.defaults.parameters:
                 parset = jobconf.defaults.parameters[key]
             else:
-                parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
+                parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), 'para', jobname,choices=choices)
         if path.exists(path.join(pardir, parset)):
             parameters.append(path.join(pardir, parset))
         else:
@@ -174,6 +156,7 @@ def submit():
          messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
     
     #TODO: MPI support for Slurm
+    executable = realpath(program.executable) if path.sep in program.executable else program.executable
     if jobconf.parallelization.lower() == 'none':
         jobcontrol.append(sysconf.ncpu.format(1))
     elif jobconf.parallelization.lower() == 'openmp':
@@ -185,8 +168,8 @@ def submit():
         if optconf.nodes is not None:
             jobcontrol.append(sysconf.span.format(optconf.nodes))
         if jobconf.mpiwrapper is True:
-            executable = sysconf.mpiwrapper[jobconf.parallelization] + ' ' + executable
-    else: messages.cfgerr('El tipo de paralelización ' + jobconf.parallelization + ' no es válido')
+            executable = wordjoin(sysconf.mpiwrapper[jobconf.parallelization], executable)
+    else: messages.cfgerr('El tipo de paralelización ' + jobconf.parallelization + ' no está soportado')
     
     for ext in jobconf.inputfiles:
         importfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, (normalname, ext))), \
@@ -203,7 +186,7 @@ def submit():
             parset = pathjoin(parset, '.')
         importfiles.append(wordjoin('ssh', master, 'scp -r', qq(parset), '$ip:' + qq('$workdir')))
     
-    for profile in jobconf.setdefault('profile', []) + jobconf.program.setdefault('profile', []):
+    for profile in jobconf.profile + program.profile:
         environment.append(profile)
     
     if 'stdin' in jobconf:
@@ -216,17 +199,15 @@ def submit():
         try: redirections.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
         except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
     
-    if 'positionargs' in jobconf:
-        for item in jobconf.positionargs:
-            for ext in item.split('|'):
-                if ext in jobenviron['file']:
-                    arguments.append(jobconf.fileexts[ext])
-                    break
-    
-    if 'optionargs' in jobconf:
-        for opt in jobconf.optionargs:
-            ext = jobconf.optionargs[opt]
-            arguments.append('-' + opt + ' ' + jobconf.fileexts[ext])
+    for item in jobconf.positionargs:
+        for ext in item.split('|'):
+            if ext in jobenviron['file']:
+                arguments.append(jobconf.fileexts[ext])
+                break
+
+    for opt in jobconf.optionargs:
+        ext = jobconf.optionargs[opt]
+        arguments.append('-' + opt + ' ' + jobconf.fileexts[ext])
     
     if path.isdir(outputdir):
         if path.isdir(jobdir):

@@ -42,8 +42,8 @@ def hardlink(source, dest):
         if e.errno != ENOENT:
             raise
 
-def expandall(path):
-    return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
+def realpath(path):
+    return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
 
 def iterjoin(*args, sepgen):
     return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
@@ -56,7 +56,7 @@ def linejoin(*args):
     return lines + '\n' if lines else ''
 
 def pathjoin(*args):
-    return iterjoin(*args, sepgen=iter(os.sep+'.-'))
+    return iterjoin(*args, sepgen=iter(os.path.sep + '.-'))
     #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
 
 def p(string):

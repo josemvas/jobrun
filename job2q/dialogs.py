@@ -10,7 +10,7 @@ from glob import glob
 from os.path import isdir, exists, expanduser
 
 from job2q import messages
-from job2q.utils import expandall, wordjoin
+from job2q.utils import realpath, wordjoin
 from job2q.decorators import override_with_method, catch_keyboard_interrupt, join_positional_args
 
 if sys.version_info[0] < 3:
@@ -45,8 +45,8 @@ def path(prompt=''):
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            if exists(expandall(answer)):
-                return expandall(answer)
+            if exists(realpath(answer)):
+                return realpath(answer)
             else:
                 print('Por favor indique una ruta válida')
 def yn(prompt='', default=None):

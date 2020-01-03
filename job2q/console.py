@@ -10,7 +10,7 @@ from shutil import copyfile
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import rmdir, makedirs, hardlink, expandall
+from job2q.utils import rmdir, makedirs, hardlink, realpath
 from job2q.readspec import readspec
 
 main_template = '''
