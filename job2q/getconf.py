@@ -123,35 +123,38 @@ else:
     messages.cfgerr('<mpiwrapper> No se especificó el tipo de paralelización del programa')
 
 if not jobconf.fileexts:
-    messages.cfgerr('<fileexts> Falta la lista de extensiones de archivo de o la lista está vacía')
+    messages.cfgerr('<fileexts> La lista de archivos del programa no existe o está vacía')
 
 if jobconf.inputfiles:
     for key in jobconf.inputfiles:
         if not key in jobconf.fileexts:
             messages.cfgerr('<inputfiles><e key="{0}"> El nombre de este archivo de entrada no fue definido'.format(ext))
 else:
-    messages.cfgerr('<inputfiles> Falta la lista de archivos de entrada o la lista está vacía')
+    messages.cfgerr('<inputfiles> La lista de archivos de entrada no existe o está vacía')
 
 if jobconf.outputfiles:
     for key in jobconf.outputfiles:
         if not key in jobconf.fileexts:
             messages.cfgerr('<otputfiles><e key="{0}"> El nombre de este archivo de salida no fue definido'.format(ext))
 else:
-    messages.cfgerr('<outputfiles> Falta la lista de archivos de salida o la lista está vacía')
-
-if optconf.version is None:
-    if 'version' in jobconf.defaults:
-        optconf.version = jobconf.defaults.version
-    else:
-        optconf.version = dialogs.optone('Seleccione una versión', choices=list(jobconf.versions))
+    messages.cfgerr('<outputfiles> La lista de archivos de salida no existe o está vacía')
 
 if jobconf.versions:
-    if optconf.version in jobconf.versions:
-        program = jobconf.versions[optconf.version]
-    else:
-        messages.opterr('La versión seleccionada', str(e.args[0]), 'es inválida')
+    if optconf.version is None:
+        if 'version' in jobconf.defaults:
+            if jobconf.defaults.version in jobconf.versions:
+                program = jobconf.versions[jobconf.defaults.version]
+                optconf.version = jobconf.defaults.version
+            else:
+                messages.opterr('La versión establecida por default es inválida')
+        else:
+            optconf.version = dialogs.optone('Seleccione una versión', choices=list(jobconf.versions))
+            if optconf.version in jobconf.versions:
+                program = jobconf.versions[optconf.version]
+            else:
+                messages.opterr('La versión seleccionada es inválida')
 else:
-    messages.cfgerr('<versions> Falta la lista de versiones o la lista está vacía')
+    messages.cfgerr('<versions> La lista de versiones no existe o está vacía')
 
 if not program.executable:
     messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
