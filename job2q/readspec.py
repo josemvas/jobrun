@@ -5,30 +5,15 @@ from __future__ import absolute_import
 from __future__ import division
 
 from xml.etree import ElementTree
-from job2q.spectags import listTags, scriptTags, dictTags, optionTags, commandTags, textTags
+from job2q.spectags import listTags, dictTags, optionTags, commandTags, textTags
 from job2q import messages
-
-class ScriptTestDict(dict):
-    def __init__(self, text='', boolean=True):
-        self.text = text
-        self.boolean = boolean
-    def __bool__(self):
-        return not self.boolean if 'not' in self else self.boolean
-    __nonzero__ = __bool__
-    def __str__(self):
-        return self.text
 
 class XmlTreeList(list):
     def __init__(self, parent):
         for child in parent:
             if not len(child):
                 if child.tag == 'e':
-                    if parent.tag in scriptTags:
-                        self.append(ScriptTestDict(text=child.text))
-                        for attr in child.attrib:
-                            self[-1][attr] = child.attrib[attr]
-                    else:
-                        self.append(child.text)
+                    self.append(child.text)
                 elif child.tag in commandTags:
                     self.append(commandTags[child.tag] + ' ' + child.text)
                 else:
@@ -46,7 +31,6 @@ class XmlTreeList(list):
                     raise Exception('Conflict at' + ' ' + str(i))
             else:
                 self.append(other[i])
-
 
 class XmlTreeDict(dict):
     def __init__(self, parent):
@@ -67,8 +51,6 @@ class XmlTreeDict(dict):
                 if child.tag == 'e':
                     if 'key' in child.attrib:
                         self[child.attrib['key']] = child.text
-                    else:
-                        self[child.text] = child.text
                 elif child.tag in textTags or parent.tag in optionTags:
                     self[child.tag] = child.text
                 else:

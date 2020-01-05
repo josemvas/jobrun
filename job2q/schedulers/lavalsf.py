@@ -11,20 +11,28 @@ from subprocess import Popen, PIPE, STDOUT
 
 def submit(jobscript):
     with open(jobscript, 'r') as fh:
-        stdout = Popen(['bsub'], stdin=fh, stdout=PIPE, stderr=STDOUT, close_fds=True).communicate()[0]
-    try: return search('<([0-9]+)>', stdout.decode(sys.stdout.encoding).strip()).group(1)
-    except AttributeError as e:
-        raise Exception('El sistema de colas no envió el trabajo porque ocurrió un error: ' + '"{0}"'.format(stdout.decode(sys.stdout.encoding).strip()))
+        p = Popen(['bsub'], stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
+    output, error = p.communicate()
+    if p.returncode == 0:
+        return search('<([0-9]+)>', output.decode(sys.stdout.encoding).strip()).group(1)
+    else:
+        raise Exception('El sistema de colas no envió el trabajo porque ocurrió un error: "{0}"'.format(error.decode(sys.stdout.encoding).strip()))
         
 def checkjob(jobid):
-    stdout = Popen(['bjobs', '-ostat', '-noheader', jobid], stdout=PIPE, stderr=PIPE, close_fds=True).communicate()[0]
-    return stdout.decode(sys.stdout.encoding).rstrip()
+    p = Popen(['bjobs', '-ostat', '-noheader', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
+    output, error = p.communicate()
+    if p.returncode == 0:
+        return output.decode(sys.stdout.encoding).strip()
+    else:
+        print('Ocurrión un error al revisar el estado del trabajo: "{0}"'.format(error.decode(sys.stdout.encoding).strip()))
+        return 'UNKNOWN'
        
 
 jobstates = {
-    'PEND': 'ya está encolado',
-    'RUN': 'ya está corriendo',
-    'SUSP': 'está detenido',
+    'UNKNOWN': 'El trabajo {jobname} no se envió porque no se sabe si ya está corriendo', 
+    'PEND': 'El trabajo {jobname} no se envió porque ya está encolado con jobid {jobid}',
+    'RUN': 'El trabajo {jobname} no se envió porque ya está corriendo con jobid {jobid}',
+    'SUSP': 'El trabajo {jobname} no se envió porque está detenido con jobid {jobid}',
 }
 
 jobid = '%J'

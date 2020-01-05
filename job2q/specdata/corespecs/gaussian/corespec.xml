@@ -18,10 +18,10 @@
 </fileexts>
 
 <filevars>
-   <e>com</e>
-   <e>gjf</e>
-   <e>chk</e>
-   <e>oldchk</e>
+   <e key='com'>com</e>
+   <e key='gjf'>gjf</e>
+   <e key='chk'>chk</e>
+   <e key='oldchk'>oldchk</e>
 </filevars>
 
 <inputfiles>
@@ -49,7 +49,7 @@
    <e>sed -i "/^%/d" @($gjf|$com)</e>
    <e>sed -i "1i%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</e>
    <e>sed -i "/--Link1--/a%Chk=$chk\\n%NProcShared=${ncpu}\\n%Mem=${jobram}MB" @($gjf|$com)</e>
-   <e file='oldchk'>sed -i "1i%OldChk=$oldchk" @($gjf|$com)</e>
+   <e>test -f $oldchk &amp;&amp; sed -i "1i%OldChk=$oldchk" @($gjf|$com)</e>
 </prescript>
 
 </spec>

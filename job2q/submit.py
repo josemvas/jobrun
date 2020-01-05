@@ -17,7 +17,7 @@ from job2q.parsing import parsebool
 from job2q.utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
 from job2q.getconf import jobconf, sysconf, optconf, comments, environment, command
 from job2q.decorators import catch_keyboard_interrupt
-from job2q.spectags import scriptTags, MPILibs
+from job2q.spectags import MPILibs
 from job2q.exceptions import * 
 
 @catch_keyboard_interrupt
@@ -78,8 +78,8 @@ def submit():
     else:
         jobname = filename
     outputdir = pathjoin(localdir, jobname) if makefolder else localdir
-    hiddendir = pathjoin(outputdir, ('.' + jobname))
-    fullname = pathjoin((jobname, versionkey))
+    hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
+    wholename = pathjoin((jobname, versionkey))
     
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebools):
@@ -99,7 +99,7 @@ def submit():
     for item in jobconf.outputfiles:
         for key in item.split('|'):
             exportfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.fileexts[key])), \
-                master + ':' + qq(pathjoin(outputdir, (fullname, key)))))
+                master + ':' + qq(pathjoin(outputdir, (wholename, key)))))
     
     for parset in optconf.parameters:
         if not path.isabs(parset):
@@ -117,14 +117,14 @@ def submit():
             else:
                 jobstate = sysconf.checkjob(lastjob)
                 if jobstate in sysconf.jobstates:
-                    messages.failure('El trabajo', q(jobname), 'no se envió porque', sysconf.jobstates[jobstate], '(jobid {0})'.format(lastjob))
+                    messages.failure(sysconf.jobstates[jobstate].format(jobname=jobname, jobid=lastjob))
                     return
         elif path.exists(hiddendir):
             messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
             return
         else:
             makedirs(hiddendir)
-        if not set(listdir(outputdir)).isdisjoint(pathjoin((fullname, k)) for i in jobconf.outputfiles for k in i.split('|')):
+        if not set(listdir(outputdir)).isdisjoint(pathjoin((wholename, k)) for i in jobconf.outputfiles for k in i.split('|')):
             if optconf.defaultanswer is None:
                 optconf.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
             if optconf.defaultanswer is False:
@@ -132,7 +132,7 @@ def submit():
                 return
         for item in jobconf.outputfiles:
             for key in item.split('|'):
-                remove(pathjoin(outputdir, (fullname, key)))
+                remove(pathjoin(outputdir, (wholename, key)))
         if localdir != outputdir:
             for item in jobconf.inputfiles:
                 for key in item.split('|'):
@@ -150,22 +150,10 @@ def submit():
                 if path.isfile(pathjoin(localdir, (filename, key))):
                     copyfile(pathjoin(localdir, (filename, key)), pathjoin(outputdir, (filename, key)))
     
-    for script in scriptTags:
-        for line in jobconf[script]:
-            for attr in line:
-                if attr == 'var':
-                    line.boolean = line[attr] in environ
-                elif attr == 'file':
-                    line.boolean = filebools[line[attr]]
-                else:
-                    messages.cfgerr(q(attr), 'no es un atributo válido de', script)
-    
     comments.append(sysconf.jobname.format(jobname))
     environment.append("jobname=" + jobname)
 
-    try:
-        #TODO: Avoid writing unnecessary newlines or spaces
-        t = NamedTemporaryFile(mode='w+t', delete=False)
+    with NamedTemporaryFile(mode='w+t', delete=False) as t:
         t.write(linejoin(i for i in comments))
         t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
@@ -173,17 +161,15 @@ def submit():
         t.write(linejoin(' ' * 2 + i for i in importfiles))
         t.write('done' + '\n')
         t.write('cd "$workdir"' + '\n')
-        t.write(linejoin(str(i) for i in jobconf.prescript if i))
+        t.write(linejoin(i for i in jobconf.prescript))
         t.write(wordjoin(command) + '\n')
-        t.write(linejoin(str(i) for i in jobconf.postscript if i))
+        t.write(linejoin(i for i in jobconf.postscript))
         t.write(linejoin(i for i in exportfiles))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + 'ssh $ip rm -f "\'$workdir\'/*"' + '\n')
         t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
         t.write('done' + '\n')
-        t.write(linejoin(wordjoin('ssh', master, q(str(i))) for i in jobconf.offscript if i))
-    finally:
-        t.close()
+        t.write(linejoin(wordjoin('ssh', master, q(i)) for i in jobconf.offscript))
     
     try: jobid = sysconf.submit(t.name)
     except RuntimeError as e:

@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
 
-scriptTags = (
-    'prescript',
-    'postscript',
-    'offscript',
-)
-    
 listTags = (
     'profile',
     'inputfiles',

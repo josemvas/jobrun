@@ -21,7 +21,7 @@
 </fileexts>
 
 <filevars>
-   <e>inp</e>
+   <e key='inp'>inp</e>
 </filevars>
 
 <inputfiles>
