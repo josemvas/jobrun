@@ -9,14 +9,14 @@ from job2q.spectags import listTags, scriptTags, dictTags, optionTags, commandTa
 from job2q import messages
 
 class ScriptTestDict(dict):
-    def __init__(self, script='', boolean=True):
-        self.script = script
+    def __init__(self, text='', boolean=True):
+        self.text = text
         self.boolean = boolean
     def __bool__(self):
         return not self.boolean if 'not' in self else self.boolean
     __nonzero__ = __bool__
     def __str__(self):
-        return self.script
+        return self.text
 
 class XmlTreeList(list):
     def __init__(self, parent):
@@ -24,7 +24,7 @@ class XmlTreeList(list):
             if not len(child):
                 if child.tag == 'e':
                     if parent.tag in scriptTags:
-                        self.append(ScriptTestDict(script=child.text))
+                        self.append(ScriptTestDict(text=child.text))
                         for attr in child.attrib:
                             self[-1][attr] = child.attrib[attr]
                     else:

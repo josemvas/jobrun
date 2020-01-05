@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 scriptTags = (
-    'initscript',
-    'offscript',
     'prescript',
     'postscript',
+    'offscript',
 )
     
 listTags = (
@@ -12,7 +11,7 @@ listTags = (
     'inputfiles',
     'outputfiles',
     'positionargs',
-    'initscript',
+    'environment',
     'offscript',
     'prescript',
     'postscript',
@@ -30,11 +29,11 @@ dictTags = (
 textTags = (
     'storage',
     'scheduler',
-    'packagename',
-    'parallelization',
+    'pkgname',
+    'parallelib',
     'mpiwrapper',
-    'outputdir',
-    'packagekey',
+    'makefolder',
+    'pkgkey',
     'filecheck',
     'fileclash',
     'queue',

@@ -1,9 +1,9 @@
 <spec>
 
-<packagename>Gaussian</packagename>
-<packagekey>g</packagekey>
-<parallelization>openmp</parallelization>
-<outputdir>True</outputdir>
+<pkgkey>g</pkgkey>
+<pkgname>Gaussian</pkgname>
+<parallelib>openmp</parallelib>
+<makefolder>True</makefolder>
 <filecheck>gjf or com</filecheck>
 <fileclash>gjf and com</fileclash>
 
@@ -25,14 +25,12 @@
 </filevars>
 
 <inputfiles>
-   <e>com</e>
-   <e>gjf</e>
+   <e>gjf|com</e>
    <e>oldchk</e>
 </inputfiles>
 
 <outputfiles>
-   <e>com</e>
-   <e>gjf</e>
+   <e>gjf|com</e>
    <e>log</e>
    <e>chk</e>
    <e>wfn</e>

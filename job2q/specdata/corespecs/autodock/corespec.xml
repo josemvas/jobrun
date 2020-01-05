@@ -1,9 +1,9 @@
 <spec>
 
-<packagename>AutoDock</packagename>
-<packagekey>ad</packagekey>
-<parallelization>None</parallelization>
-<outputdir>True</outputdir>
+<pkgkey>ad</pkgkey>
+<pkgname>AutoDock</pkgname>
+<parallelib>None</parallelib>
+<makefolder>True</makefolder>
 <filecheck>dpf</filecheck>
 
 <fileexts>

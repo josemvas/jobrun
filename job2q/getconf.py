@@ -13,7 +13,7 @@ from distutils.util import strtobool
 
 from job2q import dialogs
 from job2q import messages
-from job2q.utils import realpath, natsort, p
+from job2q.utils import realpath, natsort, pathjoin, p
 from job2q.readspec import readspec
 from job2q.spectags import MPILibs
 from job2q.exceptions import * 
@@ -95,47 +95,45 @@ if optconf.scratch is None:
     else:
         messages.cfgerr('<scratch> No se especificó el directorio temporal de escritura por defecto')
 
+optconf.scratch = realpath(optconf.scratch)
+
 if optconf.queue is None:
     if jobconf.defaults.queue:
         optconf.queue = jobconf.defaults.queue
     else:
         messages.cfgerr('<default><queue> No se especificó la cola por defecto')
 
-if jobconf.outputdir:
-    try: jobconf.outputdir = bool(strtobool(jobconf.outputdir))
+if jobconf.makefolder:
+    try: jobconf.makefolder = bool(strtobool(jobconf.makefolder))
     except ValueError:
         messages.cfgerr('<outputdir> El texto de este tag debe ser "True" or "False"')
 else:
     messages.cfgerr('<outputdir> No se especificó si se requiere crear una carpeta de salida')
 
+if jobconf.mpiwrapper:
+    try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
+    except KeyError:
+        messages.cfgerr('<mpiwrapper> El texto de este tag debe ser "True" o "False"')
+
 if optconf.interactive is True:
     jobconf.defaults = []
-
-if jobconf.parallelization:
-    if jobconf.parallelization in MPILibs:
-        if jobconf.mpiwrapper:
-            try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
-            except ValueError:
-                messages.cfgerr('<mpiwrapper> El valor de debe ser True or False')
-        else:
-            messages.cfgerr('<mpiwrapper> No se especificó ningún wrapper MPI')
-else:
-    messages.cfgerr('<mpiwrapper> No se especificó el tipo de paralelización del programa')
 
 if not jobconf.fileexts:
     messages.cfgerr('<fileexts> La lista de archivos del programa no existe o está vacía')
 
 if jobconf.inputfiles:
-    for key in jobconf.inputfiles:
-        if not key in jobconf.fileexts:
-            messages.cfgerr('<inputfiles><e key="{0}"> El nombre de este archivo de entrada no fue definido'.format(ext))
+    for item in jobconf.inputfiles:
+        for key in item.split('|'):
+            if not key in jobconf.fileexts:
+                messages.cfgerr('<inputfiles><e>{0}</e> El nombre de este archivo de entrada no fue definido'.format(key))
 else:
     messages.cfgerr('<inputfiles> La lista de archivos de entrada no existe o está vacía')
 
 if jobconf.outputfiles:
-    for key in jobconf.outputfiles:
-        if not key in jobconf.fileexts:
-            messages.cfgerr('<otputfiles><e key="{0}"> El nombre de este archivo de salida no fue definido'.format(ext))
+    for item in jobconf.outputfiles:
+        for key in item.split('|'):
+            if not key in jobconf.fileexts:
+                messages.cfgerr('<otputfiles><e>{0}</e> El nombre de este archivo de salida no fue definido'.format(key))
 else:
     messages.cfgerr('<outputfiles> La lista de archivos de salida no existe o está vacía')
 
@@ -143,21 +141,118 @@ if jobconf.versions:
     if optconf.version is None:
         if 'version' in jobconf.defaults:
             if jobconf.defaults.version in jobconf.versions:
-                program = jobconf.versions[jobconf.defaults.version]
                 optconf.version = jobconf.defaults.version
             else:
                 messages.opterr('La versión establecida por default es inválida')
         else:
             optconf.version = dialogs.optone('Seleccione una versión', choices=list(jobconf.versions))
-            if optconf.version in jobconf.versions:
-                program = jobconf.versions[optconf.version]
-            else:
+            if not optconf.version in jobconf.versions:
                 messages.opterr('La versión seleccionada es inválida')
 else:
     messages.cfgerr('<versions> La lista de versiones no existe o está vacía')
 
-if not program.executable:
-    messages.cfgerr('No se indicó el ejecutable para la versión', optconf.version)
+if not jobconf.versions[optconf.version].executable:
+    messages.cfgerr('No se especificó el ejecutable de la versión', optconf.version)
 
-optconf.scratch = realpath(optconf.scratch)
+executable = jobconf.versions[optconf.version].executable
+profile = jobconf.versions[optconf.version].profile
+
+optconf.parameters = []
+for key in jobconf.parameters:
+    pardir = realpath(jobconf.parameters[key])
+    parset = getattr(optconf, key)
+    try: choices = listdir(pardir)
+    except FileNotFoundError as e:
+        if e.errno == ENOENT:
+            messages.cfgerr('El directorio de parámetros', pardir, 'no existe')
+    if not choices:
+        messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
+    if parset is None:
+        if key in jobconf.defaults.parameters:
+            parset = jobconf.defaults.parameters[key]
+        else:
+            parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
+    if path.exists(path.join(pardir, parset)):
+        optconf.parameters.append(path.join(pardir, parset))
+    else:
+        messages.opterr('La ruta de parámetros', path.join(pardir, parset), 'no existe')
+
+comments = []
+environment = []
+command = []
+
+comments.append(sysconf.label.format(jobconf.pkgname))
+comments.append(sysconf.queue.format(optconf.queue))
+
+if optconf.exechost is not None: 
+    comments.append(sysconf.host.format(optconf.exechost))
+
+if jobconf.storage == 'pooled':
+     comments.append(sysconf.stdout.format(pathjoin(optconf.scratch, (sysconf.jobid, 'out'))))
+     comments.append(sysconf.stderr.format(pathjoin(optconf.scratch, (sysconf.jobid, 'err'))))
+elif jobconf.storage == 'shared':
+     comments.append(sysconf.stdout.format(pathjoin(outputdir, (sysconf.jobid, 'out'))))
+     comments.append(sysconf.stderr.format(pathjoin(outputdir, (sysconf.jobid, 'err'))))
+else:
+     messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
+
+#TODO: MPI support for Slurm
+if jobconf.parallelib:
+    if jobconf.parallelib.lower() == 'none':
+        comments.append(sysconf.ncpu.format(1))
+    elif jobconf.parallelib.lower() == 'openmp':
+        comments.append(sysconf.ncpu.format(optconf.ncpu))
+        comments.append(sysconf.span.format(1))
+        environment.append('export OMP_NUM_THREADS=' + str(optconf.ncpu))
+    elif jobconf.parallelib.lower() in MPILibs:
+        comments.append(sysconf.ncpu.format(optconf.ncpu))
+        if optconf.nodes:
+            comments.append(sysconf.span.format(optconf.nodes))
+        if jobconf.mpiwrapper:
+            command.append(sysconf.mpiwrapper[jobconf.parallelib])
+        else:
+            messages.cfgerr('<mpiwrapper> No se especificó si el programa require un wrapper de mpi para correr')
+    else:
+        messages.cfgerr('El tipo de paralelización ' + jobconf.parallelib + ' no está soportado')
+else:
+    messages.cfgerr('<parallelib> No se especificó el tipo de paralelización del programa')
+
+environment.extend(sysconf.environment)
+environment.extend(jobconf.environment)
+
+for profile in jobconf.profile + profile:
+    environment.append(profile)
+
+for var in jobconf.filevars:
+    environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
+
+environment.append("shopt -s nullglob extglob")
+environment.append("workdir=" + pathjoin(optconf.scratch, sysconf.jobidvar))
+environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
+environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
+environment.append("jobram=$(($ncpu*$totalram/$(nproc --all)))")
+environment.append("progname=" + jobconf.pkgname)
+
+command.append(realpath(executable) if path.sep in executable else executable)
+
+for key in jobconf.optionargs:
+    if not key in jobconf.fileexts:
+        messages.cfgerr('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+    command.append(wordjoin('-' + key, jobconf.fileexts[jobconf.optionargs[arg]]))
+
+for item in jobconf.positionargs:
+    for key in item.split('|'):
+        if not key in jobconf.fileexts:
+            messages.cfgerr('<positionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+    command.append('@' + p('|'.join(jobconf.fileexts[i] for i in item.split('|'))))
+
+if 'stdin' in jobconf:
+    try: command.append('0<' + ' ' + jobconf.fileexts[jobconf.stdin])
+    except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stdin + '" en el tag <stdin> no fue definido.')
+if 'stdout' in jobconf:
+    try: command.append('1>' + ' ' + jobconf.fileexts[jobconf.stdout])
+    except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stdout + '" en el tag <stdout> no fue definido.')
+if 'stderr' in jobconf:
+    try: command.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
+    except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
 

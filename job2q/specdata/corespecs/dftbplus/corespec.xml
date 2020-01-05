@@ -1,8 +1,9 @@
 <spec>
 
-<packagename>DFTB+</packagename>
-<parallelization>openmp</parallelization>
-<outputdir>True</outputdir>
+<pkgkey>plus</pkgkey>
+<pkgname>DFTB+</pkgname>
+<parallelib>openmp</parallelib>
+<makefolder>True</makefolder>
 <filecheck>dftb_in.hsd</filecheck>
 <stdout>dftb_out.log</stdout>
 

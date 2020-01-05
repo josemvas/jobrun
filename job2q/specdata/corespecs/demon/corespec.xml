@@ -1,10 +1,10 @@
 <spec>
 
-<packagename>deMon2k</packagename>
-<packagekey>deMon</packagekey>
-<parallelization>intelmpi</parallelization>
+<pkgkey>deMon</pkgkey>
+<pkgname>deMon2k</pkgname>
+<parallelib>intelmpi</parallelib>
 <mpiwrapper>True</mpiwrapper>
-<outputdir>True</outputdir>
+<makefolder>True</makefolder>
 <filecheck>inp</filecheck>
 
 <fileexts>

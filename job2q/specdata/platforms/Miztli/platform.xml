@@ -1,9 +1,8 @@
 <spec>
 
-<packagename>Sistema</packagename>
 <storage>shared</storage>
 <scheduler>platformlsf</scheduler>
-<initscript>module purge</initscript>
+<environment>module purge</environment>
 
 <defaults>
    <queue>q_htc</queue>

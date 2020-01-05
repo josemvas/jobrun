@@ -33,8 +33,8 @@ def setup():
     etcdir = dialogs.path('Escriba la ruta donde se instalará la configuración')
 
     sourcedir = path.dirname(path.realpath(__file__))
-    corespecdir = path.join(sourcedir, 'specdata', 'corespec')
-    platformdir = path.join(sourcedir, 'specdata', 'platform')
+    corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
+    platformdir = path.join(sourcedir, 'specdata', 'platforms')
 
     hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
 
@@ -55,12 +55,12 @@ def setup():
     
         for package in listdir(path.join(platformdir, hostname)):
             if path.isdir(path.join(platformdir, hostname, package)):
-                packagename = readspec(path.join(corespecdir, package, 'corespec.xml'), 'packagename')
-                if packagename is None:
+                pkgname = readspec(path.join(corespecdir, package, 'corespec.xml'), 'pkgname')
+                if pkgname is None:
                     messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.xml'), 'no tiene un título')
-                available[packagename] = package
+                available[pkgname] = package
                 if path.isdir(path.join(specdir, package)):
-                    configured.append(packagename)
+                    configured.append(pkgname)
     
         packagelist = list(available)
     

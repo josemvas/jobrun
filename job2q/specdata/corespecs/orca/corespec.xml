@@ -1,10 +1,10 @@
 <spec>
 
-<packagename>ORCA</packagename>
-<packagekey>orca</packagekey>
-<parallelization>openmpi</parallelization>
+<pkgkey>orca</pkgkey>
+<pkgname>ORCA</pkgname>
+<parallelib>openmpi</parallelib>
 <mpiwrapper>False</mpiwrapper>
-<outputdir>True</outputdir>
+<makefolder>True</makefolder>
 <filecheck>inp</filecheck>
 <stdout>out</stdout>
 

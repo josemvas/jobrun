@@ -71,5 +71,5 @@ def qq(string):
 def natsort(text):
     return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
 
-def loalnum(string): 
-    return ''.join(c.lower() for c in string if c.isalnum())
+def alnum(string): 
+    return ''.join(c for c in string if c.isalnum())
