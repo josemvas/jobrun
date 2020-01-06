@@ -1,12 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
-assert sys.version_info >= (2, 7)
+assert sys.version_info >= (2, 6)
 
-import os
-from job2q import main
-cfgdir = os.path.join(os.getcwd(), 'etc')
-bindir = os.path.join(os.getcwd(), 'bin')
-os.makedirs(cfgdir)
-os.makedirs(bindir)
-main.setup(cfgdir=cfgdir, bindir=bindir)
+from job2q.console import setup
+from job2q.utils import makedirs
+
+makedirs('etc')
+makedirs('bin')
+setup()
 

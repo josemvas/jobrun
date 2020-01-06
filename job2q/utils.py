@@ -1,233 +1,69 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from past.builtins import basestring
-
 import os
 import sys
-import errno
-import shutil
-from termcolor import colored
-from re import match, IGNORECASE 
-from job2q.classes import ec, pr, cl
+from builtins import str
+from collections import Iterable
+from errno import EEXIST, ENOENT
+from itertools import repeat
 
-
-if sys.version_info[0] < 3:
-    def input(question):
-       return raw_input(question.encode(sys.stdout.encoding))
-
-
-def pathexpand(path):
-    return os.path.expanduser(os.path.expandvars(path))
-
-
-# Python 2 and 3
-def textform(*args, **kwargs):
-    sep = kwargs.pop('sep', ' ')
-    end = kwargs.pop('end', '\n')
-    indent = kwargs.pop('indent', 0)
-    line = [ ]
-    for arg in args:
-        if type(arg) is list: line.append(sep.join(arg))
-        elif arg: line.append(arg)
-    return ' '*indent + sep.join(line) + end
-# Python 3 only
-#def textform(*args, sep=' ', end='\n', indent=0):
-#    line = [ ]
-#    for arg in args:
-#        if type(arg) is list: line.append(sep.join(arg))
-#        elif type(arg) is str: line.append(arg)
-#    return ' '*indent + sep.join(line) + end
-
-
-def q(string):
-    if '"' in string and "'" in string: post('El texto contiene comillas simples y dobles:', string , kind=ec.runerr)
-    if '"' in string: return '"{}"'.format(string.rstrip().replace('"', "'"))
-    else: return '"{}"'.format(string.rstrip())
-
-
-def dq(string):
-    return '"{}"'.format(string.rstrip())
-
-
-def prompt(*args, **kwargs):
-    #TODO: Validate path
-    def path_prompt(question):
-        return input(question + ': ')
-    def ok_prompt(question):
-        while True:
-            answer = input(question + ' ')
-            if match('(ok|y|ye|yes|s|si)$', answer, IGNORECASE):
-                return True
-            else:
-                return False
-    def yesno_prompt(question):
-        while True:
-            answer = input(question + ' ')
-            if match('s$', answer, IGNORECASE):
-                print('Por favor escriba "si" para confirmar:')
-            elif match('(y|ye)$', answer, IGNORECASE):
-                print('Por favor escriba "yes" para confirmar:')
-            elif match('(si|yes)$', answer, IGNORECASE):
-                return True
-            elif match('(n|no)$', answer, IGNORECASE):
-                return False
-    try:
-        import bullet
-    except ImportError:
-        def list_prompt(question, choices):
-            print(question)
-            for i, option in enumerate(choices):
-                print('  {}) {}'.format(cl.lower[i], option));
-            while True:
-                letter = input('Selección: ').strip()
-                if len(letter.split()) != 1:
-                    post('Seleccione exactamente una opción', kind=ec.warning)
-                else:
-                    try:
-                        return choices[cl.lower.index(letter.lower())]
-                    except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
-                    except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
-        def check_prompt(question, choices, precheck):
-            print(question)
-            for i, choice in enumerate(choices):
-                print('  {}) {}'.format(cl.upper[i] if choice in precheck else cl.lower[i], choice));
-            while True:
-                chosen = [ ]
-                letters = input('Selección separada por espacios: ').strip().split()
-                for letter in letters:
-                    try:
-                        chosen.append(choices[cl.lower.index(letter.lower())])
-                    except ValueError:
-                        post(letter, 'no es una letra, intente de nuevo', kind=ec.warning)
-                        break
-                    except IndexError:
-                        post(letter, 'no es una opción válida, intente de nuevo', kind=ec.warning)
-                        break
-                if len(chosen) == len(letters):
-                    return chosen
-    else:
-        def list_prompt(question, choices):
-            return bullet.Bullet(
-                prompt = question,
-                choices = choices,
-                indent = 0,
-                align = 2, 
-                margin = 1,
-                bullet = '>',
-                #bullet_color=bullet.colors.background["black"],
-                bullet_color=bullet.colors.foreground["blue"],
-                word_color=bullet.colors.foreground["white"],
-                word_on_switch=bullet.colors.foreground["blue"],
-                background_color=bullet.colors.background["black"],
-                background_on_switch=bullet.colors.background["black"],
-                pad_right = 5,
-                ).launch()
-        def check_prompt(question, choices, precheck):
-            return bullet.Check(
-                prompt = question,
-                choices = choices,
-                indent = 0,
-                align = 2, 
-                margin = 1,
-                check = 'X',
-                check_color=bullet.colors.background["black"],
-                check_on_switch=bullet.colors.foreground["blue"],
-                word_color=bullet.colors.foreground["white"],
-                word_on_switch=bullet.colors.foreground["blue"],
-                background_color=bullet.colors.background["black"],
-                background_on_switch=bullet.colors.background["black"],
-                pad_right = 5,
-                ).launch(default=[choices.index(i) for i in precheck])
-    question = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
-    kind = kwargs.pop('kind')
-    choices = kwargs.pop('choices', [ ])
-    precheck = kwargs.pop('precheck', [ ])
-    try:
-        if kind == pr.path:
-            return path_prompt(question)
-            #return path_prompt(question) or kwargs['default']
-            #return bullet.Input(prompt=question).launch()
-        elif kind == pr.ok:
-            return ok_prompt(question)
-            #return bullet.YesNo(prompt=question).launch()
-        elif kind == pr.yn:
-            return yesno_prompt(question)
-            #return bullet.YesNo(prompt=question).launch()
-        elif kind == pr.radio:
-            return list_prompt(question, choices)
-        elif kind == pr.check:
-            return check_prompt(question, choices, precheck)
-        else:
-            post('Tipo de prompt inválido', kind=ec.cfgerr)
-    except KeyboardInterrupt:
-        sys.exit(colored('Cancelado por el usuario', 'red'))
-
-
-def post(*args, **kwargs):
-    message = ' '.join([i if isinstance(i, basestring) else str(i) for i in args])
-    kind = kwargs.pop('kind')
-    if kind == ec.sucess:
-        print(colored(message, 'green'))
-    elif kind == ec.warning:
-        print(colored(message, 'yellow'))
-    elif kind == ec.joberr:
-        print(colored(message, 'red'))
-    elif kind == ec.opterr:
-        sys.exit(colored('¡Error! ' + message, 'red'))
-    elif kind == ec.cfgerr:
-        sys.exit(colored('¡Error de configuración! ' + message, 'red'))
-    elif kind == ec.runerr:
-        frame = sys._getframe(1)
-        sys.exit(colored('{}:{} {}'.format(os.path.basename(frame.f_code.co_filename), frame.f_code.co_name, message), 'red'))
-    else:
-        message('Tipo de aviso inválido:', kind, kind=cfgkind)
-
+from . import messages
 
 def makedirs(path):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            post('No se pudo crear el directorio', e, kind=ec.runerr)
+    try: os.makedirs(path)
+    except FileExistsError as e:
+        if e.errno != EEXIST:
+            raise
 
 def remove(path):
-    try:
-        os.remove(path)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            pass
-        else:
-            post('No se pudo eliminar el archivo:', e, kind=ec.runerr)
-
+    try: os.remove(path)
+    except FileNotFoundError as e:
+        if e.errno != ENOENT:
+            raise
 
 def rmdir(path):
-    try:
-        os.rmdir(path)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            pass
-        else:
-            post('No se pudo eliminar el directorio:', e, kind=ec.runerr)
+    try: os.rmdir(path)
+    except FileNotFoundError as e:
+        if e.errno != ENOENT:
+            raise
 
+def hardlink(source, dest):
+    try: os.link(source, dest)
+    except FileExistsError as e:
+        if e.errno == EEXIST:
+            os.remove(dest)
+            os.link(source, dest)
+    except FileNotFoundError as e:
+        if e.errno != ENOENT:
+            raise
 
-def copyfile(source, dest):
-    try:
-        shutil.copyfile(source, dest)
-    except IOError as e:
-        if e.errno == errno.ENOENT:
-            post('No existe el archivo de origen', source + ',', 'o el directorio de destino', os.path.dirname(dest), kind=ec.runerr)
-        if e.errno == errno.EEXIST:
-            post('Ya existe el archivo de destino', dest, kind=ec.runerr)
+def realpath(path):
+    return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
 
+def iterjoin(*args, sepgen):
+    return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
 
-def pathjoin(*components):
-    return os.path.join(*[ '.'.join(x) if type(x) is list else x for x in components ])
+def wordjoin(*args):
+    return iterjoin(*args, sepgen=repeat(' '))
 
+def linejoin(*args):
+    lines = iterjoin(*args, sepgen=repeat('\n'))
+    return lines + '\n' if lines else ''
 
+def pathjoin(*args):
+    return iterjoin(*args, sepgen=iter(os.path.sep + '.-'))
+    #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
+
+def p(string):
+    return '({0})'.format(string)
+
+def q(string):
+    return '"{0}"'.format(string)
+
+def qq(string):
+    return '"\'{0}\'"'.format(string)
+
+def natsort(text):
+    return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
+
+def alnum(string): 
+    return ''.join(c for c in string if c.isalnum())

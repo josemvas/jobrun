@@ -1,0 +1,81 @@
+<spec>
+
+<pkgkey>vasp</pkgkey>
+<pkgname>VASP</pkgname>
+<parallel>intelmpi</parallel>
+<mpirun>True</mpirun>
+<jobdir>True</jobdir>
+<stdout>log</stdout>
+
+<filecheck>INCAR and POSCAR and POTCAR</filecheck>
+
+<fileexts>
+   <e key='INCAR'>INCAR</e>
+   <e key='POSCAR'>POSCAR</e>
+   <e key='KPOINTS'>KPOINTS</e>
+   <e key='POTCAR'>POTCAR</e>
+   <e key='CHG'>CHG</e>
+   <e key='CHGCAR'>CHGCAR</e>
+   <e key='CONTCAR'>CONTCAR</e>
+   <e key='DOSCAR'>DOSCAR</e>
+   <e key='EIGENVAL'>EIGENVAL</e>
+   <e key='ELFCAR'>ELFCAR</e>
+   <e key='IBZKPT'>IBZKPT</e>
+   <e key='LOCPOT'>LOCPOT</e>
+   <e key='OSZICAR'>OSZICAR</e>
+   <e key='OUTCAR'>OUTCAR</e>
+   <e key='PARCHG'>PARCHG</e>
+   <e key='PCDAT'>PCDAT</e>
+   <e key='PROCAR'>PROCAR</e>
+   <e key='PROOUT'>PROOUT</e>
+   <e key='REPORT'>REPORT</e>
+   <e key='TMPCAR'>TMPCAR</e>
+   <e key='WAVECAR'>WAVECAR</e>
+   <e key='WAVEDER'>WAVEDER</e>
+   <e key='XDATCAR'>XDATCAR</e>
+   <e key='AECCAR0'>AECCAR0</e>
+   <e key='AECCAR1'>AECCAR1</e>
+   <e key='AECCAR2'>AECCAR2</e>
+   <e key='BSEFATBAND'>BSEFATBAND</e>
+   <e key='xml'>vasprun.xml</e>
+   <e key='log'>logfile</e>
+</fileexts>
+
+<inputfiles>
+   <e>INCAR</e>
+   <e>POSCAR</e>
+   <e>KPOINTS</e>
+   <e>POTCAR</e>
+   <e>CHGCAR</e>
+   <e>WAVECAR</e>
+</inputfiles>
+
+<outputfiles>
+   <e>CHG</e>
+   <e>CHGCAR</e>
+   <e>CONTCAR</e>
+   <e>DOSCAR</e>
+   <e>EIGENVAL</e>
+   <e>ELFCAR</e>
+   <e>IBZKPT</e>
+   <e>LOCPOT</e>
+   <e>OSZICAR</e>
+   <e>OUTCAR</e>
+   <e>PARCHG</e>
+   <e>PCDAT</e>
+   <e>PROCAR</e>
+   <e>PROOUT</e>
+   <e>REPORT</e>
+   <e>TMPCAR</e>
+   <e>WAVEDER</e>
+   <e>WAVECAR</e>
+   <e>XDATCAR</e>
+   <e>AECCAR0</e>
+   <e>AECCAR1</e>
+   <e>AECCAR2</e>
+   <e>BSEFATBAND</e>
+   <e>xml</e>
+   <e>log</e>
+</outputfiles>
+
+</spec>

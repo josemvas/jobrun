@@ -1,0 +1,14 @@
+<spec>
+
+<versions>
+   <e key='17.1'><executable>/opt/packages/dftbplus-17.1.x86_64-linux/bin/dftb+</executable></e>
+   <e key='18.1'><executable>/opt/packages/dftbplus-18.1.x86_64-linux/bin/dftb+</executable></e>
+   <e key='18.2'><executable>/opt/packages/dftbplus-18.2.x86_64-linux/bin/dftb+</executable></e>
+   <e key='17.1.jm'><executable>/opt/packages/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+</executable></e>
+</versions>
+
+<parameters>
+   <slako>/opt/parameters/DFTB+/slako_bundles</slako>
+</parameters>
+
+</spec>

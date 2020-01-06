@@ -1,0 +1,13 @@
+<spec>
+
+<storage>shared</storage>
+<scheduler>platformlsf</scheduler>
+<environment>module purge</environment>
+
+<defaults>
+   <queue>q_htc</queue>
+   <scratch>/scratch</scratch>
+   <waitime>3</waitime>
+</defaults>
+
+</spec>

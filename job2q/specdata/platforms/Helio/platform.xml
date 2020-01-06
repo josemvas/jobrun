@@ -1,0 +1,16 @@
+<spec>
+
+<storage>pooled</storage>
+<scheduler>lavalsf</scheduler>
+
+<defaults>
+   <queue>auto</queue>
+   <scratch>/scratch</scratch>
+   <waitime>1</waitime>
+</defaults>
+
+<offscript>
+   <e>test -n \$TELEGRAM_CHAT_IDTELEGRAM_CHAT_ID &amp;&amp; curl -s -X POST \$TELEGRAM_BOT_URL -d chat_id=\$TELEGRAM_CHAT_ID --data-urlencode text='Tu cálculo \"$jobname\" de $progname ha finalizado'</e>
+</offscript>
+
+</spec>

@@ -1,44 +1,36 @@
-# -*- coding: utf-8 -*-
+# Minimum Setuptools version supporting configuration metadata in setup.cfg
+#min_stversion = '30.3'
+# Minimum Setuptools version supporting conditional python dependencies (PEP 508)
+min_stversion = '32.2'
 
 import sys
-assert sys.version_info >= (2, 7)
+import setuptools
+from time import time
 
-from setuptools import setup
-from setuptools import find_packages
+# Record time before setup
+setup_time = time()
 
-setup(
-    name="job2q",
-    version="0.0.1",
-    author="José Manuel Vásquez",
-    author_email="manuelvsqz@gmail.com",
-    description="A python package to readily submit jobs to Linux clusters",
-    long_description=open("README.rst").read(),
-    long_description_content_type="text/x-rst",
-    url="https://github.com/cronofugo/job2q",
-    packages=find_packages(),
-#    python_requires=">=2.7",
-    package_data={
-        "job2q": [
-            "strings/exec.py.str",
-            "database/platform/*/hostspecs.xml",
-            "database/generic/*/jobspecs.xml",
-            "database/platform/*/*/jobspecs.xml",
-        ],
-    },
-    classifiers=[
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-        "Operating System :: POSIX :: Linux",
-    ],
-    install_requires=[
-        "future",
-        "termcolor",
-        "pyparsing",
-    ],
-    entry_points={
-        "console_scripts": [
-            "job2q-setup=job2q.main:setup",
-        ],
-    },
-)
+# Setup package if Setuptools version is high enough
+setuptools.setup(setup_requires=['setuptools>=' + min_stversion])
+
+import os
+from glob import glob
+#from shutil import rmtree
+
+# Custom rmtree to delete files generated after setup only
+def rmtree(path):
+    def delete_newer(node, time, delete):
+        if os.path.getctime(node) > time:
+            try: delete(node)
+            except OSError as e: print(e)
+    for root, dirs, files in os.walk(path, topdown=False):
+        for f in files:
+            delete_newer(os.path.join(root, f), setup_time, os.remove)
+        for d in dirs:
+            delete_newer(os.path.join(root, d), setup_time, os.rmdir)
+    delete_newer(path, setup_time, os.rmdir)
+
+rmtree('./build')
+for d in glob('./*.egg-info'):
+    rmtree(d)
+

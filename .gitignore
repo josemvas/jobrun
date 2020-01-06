@@ -1,4 +1,15 @@
+# Compiled
+*.egg-info/
+build/
+dist/
+
+# Distribution
 __pycache__/
+*.pyc
+*.pyo
+
+# Testing
 /tests/*/
 /etc/
 /bin/
+
