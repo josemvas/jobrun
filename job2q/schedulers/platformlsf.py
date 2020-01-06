@@ -47,9 +47,9 @@ stdout = "#BSUB -o '{0}'"
 stderr = "#BSUB -e '{0}'"
 
 mpirun = {
-    'openmpi' : 'openmpi-mpirun',
-    'intelmpi' : 'impi-mpirun',
-    'mpich' : 'mpich-mpirun',
+    'openmpi' : 'mpirun',
+    'intelmpi' : 'mpirun',
+    'mpich' : 'mpirun',
 }
 
 environment = [

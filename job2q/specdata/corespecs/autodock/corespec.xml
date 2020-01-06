@@ -2,8 +2,8 @@
 
 <pkgkey>ad</pkgkey>
 <pkgname>AutoDock</pkgname>
-<parallelib>None</parallelib>
-<makefolder>True</makefolder>
+<parallel>None</parallel>
+<jobdir>True</jobdir>
 <filecheck>dpf</filecheck>
 
 <fileexts>

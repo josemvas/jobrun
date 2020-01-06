@@ -2,8 +2,8 @@
 
 <pkgkey>g</pkgkey>
 <pkgname>Gaussian</pkgname>
-<parallelib>openmp</parallelib>
-<makefolder>True</makefolder>
+<parallel>openmp</parallel>
+<jobdir>True</jobdir>
 <filecheck>gjf or com</filecheck>
 <fileclash>gjf and com</fileclash>
 
@@ -53,12 +53,13 @@
 </prescript>
 
 <formatkeys>
+   <e>title</e>
    <e>method</e>
    <e>basis</e>
-   <e>auxis</e>
    <e>pseudo</e>
    <e>charge</e>
    <e>spin</e>
+   <e>solvent</e>
 </formatkeys>
 
 </spec>

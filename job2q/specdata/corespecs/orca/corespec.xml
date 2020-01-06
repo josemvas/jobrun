@@ -2,9 +2,9 @@
 
 <pkgkey>orca</pkgkey>
 <pkgname>ORCA</pkgname>
-<parallelib>openmpi</parallelib>
-<mpiwrapper>False</mpiwrapper>
-<makefolder>True</makefolder>
+<parallel>openmpi</parallel>
+<mpirun>False</mpirun>
+<jobdir>True</jobdir>
 <filecheck>inp</filecheck>
 <stdout>out</stdout>
 

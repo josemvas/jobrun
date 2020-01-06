@@ -34,7 +34,7 @@ def runerr(message):
     raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 
 @join_positional_args
-def lsinfo(message, info=[], default=None):
+def listing(message, info=[], default=None):
     if message:
         print(message)
     for key in info:

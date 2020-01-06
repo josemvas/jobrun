@@ -2,9 +2,9 @@
 
 <pkgkey>vasp</pkgkey>
 <pkgname>VASP</pkgname>
-<parallelib>intelmpi</parallelib>
-<mpiwrapper>True</mpiwrapper>
-<makefolder>True</makefolder>
+<parallel>intelmpi</parallel>
+<mpirun>True</mpirun>
+<jobdir>True</jobdir>
 <stdout>log</stdout>
 
 <filecheck>INCAR and POSCAR and POTCAR</filecheck>

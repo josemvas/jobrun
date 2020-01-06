@@ -4,7 +4,7 @@
    <e key='17.1'><executable>$TMPU/software/dftbplus-17.1.x86_64-linux/bin/dftb+</executable></e>
    <e key='18.1'><executable>$TMPU/software/dftbplus-18.1.x86_64-linux/bin/dftb+</executable></e>
    <e key='18.2'><executable>$TMPU/software/dftbplus-18.2.x86_64-linux/bin/dftb+</executable></e>
-   <e key='17jm'><executable>$TMPU/software/dftbplus-17.1-ic17/dftb+</executable></e>
+   <e key='17.1.jm'><executable>$TMPU/software/dftbplus-17.1-ic17/dftb+</executable></e>
 </versions>
 
 <parameters>

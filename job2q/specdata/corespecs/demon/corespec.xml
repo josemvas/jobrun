@@ -2,9 +2,9 @@
 
 <pkgkey>deMon</pkgkey>
 <pkgname>deMon2k</pkgname>
-<parallelib>intelmpi</parallelib>
-<mpiwrapper>True</mpiwrapper>
-<makefolder>True</makefolder>
+<parallel>intelmpi</parallel>
+<mpirun>True</mpirun>
+<jobdir>True</jobdir>
 <filecheck>inp</filecheck>
 
 <fileexts>

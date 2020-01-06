@@ -12,7 +12,7 @@ from .parsing import parsebool
 from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
 from .getconf import jobconf, queconf, optconf, inputlist, comments, environment, command, keywords
 from .decorators import catch_keyboard_interrupt
-from .spectags import mpiLibs
+from .strings import mpiLibs
 
 @catch_keyboard_interrupt
 def wait():
@@ -58,6 +58,7 @@ def submit():
             messages.failure('Hay un conflicto entre algunos de los archivos de entrada')
             return
     
+    inputname = filename
     versionkey = jobconf.pkgkey + alnum(optconf.version)
 
     if filename.endswith('.' + versionkey):
@@ -67,13 +68,11 @@ def submit():
     else:
         jobname = filename
 
-    if optconf.template:
-        inputname = pathjoin((optconf.jobname, filename))
+    if optconf.jobname:
+        inputname = pathjoin((optconf.jobname, inputname))
         jobname = pathjoin((optconf.jobname, jobname))
-    else:
-        inputname = filename
 
-    outputdir = pathjoin(localdir, jobname) if jobconf.makefolder else localdir
+    outputdir = localdir if optconf.here or not jobconf.jobdir else pathjoin(localdir, jobname)
     hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
     outputname = pathjoin((jobname, versionkey))
     master = gethostbyname(gethostname())

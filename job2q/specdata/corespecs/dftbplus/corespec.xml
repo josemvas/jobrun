@@ -2,8 +2,8 @@
 
 <pkgkey>plus</pkgkey>
 <pkgname>DFTB+</pkgname>
-<parallelib>openmp</parallelib>
-<makefolder>True</makefolder>
+<parallel>openmp</parallel>
+<jobdir>True</jobdir>
 <filecheck>dftb_in.hsd</filecheck>
 <stdout>dftb_out.log</stdout>
 

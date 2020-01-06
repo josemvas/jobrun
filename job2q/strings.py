@@ -25,9 +25,9 @@ textTags = (
     'storage',
     'scheduler',
     'pkgname',
-    'parallelib',
-    'mpiwrapper',
-    'makefolder',
+    'parallel',
+    'mpirun',
+    'jobdir',
     'pkgkey',
     'filecheck',
     'fileclash',
@@ -55,4 +55,9 @@ mpiLibs = (
     'intelmpi',
     'mpich',
 )
+
+boolStrings = {
+    'True' : True,
+    'False' : False,
+}
 

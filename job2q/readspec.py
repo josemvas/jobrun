@@ -2,7 +2,7 @@
 from xml.etree import ElementTree
 
 from . import messages
-from .spectags import listTags, dictTags, optionTags, commandTags, textTags
+from .strings import listTags, dictTags, optionTags, commandTags, textTags
 
 class XmlTreeList(list):
     def __init__(self, parent):
@@ -28,7 +28,17 @@ class XmlTreeList(list):
             else:
                 self.append(other[i])
 
-class XmlTreeDict(dict):
+class BunchDict(dict):
+    def __getattr__(self, item):
+        try: return self.__getitem__(item)
+        except KeyError:
+            raise AttributeError(item)
+    def __setattr__(self, item, value):
+            self.__setitem__(item, value)
+    def __missing__(self, item):
+        return BunchDict()
+
+class XmlTreeDict(BunchDict):
     def __init__(self, parent):
         for child in parent:
             if len(child):
@@ -51,17 +61,11 @@ class XmlTreeDict(dict):
                     self[child.tag] = child.text
                 else:
                     messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
-    def __getattr__(self, item):
-        try: return self.__getitem__(item)
-        except KeyError:
-            raise AttributeError(item)
-    def __setattr__(self, item, value):
-            self.__setitem__(item, value)
     def __missing__(self, item):
         if item in listTags:
             return []
         elif item in dictTags:
-            return {}
+            return BunchDict()
         elif item in textTags:
             return ''
     def merge(self, other):

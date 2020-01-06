@@ -4,14 +4,13 @@ from errno import ENOENT
 from os import path, listdir
 from argparse import ArgumentParser
 from importlib import import_module
-from distutils.util import strtobool
 from pathlib import Path
 
 from . import dialogs
 from . import messages
-from .utils import wordjoin, linejoin, pathjoin, realpath, natsort, p
 from .readspec import readspec
-from .spectags import mpiLibs
+from .utils import wordjoin, pathjoin, realpath, natsort, p
+from .strings import mpiLibs, boolStrings
 from .chemistry import readxyz
 
 alias = path.basename(sys.argv[0])
@@ -39,20 +38,21 @@ except FileNotFoundError as e:
 queconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
-parser.add_argument('-l', '--listing', dest='listing', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
+parser.add_argument('-l', '--list', dest='listoptions', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
 parser.add_argument('-v', '--version', metavar='PROG VERSION', type=str, dest='version', help='Versión del ejecutable.')
 parser.add_argument('-q', '--queue', metavar='QUEUE NAME', type=str, dest='queue', help='Nombre de la cola requerida.')
 parser.add_argument('-n', '--ncpu', metavar='CPU CORES', type=int, dest='ncpu', default=1, help='Número de núcleos de procesador requeridos.')
 parser.add_argument('-w', '--wait', metavar='TIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 parser.add_argument('-t', '--template', action='store_true', dest='template', help='Interpolar los archivos de entrada.')
-parser.add_argument('-m', '--molfile', metavar='MOL FILE', type=str, dest='molfile', help='Ruta del archivo de coordenadas para la interpolación.')
 parser.add_argument('-j', '--jobname', metavar='MOL NAME', type=str, dest='jobname', help='Nombre del trabajo de interpolación.')
 parser.add_argument('-s', '--sort', dest='sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
 parser.add_argument('-S', '--sortreverse', dest='sortreverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
 parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
 parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
+parser.add_argument('-H', '--here', action='store_true', dest='here', help='Usar la carpeta actual como carpeta de salida')
 parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
 parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
+parser.add_argument('--mol', metavar='MOL FILE', type=str, dest='molfile', help='Ruta del archivo de coordenadas para la interpolación.')
 parser.add_argument('--move', dest='move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
 parser.add_argument('--nodes', metavar='NODE LIST', type=int, dest='nodes', help='Lista de los nodos requeridos.')
 parser.add_argument('--hostname', metavar='HOST NAME', type=str, dest='exechost', help='Nombre del host requerido.')
@@ -66,11 +66,13 @@ for key in jobconf.formatkeys:
 
 optconf, positionargs = parser.parse_known_args()
 
-if optconf.listing:
-    messages.lsinfo('Versiones del ejecutable disponibles:', info=jobconf.versions, default=jobconf.defaults.version)
+if optconf.listoptions:
+    if jobconf.versions:
+        messages.listing('Versiones del ejecutable disponibles:', info=sorted(jobconf.versions, key=str.casefold), default=jobconf.defaults.version)
     for key in jobconf.parameters:
-        messages.lsinfo('Conjuntos de parámetros disponibles', p(key), info=listdir(jobconf.parameters[key]))
-    messages.lsinfo('Variables de interpolación disponibles:', info=jobconf.formatkeys)
+        messages.listing('Conjuntos de parámetros disponibles', p(key), info=sorted(listdir(jobconf.parameters[key]), key=str.casefold), default=jobconf.defaults.parameters[key])
+    if jobconf.formatkeys:
+        messages.listing('Variables de interpolación disponibles:', info=sorted(jobconf.formatkeys, key=str.casefold))
     raise SystemExit()
 
 parser.add_argument('inputlist', nargs='+', metavar='INPUT FILE(S)', type=str, help='Rutas de los archivos de entrada.')
@@ -111,17 +113,17 @@ if not jobconf.pkgname:
 if not jobconf.pkgkey:
     messages.cfgerr('<title> No se especificó la clave del programa')
 
-if jobconf.makefolder:
-    try: jobconf.makefolder = bool(strtobool(jobconf.makefolder))
-    except ValueError:
+if jobconf.jobdir:
+    try: jobconf.jobdir = boolStrings[jobconf.jobdir]
+    except KeyError:
         messages.cfgerr('<outputdir> El texto de este tag debe ser "True" or "False"')
 else:
     messages.cfgerr('<outputdir> No se especificó si se requiere crear una carpeta de salida')
 
-if jobconf.mpiwrapper:
-    try: jobconf.mpiwrapper = bool(strtobool(jobconf.mpiwrapper))
+if 'mpirun' in jobconf:
+    try: jobconf.mpirun = boolStrings[jobconf.mpirun]
     except KeyError:
-        messages.cfgerr('<mpiwrapper> El texto de este tag debe ser "True" o "False"')
+        messages.cfgerr('<mpirun> El texto de este tag debe ser "True" o "False"')
 
 if optconf.interactive is True:
     jobconf.defaults = []
@@ -206,25 +208,25 @@ else:
      messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
 
 #TODO: MPI support for Slurm
-if jobconf.parallelib:
-    if jobconf.parallelib.lower() == 'none':
+if jobconf.parallel:
+    if jobconf.parallel.lower() == 'none':
         comments.append(queconf.ncpu.format(1))
-    elif jobconf.parallelib.lower() == 'openmp':
+    elif jobconf.parallel.lower() == 'openmp':
         comments.append(queconf.ncpu.format(optconf.ncpu))
         comments.append(queconf.span.format(1))
         environment.append('export OMP_NUM_THREADS=' + str(optconf.ncpu))
-    elif jobconf.parallelib.lower() in mpiLibs:
+    elif jobconf.parallel.lower() in mpiLibs:
+        if not 'mpirun' in jobconf:
+            messages.cfgerr('<mpirun> No se especificó si el programa usa mpirun para correr')
         comments.append(queconf.ncpu.format(optconf.ncpu))
         if optconf.nodes:
             comments.append(queconf.span.format(optconf.nodes))
-        if jobconf.mpiwrapper:
-            command.append(queconf.mpiwrapper[jobconf.parallelib])
-        else:
-            messages.cfgerr('<mpiwrapper> No se especificó si el programa require un wrapper de mpi para correr')
+        if jobconf.mpirun:
+            command.append(queconf.mpirun[jobconf.parallel])
     else:
-        messages.cfgerr('El tipo de paralelización ' + jobconf.parallelib + ' no está soportado')
+        messages.cfgerr('El tipo de paralelización ' + jobconf.parallel + ' no está soportado')
 else:
-    messages.cfgerr('<parallelib> No se especificó el tipo de paralelización del programa')
+    messages.cfgerr('<parallel> No se especificó el tipo de paralelización del programa')
 
 environment.extend(queconf.environment)
 environment.extend(jobconf.environment)
@@ -269,10 +271,10 @@ if optconf.template:
     if optconf.molfile:
         molpath = Path(optconf.molfile)
         if molpath.is_file():
-            keywords['path'] = molpath.resolve()
+            keywords['mol0'] = molpath.resolve()
             if molpath.suffix == '.xyz':
                 for i, step in enumerate(readxyz(molpath), 1):
-                    keywords['mol' + str(i)] = linejoin('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                    keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
                 if not optconf.jobname:
                     optconf.jobname = molpath.stem
             else:
@@ -284,7 +286,7 @@ if optconf.template:
         else:
             messages.opterr('El archivo de coordenadas', molpath, 'no existe')
     elif not optconf.jobname:
-        messages.opterr('Se debe especificar al menos una de las opciones [-m|--molfile] o [-j|--jobname] para poder interpolar')
+        messages.opterr('Se debe especificar el archivo de coordenadas y/o el nombre del trabajo para poder interpolar')
     
 for key in jobconf.formatkeys:
     if getattr(optconf, key) is not None:
