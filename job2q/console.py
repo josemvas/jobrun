@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import sys
 from os import path, listdir, chmod
 from shutil import copyfile
 
-from job2q import dialogs
-from job2q import messages
-from job2q.utils import rmdir, makedirs, hardlink, realpath
-from job2q.readspec import readspec
+from . import dialogs
+from . import messages
+from .utils import rmdir, makedirs, hardlink, realpath
+from .readspec import readspec
 
 main_template = '''
 #!{python}
@@ -36,7 +31,7 @@ def setup():
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     platformdir = path.join(sourcedir, 'specdata', 'platforms')
 
-    hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir)))
+    hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(platformdir), key=str.casefold))
 
     if not path.isfile(path.join(platformdir, hostname, 'platform.xml')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
@@ -68,7 +63,7 @@ def setup():
             messages.warning('No hay paquetes configurados para este host')
             return
     
-        selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=packagelist, default=configured)
+        selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=sorted(packagelist, key=str.casefold), default=configured)
 
         if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
             for package in selected:

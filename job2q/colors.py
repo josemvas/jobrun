@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 black   = '\u001b[30m'
 red     = '\u001b[31m'
 green   = '\u001b[32m'

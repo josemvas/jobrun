@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
 import sys
 
-from job2q import colors
-from job2q.decorators import join_positional_args
+from . import colors
+from .decorators import join_positional_args
 
 @join_positional_args
 def success(message):

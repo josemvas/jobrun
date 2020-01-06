@@ -5,7 +5,7 @@
 <parallelib>intelmpi</parallelib>
 <mpiwrapper>True</mpiwrapper>
 <makefolder>True</makefolder>
-<stdout>vasp.log</stdout>
+<stdout>log</stdout>
 
 <filecheck>INCAR and POSCAR and POTCAR</filecheck>
 
@@ -37,8 +37,8 @@
    <e key='AECCAR1'>AECCAR1</e>
    <e key='AECCAR2'>AECCAR2</e>
    <e key='BSEFATBAND'>BSEFATBAND</e>
-   <e key='vasprun.xml'>vasprun.xml</e>
-   <e key='vasp.log'>vasp.log</e>
+   <e key='xml'>vasprun.xml</e>
+   <e key='log'>logfile</e>
 </fileexts>
 
 <inputfiles>
@@ -74,8 +74,8 @@
    <e>AECCAR1</e>
    <e>AECCAR2</e>
    <e>BSEFATBAND</e>
-   <e>vasprun.xml</e>
-   <e>vasp.log</e>
+   <e>xml</e>
+   <e>log</e>
 </outputfiles>
 
 </spec>

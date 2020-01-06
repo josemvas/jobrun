@@ -9,6 +9,7 @@ listTags = (
     'offscript',
     'prescript',
     'postscript',
+    'formatkeys',
 )
 
 dictTags = (
@@ -49,7 +50,7 @@ commandTags = {
     'load' : 'module load',
 }
 
-MPILibs = (
+mpiLibs = (
     'openmpi',
     'intelmpi',
     'mpich',

@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import sys
 from errno import ENOENT
 from os import path, listdir
 from argparse import ArgumentParser
 from importlib import import_module
 from distutils.util import strtobool
+from pathlib import Path
 
-from job2q import dialogs
-from job2q import messages
-from job2q.utils import realpath, natsort, pathjoin, p
-from job2q.readspec import readspec
-from job2q.spectags import MPILibs
-from job2q.exceptions import * 
+from . import dialogs
+from . import messages
+from .utils import realpath, natsort, pathjoin, linejoin, p
+from .readspec import readspec
+from .spectags import mpiLibs
+from .chemistry import readxyz
 
 alias = path.basename(sys.argv[0])
 specdir = path.dirname(sys.argv[0])
@@ -40,30 +36,35 @@ except FileNotFoundError as e:
     if e.errno != ENOENT:
         raise
 
-sysconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
+queconf = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
-parser.add_argument('-l', '--listing', dest='listing', action='store_true', help='Lista las versiones de los programas y parámetros disponibles.')
+parser.add_argument('-l', '--listing', dest='listing', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
 parser.add_argument('-v', '--version', metavar='PROG VERSION', type=str, dest='version', help='Versión del ejecutable.')
 parser.add_argument('-q', '--queue', metavar='QUEUE NAME', type=str, dest='queue', help='Nombre de la cola requerida.')
 parser.add_argument('-n', '--ncpu', metavar='CPU CORES', type=int, dest='ncpu', default=1, help='Número de núcleos de procesador requeridos.')
 parser.add_argument('-w', '--wait', metavar='TIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
-if jobconf.parameters:
-    parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobconf.parameters)[0], help='Nombre del conjunto de parámetros.')
-for key in jobconf.parameters:
-    parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+parser.add_argument('-t', '--template', action='store_true', dest='template', help='Interpolar los archivos de entrada.')
+parser.add_argument('-m', '--molfile', metavar='MOL FILE', type=str, dest='molfile', help='Ruta del archivo de coordenadas para la interpolación.')
+parser.add_argument('-j', '--jobname', metavar='MOL NAME', type=str, dest='jobname', help='Nombre del trabajo de interpolación.')
+parser.add_argument('-s', '--sort', dest='sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
+parser.add_argument('-S', '--sortreverse', dest='sortreverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
+parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
 parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
-parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Selección interactiva de las versiones de los programas y los parámetros.')
-parser.add_argument('-s', '--sort', dest='sort', action='store_true', help='Ordena la lista de argumentos en orden numérico')
-parser.add_argument('-S', '--sortreverse', dest='sortreverse', action='store_true', help='Ordena la lista de argumentos en orden numérico inverso')
 parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
 parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
+parser.add_argument('--move', dest='move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
 parser.add_argument('--nodes', metavar='NODE LIST', type=int, dest='nodes', help='Lista de los nodos requeridos.')
 parser.add_argument('--hostname', metavar='HOST NAME', type=str, dest='exechost', help='Nombre del host requerido.')
 parser.add_argument('--scratch', metavar='SCRATCH DIR', type=str, dest='scratch', help='Directorio temporal de escritura.')
-parser.add_argument('inputlist', nargs='*', metavar='INPUT FILE(S)', help='Nombre del archivo de entrada.')
+if jobconf.parameters:
+    parser.add_argument('-p', metavar='SET NAME', type=str, dest=list(jobconf.parameters)[0], help='Nombre del conjunto de parámetros.')
+for key in jobconf.parameters:
+    parser.add_argument('--' + key, metavar='SET NAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+for key in jobconf.formatkeys:
+    parser.add_argument('--' + key, metavar='VAR VALUE', type=str, dest=key, help='Valor de la variable de interpolación.')
 
-optconf = parser.parse_args()
+optconf, positionargs = parser.parse_known_args()
 
 if optconf.listing:
     messages.lsinfo('Versiones disponibles:', info=jobconf.versions, default=jobconf.defaults.version)
@@ -71,8 +72,8 @@ if optconf.listing:
         messages.lsinfo('Conjuntos de parámetros disponibles', p(key), info=listdir(jobconf.parameters[key]))
     raise SystemExit()
 
-if not optconf.inputlist:
-    messages.opterr('No se definió ningún archivo de entrada')
+parser.add_argument('inputlist', nargs='+', metavar='INPUT FILE(S)', type=str, help='Rutas de los archivos de entrada.')
+inputlist = parser.parse_args(positionargs).inputlist
 
 if optconf.waitime is None:
     try: optconf.waitime = float(jobconf.defaults.waitime)
@@ -102,6 +103,12 @@ if optconf.queue is None:
         optconf.queue = jobconf.defaults.queue
     else:
         messages.cfgerr('<default><queue> No se especificó la cola por defecto')
+
+if not jobconf.pkgname:
+    messages.cfgerr('<title> No se especificó el nombre del programa')
+
+if not jobconf.pkgkey:
+    messages.cfgerr('<title> No se especificó la clave del programa')
 
 if jobconf.makefolder:
     try: jobconf.makefolder = bool(strtobool(jobconf.makefolder))
@@ -145,7 +152,7 @@ if jobconf.versions:
             else:
                 messages.opterr('La versión establecida por default es inválida')
         else:
-            optconf.version = dialogs.optone('Seleccione una versión', choices=list(jobconf.versions))
+            optconf.version = dialogs.optone('Seleccione una versión', choices=sorted(list(jobconf.versions), key=str.casefold))
             if not optconf.version in jobconf.versions:
                 messages.opterr('La versión seleccionada es inválida')
 else:
@@ -171,45 +178,46 @@ for key in jobconf.parameters:
         if key in jobconf.defaults.parameters:
             parset = jobconf.defaults.parameters[key]
         else:
-            parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=choices)
+            parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=sorted(choices, key=str.casefold))
     if path.exists(path.join(pardir, parset)):
         optconf.parameters.append(path.join(pardir, parset))
     else:
         messages.opterr('La ruta de parámetros', path.join(pardir, parset), 'no existe')
 
-comments = []
-environment = []
 command = []
+environment = []
+keywords = {}
+comments = []
 
-comments.append(sysconf.label.format(jobconf.pkgname))
-comments.append(sysconf.queue.format(optconf.queue))
+comments.append(queconf.label.format(jobconf.pkgname))
+comments.append(queconf.queue.format(optconf.queue))
 
 if optconf.exechost is not None: 
-    comments.append(sysconf.host.format(optconf.exechost))
+    comments.append(queconf.host.format(optconf.exechost))
 
 if jobconf.storage == 'pooled':
-     comments.append(sysconf.stdout.format(pathjoin(optconf.scratch, (sysconf.jobid, 'out'))))
-     comments.append(sysconf.stderr.format(pathjoin(optconf.scratch, (sysconf.jobid, 'err'))))
+     comments.append(queconf.stdout.format(pathjoin(optconf.scratch, (queconf.jobid, 'out'))))
+     comments.append(queconf.stderr.format(pathjoin(optconf.scratch, (queconf.jobid, 'err'))))
 elif jobconf.storage == 'shared':
-     comments.append(sysconf.stdout.format(pathjoin(outputdir, (sysconf.jobid, 'out'))))
-     comments.append(sysconf.stderr.format(pathjoin(outputdir, (sysconf.jobid, 'err'))))
+     comments.append(queconf.stdout.format(pathjoin(outputdir, (queconf.jobid, 'out'))))
+     comments.append(queconf.stderr.format(pathjoin(outputdir, (queconf.jobid, 'err'))))
 else:
      messages.cfgerr(jobconf.storage + ' no es un tipo de almacenamiento soportado por este script')
 
 #TODO: MPI support for Slurm
 if jobconf.parallelib:
     if jobconf.parallelib.lower() == 'none':
-        comments.append(sysconf.ncpu.format(1))
+        comments.append(queconf.ncpu.format(1))
     elif jobconf.parallelib.lower() == 'openmp':
-        comments.append(sysconf.ncpu.format(optconf.ncpu))
-        comments.append(sysconf.span.format(1))
+        comments.append(queconf.ncpu.format(optconf.ncpu))
+        comments.append(queconf.span.format(1))
         environment.append('export OMP_NUM_THREADS=' + str(optconf.ncpu))
-    elif jobconf.parallelib.lower() in MPILibs:
-        comments.append(sysconf.ncpu.format(optconf.ncpu))
+    elif jobconf.parallelib.lower() in mpiLibs:
+        comments.append(queconf.ncpu.format(optconf.ncpu))
         if optconf.nodes:
-            comments.append(sysconf.span.format(optconf.nodes))
+            comments.append(queconf.span.format(optconf.nodes))
         if jobconf.mpiwrapper:
-            command.append(sysconf.mpiwrapper[jobconf.parallelib])
+            command.append(queconf.mpiwrapper[jobconf.parallelib])
         else:
             messages.cfgerr('<mpiwrapper> No se especificó si el programa require un wrapper de mpi para correr')
     else:
@@ -217,7 +225,7 @@ if jobconf.parallelib:
 else:
     messages.cfgerr('<parallelib> No se especificó el tipo de paralelización del programa')
 
-environment.extend(sysconf.environment)
+environment.extend(queconf.environment)
 environment.extend(jobconf.environment)
 
 for profile in jobconf.profile + profile:
@@ -227,7 +235,7 @@ for var in jobconf.filevars:
     environment.append(var + '=' + jobconf.fileexts[jobconf.filevars[var]])
 
 environment.append("shopt -s nullglob extglob")
-environment.append("workdir=" + pathjoin(optconf.scratch, sysconf.jobidvar))
+environment.append("workdir=" + pathjoin(optconf.scratch, queconf.jobidvar))
 environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
 environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
 environment.append("jobram=$(($ncpu*$totalram/$(nproc --all)))")
@@ -236,7 +244,7 @@ environment.append("progname=" + jobconf.pkgname)
 command.append(realpath(executable) if path.sep in executable else executable)
 
 for key in jobconf.optionargs:
-    if not key in jobconf.fileexts:
+    if not jobconf.optionargs[key] in jobconf.fileexts:
         messages.cfgerr('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
     command.append(wordjoin('-' + key, jobconf.fileexts[jobconf.optionargs[arg]]))
 
@@ -255,4 +263,30 @@ if 'stdout' in jobconf:
 if 'stderr' in jobconf:
     try: command.append('2>' + ' ' + jobconf.fileexts[jobconf.stderr])
     except KeyError: messages.cfgerr('El nombre de archivo "' + jobconf.stderr + '" en el tag <stderr> no fue definido.')
+
+if optconf.template:
+    if optconf.molfile:
+        molpath = Path(optconf.molfile)
+        if molpath.is_file():
+            keywords['path'] = molpath.resolve()
+            if molpath.suffix == '.xyz':
+                for i, step in enumerate(readxyz(molpath), 1):
+                    keywords['mol' + str(i)] = linejoin('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                if not optconf.jobname:
+                    optconf.jobname = molpath.stem
+            else:
+                messages.opterr('Solamente están soportados archivos de coordenadas en formato xyz')
+        elif molpath.is_dir():
+            messages.opterr('El archivo de coordenadas', molpath, 'es un directorio')
+        elif molpath.exists():
+            messages.opterr('El archivo de coordenadas', molpath, 'no es un archivo regular')
+        else:
+            messages.opterr('El archivo de coordenadas', molpath, 'no existe')
+    elif not optconf.jobname:
+        messages.opterr('Se debe especificar al menos una de las opciones [-m|--molfile] o [-j|--jobname] para poder interpolar')
+    
+for key in jobconf.formatkeys:
+    if getattr(optconf, key) is not None:
+        keywords[key] = getattr(optconf, key)
+
 

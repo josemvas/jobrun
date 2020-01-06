@@ -52,4 +52,13 @@
    <e>test -f $oldchk &amp;&amp; sed -i "1i%OldChk=$oldchk" @($gjf|$com)</e>
 </prescript>
 
+<formatkeys>
+   <e>method</e>
+   <e>basis</e>
+   <e>auxis</e>
+   <e>pseudo</e>
+   <e>charge</e>
+   <e>spin</e>
+</formatkeys>
+
 </spec>

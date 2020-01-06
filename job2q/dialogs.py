@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from __future__ import division
-
 import sys
 import readline
 from glob import glob
 from os.path import isdir, exists, expanduser
 
-from job2q import messages
-from job2q.utils import realpath, wordjoin
-from job2q.decorators import override_with_method, catch_keyboard_interrupt, join_positional_args
-
-if sys.version_info[0] < 3:
-    def input(prompt):
-       return raw_input(prompt.encode(sys.stdout.encoding))
+from . import messages
+from .utils import realpath, wordjoin
+from .decorators import override_with_method, catch_keyboard_interrupt, join_positional_args
 
 try:
     import bulletin

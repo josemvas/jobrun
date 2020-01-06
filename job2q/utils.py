@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import os
 import sys
 from builtins import str
@@ -11,8 +6,7 @@ from collections import Iterable
 from errno import EEXIST, ENOENT
 from itertools import repeat
 
-from job2q import messages
-from job2q.exceptions import *
+from . import messages
 
 def makedirs(path):
     try: os.makedirs(path)
