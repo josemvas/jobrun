@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import dialogs
 from . import messages
-from .utils import realpath, natsort, pathjoin, linejoin, p
+from .utils import wordjoin, linejoin, pathjoin, realpath, natsort, p
 from .readspec import readspec
 from .spectags import mpiLibs
 from .chemistry import readxyz
@@ -67,9 +67,10 @@ for key in jobconf.formatkeys:
 optconf, positionargs = parser.parse_known_args()
 
 if optconf.listing:
-    messages.lsinfo('Versiones disponibles:', info=jobconf.versions, default=jobconf.defaults.version)
+    messages.lsinfo('Versiones del ejecutable disponibles:', info=jobconf.versions, default=jobconf.defaults.version)
     for key in jobconf.parameters:
         messages.lsinfo('Conjuntos de parámetros disponibles', p(key), info=listdir(jobconf.parameters[key]))
+    messages.lsinfo('Variables de interpolación disponibles:', info=jobconf.formatkeys)
     raise SystemExit()
 
 parser.add_argument('inputlist', nargs='+', metavar='INPUT FILE(S)', type=str, help='Rutas de los archivos de entrada.')
@@ -246,7 +247,7 @@ command.append(realpath(executable) if path.sep in executable else executable)
 for key in jobconf.optionargs:
     if not jobconf.optionargs[key] in jobconf.fileexts:
         messages.cfgerr('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
-    command.append(wordjoin('-' + key, jobconf.fileexts[jobconf.optionargs[arg]]))
+    command.append(wordjoin('-' + key, jobconf.fileexts[jobconf.optionargs[key]]))
 
 for item in jobconf.positionargs:
     for key in item.split('|'):
