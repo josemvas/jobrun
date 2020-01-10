@@ -1,29 +1,28 @@
 # -*- coding: utf-8 -*-
-import sys
-from os import path, listdir, chmod
-from shutil import copyfile
 
-from . import dialogs
-from . import messages
-from .utils import rmdir, makedirs, hardlink, realpath
-from .readspec import readspec
+def setup():
 
-main_template = '''
+    import sys
+    from os import path, listdir, chmod
+    from shutil import copyfile
+    from . import dialogs
+    from . import messages
+    from .utils import rmdir, makedirs, hardlink, realpath
+    from .readspec import readspec
+    
+    main_template = '''
 #!{python}
 # -*- coding: utf-8 -*-
 import sys
 from os import path
 sys.path = {syspath}
-sys.argv[0] = path.join('{specdir}', path.basename(sys.argv[0]))
 from job2q import submit
 submit.submit()
 while submit.inputlist:
     submit.wait()
     submit.submit()
 '''
-
-def setup():
-
+    
     bindir = dialogs.path('Escriba la ruta donde se instalarán los ejecutables')
     etcdir = dialogs.path('Escriba la ruta donde se instalará la configuración')
 
@@ -39,7 +38,7 @@ def setup():
     if etcdir and path.isdir(etcdir):
         specdir = path.join(etcdir, 'j2q')
         if path.isfile(path.join(specdir, 'platform.xml')):
-            if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto (si/no)?'):
+            if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto?'):
                 copyfile(path.join(platformdir, hostname, 'platform.xml'), path.join(specdir, 'platform.xml'))
         else:
             makedirs(specdir)
@@ -65,7 +64,7 @@ def setup():
     
         selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=sorted(packagelist, key=str.casefold), default=configured)
 
-        if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto (si/no)?'):
+        if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto?'):
             for package in selected:
                 makedirs(path.join(specdir, available[package]))
                 hardlink(path.join(specdir, 'platform.xml'), path.join(specdir, available[package], 'platform.xml'))
@@ -79,6 +78,20 @@ def setup():
                     fh.write(main_template.lstrip('\n').format(
                         version=tuple(sys.version_info),
                         python=sys.executable,
-                        syspath=sys.path,
+                        syspath=sys.path + [path.join(specdir, package)],
                         specdir=path.join(specdir, package)))
                 chmod(path.join(bindir, package), 0o755)
+
+def xdialog():
+
+    from argparse import ArgumentParser
+    from .tkboxes import listbox
+
+    parser = ArgumentParser(description='Crea un cuadro de diálogo con una lista de opciones.')
+    parser.add_argument('-o', '--option', metavar=('DESCRIPCIÓN', 'COMANDO'), dest='options', action='append', nargs=2, help='Agregar opción a la lista de opciones')
+    parser.add_argument('message', metavar='MENSAJE', type=str, help='Mensaje del cuadro de diálogo.')
+    arguments = parser.parse_args()
+    choice = listbox(arguments.message, choices=[i for i,j in arguments.options])
+    if choice is not None:
+         print(dict(arguments.options)[choice])
+    

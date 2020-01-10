@@ -102,8 +102,8 @@ def submit():
                 pass
             else:
                 jobstate = queconf.checkjob(lastjob)
-                if jobstate in queconf.jobstates:
-                    messages.failure(queconf.jobstates[jobstate].format(jobname=jobname, jobid=lastjob))
+                if jobstate:
+                    messages.failure(jobstate.format(jobname=jobname, jobid=lastjob))
                     return
         elif path.exists(hiddendir):
             messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
@@ -111,10 +111,7 @@ def submit():
         else:
             makedirs(hiddendir)
         if not set(listdir(outputdir)).isdisjoint(pathjoin((outputname, k)) for i in jobconf.outputfiles for k in i.split('|')):
-            if optconf.defaultanswer is None:
-                optconf.defaultanswer = dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas (si/no)?')
-            if optconf.defaultanswer is False:
-                messages.failure('El trabajo', q(jobname), 'no se envió por solicitud del usuario')
+            if optconf.defaultanswer is False or optconf.defaultanswer is None and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?'):
                 return
         for item in jobconf.outputfiles:
             for key in item.split('|'):

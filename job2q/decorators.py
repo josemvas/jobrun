@@ -13,15 +13,14 @@ def join_positional_args(f):
         return f(' '.join(args), **kwargs)
     return wrapper
 
-def override_with_method(cls):
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            if hasattr(cls, f.__name__):
-                return getattr(cls, f.__name__)(*args, **kwargs)
-            else:
-                return f(*args, **kwargs)
-        return wrapper
-    return decorator
+def override_with_bulletin(f):
+    def wrapper(*args, **kwargs):
+        try:
+            from bulletin import Dialogs
+            return getattr(Dialogs(), f.__name__)(*args, **kwargs)
+        except ImportError:
+            return f(*args, **kwargs)
+    return wrapper
 
 def decorate_class_methods(decorator):
     def decorate(cls):

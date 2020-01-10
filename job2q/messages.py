@@ -34,13 +34,13 @@ def runerr(message):
     raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 
 @join_positional_args
-def listing(message, info=[], default=None):
+def listing(message, options=[], default=None):
     if message:
         print(message)
-    for key in info:
-        if key == default:
-            print(' '*3 + key + ' ' + '(default)')
+    for option in options:
+        if option == default:
+            print(' '*2 + option + ' ' + '(default)')
         else:
-            print(' '*3 + key)
+            print(' '*2 + option)
 
 

@@ -8,13 +8,14 @@ from pathlib import Path
 
 from . import dialogs
 from . import messages
+from . import tkboxes
 from .readspec import readspec
 from .utils import wordjoin, pathjoin, realpath, natsort, p
 from .strings import mpiLibs, boolStrings
 from .chemistry import readxyz
 
+specdir = sys.path.pop()
 alias = path.basename(sys.argv[0])
-specdir = path.dirname(sys.argv[0])
 homedir = path.expanduser('~')
 
 if specdir is None:
@@ -68,11 +69,11 @@ optconf, positionargs = parser.parse_known_args()
 
 if optconf.listoptions:
     if jobconf.versions:
-        messages.listing('Versiones del ejecutable disponibles:', info=sorted(jobconf.versions, key=str.casefold), default=jobconf.defaults.version)
+        messages.listing('Versiones del ejecutable disponibles:', options=sorted(jobconf.versions, key=str.casefold), default=jobconf.defaults.version)
     for key in jobconf.parameters:
-        messages.listing('Conjuntos de parámetros disponibles', p(key), info=sorted(listdir(jobconf.parameters[key]), key=str.casefold), default=jobconf.defaults.parameters[key])
+        messages.listing('Conjuntos de parámetros disponibles', p(key), options=sorted(listdir(jobconf.parameters[key]), key=str.casefold), default=jobconf.defaults.parameters[key])
     if jobconf.formatkeys:
-        messages.listing('Variables de interpolación disponibles:', info=sorted(jobconf.formatkeys, key=str.casefold))
+        messages.listing('Variables de interpolación disponibles:', options=sorted(jobconf.formatkeys, key=str.casefold))
     raise SystemExit()
 
 parser.add_argument('inputlist', nargs='+', metavar='INPUT FILE(S)', type=str, help='Rutas de los archivos de entrada.')
@@ -80,7 +81,12 @@ inputlist = parser.parse_args(positionargs).inputlist
 
 if optconf.waitime is None:
     try: optconf.waitime = float(jobconf.defaults.waitime)
-    except AttributeError:  optconf.waitime = 0
+    except AttributeError: optconf.waitime = 0
+
+if optconf.xdialog:
+    dialogs.yesno = tkboxes.ynbox
+    messages.failure = tkboxes.msgbox
+    messages.success = tkboxes.msgbox
 
 if optconf.sort:
     optconf.inputlist.sort(key=natsort)
@@ -171,17 +177,17 @@ optconf.parameters = []
 for key in jobconf.parameters:
     pardir = realpath(jobconf.parameters[key])
     parset = getattr(optconf, key)
-    try: choices = listdir(pardir)
+    try: options = listdir(pardir)
     except FileNotFoundError as e:
         if e.errno == ENOENT:
             messages.cfgerr('El directorio de parámetros', pardir, 'no existe')
-    if not choices:
+    if not options:
         messages.cfgerr('El directorio de parámetros', pardir, 'está vacío')
     if parset is None:
         if key in jobconf.defaults.parameters:
             parset = jobconf.defaults.parameters[key]
         else:
-            parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=sorted(choices, key=str.casefold))
+            parset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=sorted(options, key=str.casefold))
     if path.exists(path.join(pardir, parset)):
         optconf.parameters.append(path.join(pardir, parset))
     else:
