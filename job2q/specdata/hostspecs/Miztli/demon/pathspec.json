@@ -1,20 +1,20 @@
 {
-    "versions": {
-        "6.0.1": {
-            "executable": "$TMPU/software/deMon2k/deMon/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
-            "profile": [
-                "module load mpi/intel-2017_update3",
-                "module load mkl/2017_update3"
-            ]
-        }
-    },
-    "parameters": {
-        "basis": "$TMPU/software/parameters/deMon2k"
-    },
-    "defaults": {
-        "version": "6.0.1",
-        "parameters": {
-            "basis": "default"
-        }
-    }
+   versions: {
+      "6.0.1": {
+         executable: "$TMPU/software/deMon2k/deMon/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
+         profile: [
+            "module load mpi/intel-2017_update3",
+            "module load mkl/2017_update3",
+         ],
+      },
+   },
+   parameters: {
+      basis: "$TMPU/software/parameters/deMon2k",
+   },
+   "defaults": {
+      version: "6.0.1",
+      parameters: {
+         basis: "default",
+      },
+   },
 }

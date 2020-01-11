@@ -1,19 +1,19 @@
 {
-    "versions": {
-        "5.4.1": {
-            "profile": [
-                "source /opt/intel/compilers_and_libraries_2016/linux/bin/compilervars.sh"
-            ],
-            "executable": "/opt/packages/vasp.5.4.1-ic16/bin/vasp_std"
-        },
-        "5.4.4": {
-            "profile": [
-                "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-            ],
-            "executable": "/opt/packages/vasp.5.4.4-ic17/bin/vasp_std"
-        }
-    },
-    "defaults": {
-        "version": "5.4.4"
-    }
+   versions: {
+      "5.4.1": {
+         profile: [
+            "source /opt/intel/compilers_and_libraries_2016/linux/bin/compilervars.sh",
+         ],
+         executable: "/opt/packages/vasp.5.4.1-ic16/bin/vasp_std",
+      },
+      "5.4.4": {
+         profile: [
+            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh",
+         ],
+         executable: "/opt/packages/vasp.5.4.4-ic17/bin/vasp_std",
+      },
+   },
+   "defaults": {
+      version: "5.4.4",
+   },
 }

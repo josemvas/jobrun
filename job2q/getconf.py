@@ -20,10 +20,10 @@ parser.add_argument('--specdir', metavar='SPECDIR', type=str, dest='specdir', re
 config, remaining = parser.parse_known_args()
 specdir = path.expanduser(config.specdir)
 
-hostspec = path.join(specdir, 'hostspec.xml')
-corespec = path.join(specdir, 'corespec.xml')
-pathspec = path.join(specdir, 'pathspec.xml')
-userspec = path.join(home, '.jobspecs', 'jobspec.xml')
+hostspec = path.join(specdir, 'hostspec.json')
+corespec = path.join(specdir, 'corespec.json')
+pathspec = path.join(specdir, 'pathspec.json')
+userspec = path.join(home, '.jobspecs', 'jobspec.json')
 #TODO: commonspec =
 
 jobconf = readspec(hostspec)

@@ -36,25 +36,25 @@ def setup():
     
     hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(hostspecdir), key=str.casefold))
     
-    if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.xml')):
+    if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.json')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
     
     available = {}
     configured = []
     libraries = set()
     
-    if path.isfile(path.join(specdir, 'hostspec.xml')):
+    if path.isfile(path.join(specdir, 'hostspec.json')):
         if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto?'):
-            copyfile(path.join(hostspecdir, hostname, 'hostspec.xml'), path.join(specdir, 'hostspec.xml'))
+            copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(specdir, 'hostspec.json'))
     else:
         makedirs(specdir)
-        copyfile(path.join(hostspecdir, hostname, 'hostspec.xml'), path.join(specdir, 'hostspec.xml'))
+        copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(specdir, 'hostspec.json'))
          
     for package in listdir(path.join(hostspecdir, hostname)):
         if path.isdir(path.join(hostspecdir, hostname, package)):
-            packagename = readspec(path.join(corespecdir, package, 'corespec.xml'), 'packagename')
+            packagename = readspec(path.join(corespecdir, package, 'corespec.json'), 'packagename')
             if packagename is None:
-                messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.xml'), 'no tiene un título')
+                messages.cfgerr('El archivo', path.join(corespecdir, package, 'corespec.json'), 'no tiene un título')
             available[packagename] = package
             if path.isdir(path.join(specdir, package)):
                 configured.append(packagename)
@@ -74,30 +74,13 @@ def setup():
 
         for package in (available[i] for i in selected):
             makedirs(path.join(specdir, package))
-            copyfile(path.join(corespecdir, package, 'corespec.xml'), path.join(specdir, package, 'corespec.xml'))
-            copyfile(path.join(hostspecdir, hostname, package, 'pathspec.xml'), path.join(specdir, package, 'pathspec.xml'))
-            hardlink(path.join(specdir, 'hostspec.xml'), path.join(specdir, package, 'hostspec.xml'))
+            copyfile(path.join(corespecdir, package, 'corespec.json'), path.join(specdir, package, 'corespec.json'))
+            copyfile(path.join(hostspecdir, hostname, package, 'pathspec.json'), path.join(specdir, package, 'pathspec.json'))
+            hardlink(path.join(specdir, 'hostspec.json'), path.join(specdir, package, 'hostspec.json'))
             with open(path.join(bindir, package), 'w') as fh:
                 fh.write(loader_script.lstrip().format(
                     python=sys.executable,
                     pylibs=pathsep.join(libraries),
                     specdir=contractuser(path.join(specdir, package))))
             chmod(path.join(bindir, package), 0o755)
-
-#    with open(path.join(hostspecdir, 'Miztli','hostspec.json'), 'w') as fh:
-#        json.dump(readspec(path.join(hostspecdir, 'Miztli', 'hostspec.xml')), fh, indent=4)
-#    with open(path.join(hostspecdir, 'Helio','hostspec.json'), 'w') as fh:
-#        json.dump(readspec(path.join(hostspecdir, 'Helio', 'hostspec.xml')), fh, indent=4)
-#    for package in listdir(corespecdir):
-#        with open(path.join(corespecdir, package, 'corespec.json'), 'w') as fh:
-#            json.dump(readspec(path.join(corespecdir, package, 'corespec.xml')), fh, indent=4)
-#    for package in listdir(path.join(hostspecdir, 'Helio')):
-#        if path.isdir(path.join(hostspecdir, 'Helio', package)):
-#            with open(path.join(hostspecdir, 'Helio', package,'pathspec.json'), 'w') as fh:
-#                json.dump(readspec(path.join(hostspecdir, 'Helio', package, 'pathspec.xml')), fh, indent=4)
-#    for package in listdir(path.join(hostspecdir, 'Miztli')):
-#        if path.isdir(path.join(hostspecdir, 'Miztli', package)):
-#            with open(path.join(hostspecdir, 'Miztli', package,'pathspec.json'), 'w') as fh:
-#                json.dump(readspec(path.join(hostspecdir, 'Miztli', package, 'pathspec.xml')), fh, indent=4)
-
 

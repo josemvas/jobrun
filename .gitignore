@@ -4,11 +4,16 @@ build/
 dist/
 
 # Distribution
-__pycache__/
 *.pyc
 *.pyo
+__pycache__/
 
 # Testing
 /tests/*/
 /specs/
-
+/autodock
+/demon
+/dftbplus
+/gaussian
+/orca
+/vasp

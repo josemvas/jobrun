@@ -1,19 +1,19 @@
 {
-    "versions": {
-        "17.1": {
-            "executable": "/opt/packages/dftbplus-17.1.x86_64-linux/bin/dftb+"
-        },
-        "18.1": {
-            "executable": "/opt/packages/dftbplus-18.1.x86_64-linux/bin/dftb+"
-        },
-        "18.2": {
-            "executable": "/opt/packages/dftbplus-18.2.x86_64-linux/bin/dftb+"
-        },
-        "17.1.jm": {
-            "executable": "/opt/packages/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+"
-        }
-    },
-    "parameters": {
-        "slako": "/opt/parameters/DFTB+/slako_bundles"
-    }
+   versions: {
+      "17.1": {
+         executable: "/opt/packages/dftbplus-17.1.x86_64-linux/bin/dftb+",
+      },
+      "18.1": {
+         executable: "/opt/packages/dftbplus-18.1.x86_64-linux/bin/dftb+",
+      },
+      "18.2": {
+         executable: "/opt/packages/dftbplus-18.2.x86_64-linux/bin/dftb+",
+      },
+      "17.1.jm": {
+         executable: "/opt/packages/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+",
+      },
+   },
+   parameters: {
+      slako: "/opt/parameters/DFTB+/slako_bundles",
+   },
 }
