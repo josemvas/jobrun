@@ -35,6 +35,6 @@ batch_stdout () { echo "--output=$1"; }
 batch_stderr () { echo "--error=$1"; }
 
 environment+=("jobid=\$SLURM_JOB_ID")
-environment+=("ncpu=\$SLURM_NTASKS")
+environment+=("ncore=\$SLURM_NTASKS")
 environment+=("iplist=\$(getent hosts \$SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)")
 

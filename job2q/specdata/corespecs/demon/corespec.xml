@@ -1,13 +1,13 @@
 <spec>
 
-<pkgkey>deMon</pkgkey>
-<pkgname>deMon2k</pkgname>
-<parallel>intelmpi</parallel>
-<mpirun>True</mpirun>
-<jobdir>True</jobdir>
+<packagekey>deMon</packagekey>
+<packagename>deMon2k</packagename>
+<parallelization>intelmpi</parallelization>
+<usempilauncher>True</usempilauncher>
+<makejobdir>True</makejobdir>
 <filecheck>inp</filecheck>
 
-<fileexts>
+<filenames>
    <e key='inp'>deMon.inp</e>
    <e key='rst'>deMon.rst</e>
    <e key='trj'>deMon.trj</e>
@@ -17,7 +17,7 @@
    <e key='mem'>deMon.mem</e>
    <e key='pie'>deMon.pie</e>
    <e key='bin'>deMon.bin</e>
-</fileexts>
+</filenames>
 
 <inputfiles>
    <e>inp</e>

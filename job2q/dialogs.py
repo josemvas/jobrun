@@ -2,7 +2,7 @@
 import sys
 import readline
 from glob import glob
-from os.path import isdir, exists, expanduser
+from os import path, getcwd
 
 from . import messages
 from .utils import realpath, wordjoin
@@ -17,7 +17,7 @@ class tabCompleter(object):
         self.maxtcs = maxtcs
         return
     def tcpath(self, text, n):
-        return [i + '/' if isdir(i) else i + ' ' for i in glob(expanduser(text) + '*')][n]
+        return [i + '/' if path.isdir(i) else i + ' ' for i in glob(path.expanduser(text) + '*')][n]
     def tclist(self, text, n):
         completed = readline.get_line_buffer().split()[:-1]
         if self.maxtcs is None or len(completed) < int(self.maxtcs):
@@ -25,12 +25,12 @@ class tabCompleter(object):
 
 @join_positional_args
 @catch_keyboard_interrupt
-def path(prompt=''):
+def inputpath(prompt=''):
     while True:
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            if exists(realpath(answer)):
+            if path.exists(answer):
                 return realpath(answer)
             else:
                 print('Por favor indique una ruta válida')

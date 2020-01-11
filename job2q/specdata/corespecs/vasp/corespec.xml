@@ -1,15 +1,15 @@
 <spec>
 
-<pkgkey>vasp</pkgkey>
-<pkgname>VASP</pkgname>
-<parallel>intelmpi</parallel>
-<mpirun>True</mpirun>
-<jobdir>True</jobdir>
+<packagekey>vasp</packagekey>
+<packagename>VASP</packagename>
+<parallelization>intelmpi</parallelization>
+<usempilauncher>True</usempilauncher>
+<makejobdir>True</makejobdir>
 <stdout>log</stdout>
 
 <filecheck>INCAR and POSCAR and POTCAR</filecheck>
 
-<fileexts>
+<filenames>
    <e key='INCAR'>INCAR</e>
    <e key='POSCAR'>POSCAR</e>
    <e key='KPOINTS'>KPOINTS</e>
@@ -39,7 +39,7 @@
    <e key='BSEFATBAND'>BSEFATBAND</e>
    <e key='xml'>vasprun.xml</e>
    <e key='log'>logfile</e>
-</fileexts>
+</filenames>
 
 <inputfiles>
    <e>INCAR</e>

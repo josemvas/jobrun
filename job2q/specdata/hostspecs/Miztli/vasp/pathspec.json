@@ -1,0 +1,14 @@
+{
+    "versions": {
+        "5.4.4": {
+            "profile": [
+                "module load mpi/intel-2017_update3",
+                "module load mkl/2017_update3"
+            ],
+            "executable": "$TMPU/software/vasp.5.4.4/bin/vasp_std"
+        }
+    },
+    "defaults": {
+        "version": "5.4.4"
+    }
+}

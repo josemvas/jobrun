@@ -1,6 +1,5 @@
 <spec>
 
-<storage>pooled</storage>
 <scheduler>lavalsf</scheduler>
 
 <defaults>

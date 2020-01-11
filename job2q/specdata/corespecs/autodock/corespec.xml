@@ -1,15 +1,15 @@
 <spec>
 
-<pkgkey>ad</pkgkey>
-<pkgname>AutoDock</pkgname>
-<parallel>None</parallel>
-<jobdir>True</jobdir>
+<packagekey>ad</packagekey>
+<packagename>AutoDock</packagename>
+<parallelization>None</parallelization>
+<makejobdir>True</makejobdir>
 <filecheck>dpf</filecheck>
 
-<fileexts>
+<filenames>
    <e key='dpf'>job.dpf</e>
    <e key='dlg'>job.dlg</e>
-</fileexts>
+</filenames>
 
 <inputfiles>
    <e>dpf</e>
@@ -30,3 +30,4 @@
 </parameters>
 
 </spec>
+

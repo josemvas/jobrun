@@ -10,7 +10,7 @@ from . import dialogs
 from . import messages
 from .parsing import parsebool
 from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
-from .getconf import jobconf, queconf, optconf, inputlist, comments, environment, command, keywords
+from .getconf import jobconf, scheduler, optconf, filelist, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
 from .strings import mpiLibs
 
@@ -24,7 +24,7 @@ def submit():
     outputfiles = []
     inputfiles = []
     
-    filepath = path.abspath(inputlist.pop(0))
+    filepath = path.abspath(filelist.pop(0))
     basename = path.basename(filepath)
     
     if path.isfile(filepath):
@@ -34,7 +34,7 @@ def submit():
                 filename = basename[:-len(key)-1]
                 break
         else:
-            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobconf.pkgname)
+            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobconf.packagename)
             return
     elif path.isdir(filepath):
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
@@ -46,7 +46,7 @@ def submit():
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
         return
 
-    filebools = { i : path.isfile(pathjoin(localdir, (filename, i))) for i in jobconf.fileexts }
+    filebools = { i : path.isfile(pathjoin(localdir, (filename, i))) for i in jobconf.filenames }
 
     if 'filecheck' in jobconf:
         if not parsebool(jobconf.filecheck, filebools):
@@ -59,12 +59,12 @@ def submit():
             return
     
     inputname = filename
-    versionkey = jobconf.pkgkey + alnum(optconf.version)
+    versionkey = jobconf.packagekey + alnum(optconf.version)
 
     if filename.endswith('.' + versionkey):
         jobname = filename[:-len(versionkey)-1]
-    elif filename.endswith('.' + jobconf.pkgkey):
-        jobname = filename[:-len(jobconf.pkgkey)-1]
+    elif filename.endswith('.' + jobconf.packagekey):
+        jobname = filename[:-len(jobconf.packagekey)-1]
     else:
         jobname = filename
 
@@ -72,7 +72,7 @@ def submit():
         inputname = pathjoin((optconf.jobname, inputname))
         jobname = pathjoin((optconf.jobname, jobname))
 
-    outputdir = localdir if optconf.here or not jobconf.jobdir else pathjoin(localdir, jobname)
+    outputdir = localdir if optconf.here or not jobconf.makejobdir else pathjoin(localdir, jobname)
     hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
     outputname = pathjoin((jobname, versionkey))
     master = gethostbyname(gethostname())
@@ -80,11 +80,11 @@ def submit():
     for item in jobconf.inputfiles:
         for key in item.split('|'):
             inputfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, (inputname, key))), \
-               '$ip:' + qq(pathjoin('$workdir', jobconf.fileexts[key]))))
+               '$ip:' + qq(pathjoin('$workdir', jobconf.filenames[key]))))
     
     for item in jobconf.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.fileexts[key])), \
+            outputfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.filenames[key])), \
                 master + ':' + qq(pathjoin(outputdir, (outputname, key)))))
     
     for parset in optconf.parameters:
@@ -101,7 +101,7 @@ def submit():
             except ValueError:
                 pass
             else:
-                jobstate = queconf.checkjob(lastjob)
+                jobstate = scheduler.chkjob(lastjob)
                 if jobstate:
                     messages.failure(jobstate.format(jobname=jobname, jobid=lastjob))
                     return
@@ -143,11 +143,11 @@ def submit():
                 if path.isfile(pathjoin(localdir, (filename, key))):
                     action(pathjoin(localdir, (filename, key)), pathjoin(outputdir, (filename, key)))
     
-    comments.append(queconf.jobname.format(jobname))
+    control.append(scheduler.jobname.format(jobname))
     environment.append("jobname=" + jobname)
 
     with NamedTemporaryFile(mode='w+t', delete=False) as t:
-        t.write(linejoin(i for i in comments))
+        t.write(linejoin(i for i in control))
         t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
         t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
@@ -164,11 +164,11 @@ def submit():
         t.write('done' + '\n')
         t.write(linejoin(wordjoin('ssh', master, q(i)) for i in jobconf.offscript))
     
-    try: jobid = queconf.submit(t.name)
+    try: jobid = scheduler.submit(t.name)
     except RuntimeError as e:
         messages.failure('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
     else:
-        messages.success('El trabajo', q(jobname), 'se correrá en', str(optconf.ncpu), 'núcleo(s) de CPU con el jobid', jobid)
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(optconf.ncore), 'núcleo(s) de CPU con el jobid', jobid)
         copyfile(t.name, pathjoin(hiddendir, jobid))
         remove(t.name)
     

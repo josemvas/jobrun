@@ -1,0 +1,11 @@
+{
+    "scheduler": "platformlsf",
+    "environment": [
+        "module purge"
+    ],
+    "defaults": {
+        "queue": "q_htc",
+        "scratch": "/scratch",
+        "waitime": "3"
+    }
+}

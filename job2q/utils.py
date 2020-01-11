@@ -8,6 +8,8 @@ from itertools import repeat
 
 from . import messages
 
+home = os.path.expanduser('~')
+
 def makedirs(path):
     try: os.makedirs(path)
     except FileExistsError as e:
@@ -36,6 +38,13 @@ def hardlink(source, dest):
         if e.errno != ENOENT:
             raise
 
+def contractuser(path):
+    if path == home:
+        return '~'
+    elif path.startswith(home + os.sep):
+        return '~' + path[len(home):]
+    return path
+
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
 
@@ -63,7 +72,7 @@ def qq(string):
     return '"\'{0}\'"'.format(string)
 
 def natsort(text):
-    return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
+    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
 
 def alnum(string): 
     return ''.join(c for c in string if c.isalnum())

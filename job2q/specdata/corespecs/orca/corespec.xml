@@ -1,14 +1,14 @@
 <spec>
 
-<pkgkey>orca</pkgkey>
-<pkgname>ORCA</pkgname>
-<parallel>openmpi</parallel>
-<mpirun>False</mpirun>
-<jobdir>True</jobdir>
+<packagekey>orca</packagekey>
+<packagename>ORCA</packagename>
+<parallelization>openmpi</parallelization>
+<usempilauncher>False</usempilauncher>
+<makejobdir>True</makejobdir>
 <filecheck>inp</filecheck>
 <stdout>out</stdout>
 
-<fileexts>
+<filenames>
    <e key='inp'>job.inp</e>
    <e key='out'>job.out</e>
    <e key='opt'>job.opt</e>
@@ -18,7 +18,7 @@
    <e key='prop'>job.prop</e>
    <e key='engrad'>job.engrad</e>
    <e key='property'>job_property.txt</e>
-</fileexts>
+</filenames>
 
 <filevars>
    <e key='inp'>inp</e>
@@ -45,7 +45,7 @@
 </outputfiles>
 
 <prescript>
-   <e>sed -i '/\s*%pal\s\s*end/Id;1i'"%pal nprocs $ncpu end" $inp</e>
+   <e>sed -i '/\s*%pal\s\s*end/Id;1i'"%pal nprocs $ncore end" $inp</e>
 </prescript>
 
 </spec>
