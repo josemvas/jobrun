@@ -68,7 +68,7 @@ def yesno(prompt='', default=None):
 @join_positional_args
 @catch_keyboard_interrupt
 @override_with_bulletin
-def optone(prompt='', choices=[]):
+def chooseone(prompt='', choices=[]):
     readline.set_completer(tabCompleter(choices).tclist)
     print(prompt)
     for choice in choices:
@@ -83,7 +83,7 @@ def optone(prompt='', choices=[]):
 @join_positional_args
 @catch_keyboard_interrupt
 @override_with_bulletin
-def optany(prompt='', choices=[], default=[]):
+def choosemany(prompt='', choices=[], default=[]):
     readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)
     print(prompt)
     for choice in choices:

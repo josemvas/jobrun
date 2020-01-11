@@ -34,7 +34,7 @@ def setup():
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
     specdir = path.join(etcdir, 'specs')
     
-    hostname = dialogs.optone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(hostspecdir), key=str.casefold))
+    hostname = dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(hostspecdir), key=str.casefold))
     
     if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.json')):
         messages.cfgerr('El archivo de configuración del host', hostname, 'no existe')
@@ -63,7 +63,7 @@ def setup():
         messages.warning('No hay programas configurados para este host')
         return
 
-    selected = dialogs.optany('Seleccione los paquetes que desea configurar o reconfigurar', choices=sorted(available.keys(), key=str.casefold), default=configured)
+    selected = dialogs.choosemany('Seleccione los paquetes que desea configurar o reconfigurar', choices=sorted(available.keys(), key=str.casefold), default=configured)
 
     if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto?'):
 

@@ -153,7 +153,7 @@ if jobconf.versions:
             else:
                 messages.opterr('La versión establecida por default es inválida')
         else:
-            optconf.version = dialogs.optone('Seleccione una versión', choices=sorted(list(jobconf.versions), key=str.casefold))
+            optconf.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobconf.versions), key=str.casefold))
             if not optconf.version in jobconf.versions:
                 messages.opterr('La versión seleccionada es inválida')
 else:
@@ -179,7 +179,7 @@ for key in jobconf.parameters:
         if key in jobconf.defaults.parameters:
             parameterset = jobconf.defaults.parameters[key]
         else:
-            parameterset = dialogs.optone('Seleccione un conjunto de parámetros', p(key), choices=sorted(options, key=str.casefold))
+            parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(options, key=str.casefold))
     if path.exists(path.join(parameterdir, parameterset)):
         optconf.parameters.append(path.join(parameterdir, parameterset))
     else:
