@@ -1,0 +1,19 @@
+{
+   "defaults": {
+      "version": "09E"
+   },
+   "versions": {
+      "09E": {
+         "executable": "g09",
+         "profile": [
+            "module load gaussian/G09-E.01"
+         ]
+      },
+      "16.3": {
+         "executable": "g16",
+         "profile": [
+            "module load gaussian/2016.03"
+         ]
+      }
+   }
+}

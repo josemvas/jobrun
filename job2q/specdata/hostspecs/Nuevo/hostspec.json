@@ -1,0 +1,11 @@
+{
+   "scheduler": "",
+   "defaults": {
+      "queue": "",
+      "scratch": "",
+      "waitime": ""
+   },
+   "offscript": [
+      ""
+   ]
+}

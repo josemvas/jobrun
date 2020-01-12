@@ -1,0 +1,55 @@
+{
+   "parallelization": "openmp",
+   "packagekey": "g",
+   "packagename": "Gaussian",
+   "prescript": [
+      "sed -i \"/^%/d\" @($gjf|$com)",
+      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
+   ],
+   "filecheck": "gjf or com",
+   "fileclash": "gjf and com",
+   "filevars": {
+      "gjf": "gjf",
+      "chk": "chk",
+      "oldchk": "oldchk",
+      "com": "com"
+   },
+   "profile": [
+      "export GAUSS_SCRDIR=$workdir"
+   ],
+   "outputfiles": [
+      "gjf|com",
+      "log",
+      "chk",
+      "wfn",
+      "cub"
+   ],
+   "positionargs": [
+      "gjf|com"
+   ],
+   "formatkeys": [
+      "title",
+      "method",
+      "basis",
+      "pseudo",
+      "charge",
+      "spin",
+      "solvent"
+   ],
+   "makejobdir": "True",
+   "inputfiles": [
+      "gjf|com",
+      "oldchk"
+   ],
+   "filenames": {
+      "wfn": "job.wfn",
+      "cub": "job.cub",
+      "oldchk": "job.oldchk",
+      "gjf": "job.gjf",
+      "chk": "job.chk",
+      "log": "job.log",
+      "com": "job.com"
+   }
+}

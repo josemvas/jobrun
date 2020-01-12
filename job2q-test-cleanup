@@ -1,10 +1,13 @@
 #!/bin/sh
-
 find job2q -name \*.pyc -type f -delete
 find job2q -name \*.pyo -type f -delete
 find job2q -name __pycache__ -type d -delete
 find tests -mindepth 2 -type f -delete
 find tests -mindepth 1 -type d -delete
-rm -rf bin
-rm -rf etc
-
+rm -fr specs
+rm -f autodock
+rm -f demon
+rm -f dftbplus
+rm -f gaussian
+rm -f orca
+rm -f vasp

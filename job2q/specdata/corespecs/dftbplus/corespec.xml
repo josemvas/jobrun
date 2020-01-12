@@ -1,13 +1,13 @@
 <spec>
 
-<pkgkey>plus</pkgkey>
-<pkgname>DFTB+</pkgname>
-<parallel>openmp</parallel>
-<jobdir>True</jobdir>
+<packagekey>plus</packagekey>
+<packagename>DFTB+</packagename>
+<parallelization>openmp</parallelization>
+<makejobdir>True</makejobdir>
 <filecheck>dftb_in.hsd</filecheck>
 <stdout>dftb_out.log</stdout>
 
-<fileexts>
+<filenames>
    <e key='dftb_in.hsd'>dftb_in.hsd</e>
    <e key='dftb_pin.hsd'>dftb_pin.hsd</e>
    <e key='dftb_out.log'>dftb_out.log</e>
@@ -31,7 +31,7 @@
    <e key='TDP.DAT'>TDP.DAT</e>
    <e key='ARPACK.DAT'>ARPACK.DAT</e>
    <e key='TEST_ARPACK.DAT'>TEST_ARPACK.DAT</e>
-</fileexts>
+</filenames>
 
 <filevars>
    <e key='dftbin'>dftb_in.hsd</e>

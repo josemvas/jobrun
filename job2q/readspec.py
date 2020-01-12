@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
-from xml.etree import ElementTree
-
+import json
 from . import messages
-from .strings import listTags, dictTags, optionTags, commandTags, textTags
+from .strings import listTags, dictTags, textTags
 
-class XmlTreeList(list):
-    def __init__(self, parent):
-        for child in parent:
-            if not len(child):
-                if child.tag == 'e':
-                    self.append(child.text)
-                elif child.tag in commandTags:
-                    self.append(commandTags[child.tag] + ' ' + child.text)
-                else:
-                    messages.cfgerr('Invalid XmlTreeList Tag <{0}><{1}>'.format(parent.tag, child.tag))
+class BunchList(list):
+    def __init__(self, parentlist):
+        for item in parentlist:
+            if isinstance(item, dict):
+                self.append(BunchDict(item))
+            elif isinstance(item, list):
+                self.append(BunchList(item))
             else:
-                messages.cfgerr('XmlTreeList Tag <{0}><{1}> must not have grandchildren'.format(parent.tag, child.tag))
+                self.append(item)
     def merge(self, other):
         for i in other:
             if i in self:
@@ -24,11 +20,19 @@ class XmlTreeList(list):
                 elif other[i] == self[i]:
                     pass # same leaf value
                 else:
-                    raise Exception('Conflict at' + ' ' + str(i))
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self.append(other[i])
 
 class BunchDict(dict):
+    def __init__(self, parentdict):
+        for key, value in parentdict.items():
+            if isinstance(value, dict):
+                self[key] = BunchDict(value)
+            elif isinstance(value, list):
+                self[key] = BunchList(value)
+            else:
+                self[key] = value
     def __getattr__(self, item):
         try: return self.__getitem__(item)
         except KeyError:
@@ -36,36 +40,10 @@ class BunchDict(dict):
     def __setattr__(self, item, value):
             self.__setitem__(item, value)
     def __missing__(self, item):
-        return BunchDict()
-
-class XmlTreeDict(BunchDict):
-    def __init__(self, parent):
-        for child in parent:
-            if len(child):
-                if child.tag == 'e':
-                    if 'key' in child.attrib:
-                        self[child.attrib['key']] = XmlTreeDict(child)
-                    else:
-                        messages.cfgerr('XmlTreeDict Tag <{0}><e> must have a key attribute'.format(parent.tag))
-                elif child.tag in listTags:
-                    self[child.tag] = XmlTreeList(child)
-                elif child.tag in dictTags:
-                    self[child.tag] = XmlTreeDict(child)
-                else:
-                    messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
-            else:
-                if child.tag == 'e':
-                    if 'key' in child.attrib:
-                        self[child.attrib['key']] = child.text
-                elif child.tag in textTags or parent.tag in optionTags:
-                    self[child.tag] = child.text
-                else:
-                    messages.cfgerr('Invalid XmlTreeDict Tag <{0}><{1}>'.format(parent.tag, child.tag))
-    def __missing__(self, item):
         if item in listTags:
-            return []
+            return BunchList([])
         elif item in dictTags:
-            return BunchDict()
+            return BunchDict({})
         elif item in textTags:
             return ''
     def merge(self, other):
@@ -76,16 +54,16 @@ class XmlTreeDict(BunchDict):
                 elif other[i] == self[i]:
                     pass # same leaf value
                 else:
-                    raise Exception('Conflict at' + ' ' + str(i))
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self[i] = other[i]
 
-def readspec(xmlfile, xmltag=None):
-    root = ElementTree.parse(xmlfile).getroot()
-    if xmltag is None:
-        return XmlTreeDict(root)
-    else:
-        try: return root.find(xmltag).text
-        except AttributeError:
-            return None
+def readspec(jsonfile, key=None):
+    with open(jsonfile, 'r') as fh:
+        if key is None:
+            return BunchDict(json.load(fh))
+        else:
+            try: return json.load(fh)[key]
+            except KeyError:
+                return None
 

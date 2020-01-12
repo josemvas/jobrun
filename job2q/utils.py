@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 import sys
-from builtins import str
 from collections import Iterable
 from errno import EEXIST, ENOENT
 from itertools import repeat
-
 from . import messages
+
+home = os.path.expanduser('~')
 
 def makedirs(path):
     try: os.makedirs(path)
@@ -36,6 +37,13 @@ def hardlink(source, dest):
         if e.errno != ENOENT:
             raise
 
+def contractuser(path):
+    if path == home:
+        return '~'
+    elif path.startswith(home + os.sep):
+        return '~' + path[len(home):]
+    return path
+
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
 
@@ -51,7 +59,6 @@ def linejoin(*args):
 
 def pathjoin(*args):
     return iterjoin(*args, sepgen=iter(os.path.sep + '.-'))
-    #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
 
 def p(string):
     return '({0})'.format(string)
@@ -62,8 +69,8 @@ def q(string):
 def qq(string):
     return '"\'{0}\'"'.format(string)
 
-def natsort(text):
-    return [ int(c) if c.isdigit() else c for c in re.split('(\d+)', text) ]
+def natural(text):
+    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
 
 def alnum(string): 
     return ''.join(c for c in string if c.isalnum())

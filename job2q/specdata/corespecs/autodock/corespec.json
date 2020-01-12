@@ -1,0 +1,25 @@
+{
+   "makejobdir": "True",
+   "inputfiles": [
+      "dpf"
+   ],
+   "outputfiles": [
+      "dlg"
+   ],
+   "packagekey": "ad",
+   "packagename": "AutoDock",
+   "filecheck": "dpf",
+   "parallelization": "None",
+   "filenames": {
+      "dlg": "job.dlg",
+      "dpf": "job.dpf"
+   },
+   "optionargs": {
+      "l": "dlg",
+      "p": "dpf"
+   },
+   "parameters": {
+      "ligand": ".",
+      "protein": "."
+   }
+}
