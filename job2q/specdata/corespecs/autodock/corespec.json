@@ -1,25 +1,25 @@
 {
-   packagekey: "ad",
-   packagename: "AutoDock",
-   parallelization: "None",
-   makejobdir: "True",
-   filecheck: "dpf",
-   filenames: {
-      dpf: "job.dpf",
-      dlg: "job.dlg",
-   },
+   "makejobdir": "True",
    "inputfiles": [
-      "dpf",
+      "dpf"
    ],
-   outputfiles: [
-      "dlg",
+   "outputfiles": [
+      "dlg"
    ],
-   optionargs: {
-      p: "dpf",
-      l: "dlg",
+   "packagekey": "ad",
+   "packagename": "AutoDock",
+   "filecheck": "dpf",
+   "parallelization": "None",
+   "filenames": {
+      "dlg": "job.dlg",
+      "dpf": "job.dpf"
    },
-   parameters: {
-      ligand: ".",
-      protein: ".",
+   "optionargs": {
+      "l": "dlg",
+      "p": "dpf"
    },
+   "parameters": {
+      "ligand": ".",
+      "protein": "."
+   }
 }

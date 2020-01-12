@@ -1,13 +1,13 @@
 {
-   versions: {
-      "4.0.1": {
-         profile: [
-            "source /opt/openmpi/2.0.2/mpivars.sh",
-         ],
-         executable: "/opt/packages/orca_4_0_1_2_linux_x86-64_openmpi202/orca",
-      },
-   },
    "defaults": {
-      version: "4.0.1",
+      "version": "4.0.1"
    },
+   "versions": {
+      "4.0.1": {
+         "executable": "/opt/packages/orca_4_0_1_2_linux_x86-64_openmpi202/orca",
+         "profile": [
+            "source /opt/openmpi/2.0.2/mpivars.sh"
+         ]
+      }
+   }
 }

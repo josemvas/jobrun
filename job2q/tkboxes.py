@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import tkinter
 from .decorators import join_positional_args
 from argparse import ArgumentParser

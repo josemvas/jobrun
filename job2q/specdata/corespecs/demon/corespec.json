@@ -1,33 +1,33 @@
 {
-   packagekey: "deMon",
-   packagename: "deMon2k",
-   parallelization: "intelmpi",
-   usempilauncher: "True",
-   makejobdir: "True",
-   filecheck: "inp",
-   filenames: {
-      "inp": "deMon.inp",
-      rst: "deMon.rst",
-      trj: "deMon.trj",
-      out: "deMon.out",
-      mol: "deMon.mol",
-      "new": "deMon.new",
-      mem: "deMon.mem",
-      pie: "deMon.pie",
-      bin: "deMon.bin",
-   },
+   "makejobdir": "True",
    "inputfiles": [
       "inp",
       "rst",
-      "trj",
+      "trj"
    ],
-   outputfiles: [
+   "usempilauncher": "True",
+   "outputfiles": [
       "trj",
       "out",
       "mol",
       "new",
       "mem",
       "pie",
-      "bin",
+      "bin"
    ],
+   "packagekey": "deMon",
+   "packagename": "deMon2k",
+   "filecheck": "inp",
+   "parallelization": "intelmpi",
+   "filenames": {
+      "new": "deMon.new",
+      "mem": "deMon.mem",
+      "out": "deMon.out",
+      "bin": "deMon.bin",
+      "mol": "deMon.mol",
+      "pie": "deMon.pie",
+      "rst": "deMon.rst",
+      "trj": "deMon.trj",
+      "inp": "deMon.inp"
+   }
 }

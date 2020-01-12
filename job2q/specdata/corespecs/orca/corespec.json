@@ -1,32 +1,16 @@
 {
-   packagekey: "orca",
-   packagename: "ORCA",
-   parallelization: "openmpi",
-   usempilauncher: "False",
-   makejobdir: "True",
-   filecheck: "inp",
-   stdout: "out",
-   filenames: {
-      "inp": "job.inp",
-      out: "job.out",
-      opt: "job.opt",
-      xyz: "job.xyz",
-      trj: "job.trj",
-      gbw: "job.gbw",
-      prop: "job.prop",
-      engrad: "job.engrad",
-      property: "job_property.txt",
-   },
-   filevars: {
-      "inp": "inp",
-   },
-   "inputfiles": [
-      "inp",
+   "usempilauncher": "False",
+   "packagekey": "orca",
+   "packagename": "ORCA",
+   "prescript": [
+      "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $ncore end\" $inp"
    ],
-   positionargs: [
-      "inp",
-   ],
-   outputfiles: [
+   "filecheck": "inp",
+   "parallelization": "openmpi",
+   "filevars": {
+      "inp": "inp"
+   },
+   "outputfiles": [
       "inp",
       "gbw",
       "out",
@@ -35,9 +19,25 @@
       "trj",
       "prop",
       "engrad",
-      "property",
+      "property"
    ],
-   prescript: [
-      "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $ncore end\" $inp",
+   "positionargs": [
+      "inp"
    ],
+   "stdout": "out",
+   "makejobdir": "True",
+   "inputfiles": [
+      "inp"
+   ],
+   "filenames": {
+      "xyz": "job.xyz",
+      "gbw": "job.gbw",
+      "out": "job.out",
+      "engrad": "job.engrad",
+      "opt": "job.opt",
+      "prop": "job.prop",
+      "property": "job_property.txt",
+      "trj": "job.trj",
+      "inp": "job.inp"
+   }
 }

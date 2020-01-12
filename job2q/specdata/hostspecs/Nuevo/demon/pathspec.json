@@ -1,0 +1,19 @@
+{
+   "defaults": {
+      "version": "",
+      "parameters": {
+         "basis": ""
+      }
+   },
+   "parameters": {
+      "basis": ""
+   },
+   "versions": {
+      "": {
+         "executable": "",
+         "profile": [
+            ""
+         ]
+      }
+   }
+}

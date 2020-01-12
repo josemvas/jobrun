@@ -1,47 +1,33 @@
 {
-   packagekey: "g",
-   packagename: "Gaussian",
-   parallelization: "openmp",
-   makejobdir: "True",
-   filecheck: "gjf or com",
-   fileclash: "gjf and com",
-   filenames: {
-      com: "job.com",
-      gjf: "job.gjf",
-      log: "job.log",
-      chk: "job.chk",
-      wfn: "job.wfn",
-      cub: "job.cub",
-      oldchk: "job.oldchk",
-   },
-   filevars: {
-      com: "com",
-      gjf: "gjf",
-      chk: "chk",
-      oldchk: "oldchk",
-   },
-   "inputfiles": [
-      "gjf|com",
-      "oldchk",
+   "parallelization": "openmp",
+   "packagekey": "g",
+   "packagename": "Gaussian",
+   "prescript": [
+      "sed -i \"/^%/d\" @($gjf|$com)",
+      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
    ],
-   outputfiles: [
+   "filecheck": "gjf or com",
+   "fileclash": "gjf and com",
+   "filevars": {
+      "gjf": "gjf",
+      "chk": "chk",
+      "oldchk": "oldchk",
+      "com": "com"
+   },
+   "profile": [
+      "export GAUSS_SCRDIR=$workdir"
+   ],
+   "outputfiles": [
       "gjf|com",
       "log",
       "chk",
       "wfn",
-      "cub",
+      "cub"
    ],
-   positionargs: [
-      "gjf|com",
-   ],
-   profile: [
-      "export GAUSS_SCRDIR=$workdir",
-   ],
-   prescript: [
-      "sed -i \"/^%/d\" @($gjf|$com)",
-      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
-      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
-      "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)",
+   "positionargs": [
+      "gjf|com"
    ],
    "formatkeys": [
       "title",
@@ -50,6 +36,20 @@
       "pseudo",
       "charge",
       "spin",
-      "solvent",
+      "solvent"
    ],
+   "makejobdir": "True",
+   "inputfiles": [
+      "gjf|com",
+      "oldchk"
+   ],
+   "filenames": {
+      "wfn": "job.wfn",
+      "cub": "job.cub",
+      "oldchk": "job.oldchk",
+      "gjf": "job.gjf",
+      "chk": "job.chk",
+      "log": "job.log",
+      "com": "job.com"
+   }
 }

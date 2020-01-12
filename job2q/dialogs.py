@@ -3,10 +3,9 @@ import sys
 import readline
 from glob import glob
 from os import path, getcwd
-
 from . import messages
 from .utils import realpath, wordjoin
-from .decorators import override_with_bulletin, catch_keyboard_interrupt, join_positional_args
+from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
@@ -67,7 +66,7 @@ def yesno(prompt='', default=None):
 
 @join_positional_args
 @catch_keyboard_interrupt
-@override_with_bulletin
+@override_dialogs
 def chooseone(prompt='', choices=[]):
     readline.set_completer(tabCompleter(choices).tclist)
     print(prompt)
@@ -82,7 +81,7 @@ def chooseone(prompt='', choices=[]):
 
 @join_positional_args
 @catch_keyboard_interrupt
-@override_with_bulletin
+@override_dialogs
 def choosemany(prompt='', choices=[], default=[]):
     readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)
     print(prompt)

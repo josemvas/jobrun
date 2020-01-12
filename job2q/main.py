@@ -5,7 +5,6 @@ from socket import gethostname, gethostbyname
 from tempfile import NamedTemporaryFile
 from shutil import copyfile
 from time import sleep
-
 from . import dialogs
 from . import messages
 from .parsing import parsebool
@@ -96,14 +95,15 @@ def submit():
     
     if path.isdir(outputdir):
         if path.isdir(hiddendir):
-            try:
-                lastjob = max(listdir(hiddendir), key=int)
-            except ValueError:
-                pass
-            else:
-                jobstate = scheduler.chkjob(lastjob)
-                if jobstate:
-                    messages.failure(jobstate.format(jobname=jobname, jobid=lastjob))
+            idlist = []
+            for i in listdir(hiddendir):
+                try: idlist.append(int(i))
+                except ValueError: pass
+            if idlist:
+                idlist.sort()
+                jobstate = scheduler.chkjob(str(idlist[-1]))
+                if callable(jobstate):
+                    messages.failure(jobstate(jobname=jobname, jobid=idlist[-1]))
                     return
         elif path.exists(hiddendir):
             messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
@@ -143,7 +143,7 @@ def submit():
                 if path.isfile(pathjoin(localdir, (filename, key))):
                     action(pathjoin(localdir, (filename, key)), pathjoin(outputdir, (filename, key)))
     
-    control.append(scheduler.jobname.format(jobname))
+    control.append(scheduler.jobname(jobname))
     environment.append("jobname=" + jobname)
 
     with NamedTemporaryFile(mode='w+t', delete=False) as t:

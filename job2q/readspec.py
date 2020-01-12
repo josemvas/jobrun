@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import json5 as json
-
+import json
 from . import messages
 from .strings import listTags, dictTags, textTags
 
@@ -21,7 +20,7 @@ class BunchList(list):
                 elif other[i] == self[i]:
                     pass # same leaf value
                 else:
-                    raise Exception('Conflict at' + ' ' + str(i))
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self.append(other[i])
 
@@ -55,12 +54,7 @@ class BunchDict(dict):
                 elif other[i] == self[i]:
                     pass # same leaf value
                 else:
-                    print(i, self[i])
-                    print(i, other[i])
-                    print(hasattr(self[i], 'merge'))
-                    print(type(self[i]).__name__)
-                    print(type(other[i]).__name__)
-                    raise Exception('Conflict at' + ' ' + str(i))
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self[i] = other[i]
 

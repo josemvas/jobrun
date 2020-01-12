@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 import sys
-from builtins import str
 from collections import Iterable
 from errno import EEXIST, ENOENT
 from itertools import repeat
-
 from . import messages
 
 home = os.path.expanduser('~')
@@ -60,7 +59,6 @@ def linejoin(*args):
 
 def pathjoin(*args):
     return iterjoin(*args, sepgen=iter(os.path.sep + '.-'))
-    #return os.path.join(*['.'.join(str(j) for j in i) if type(i) is list else str(i) for i in args])
 
 def p(string):
     return '({0})'.format(string)
@@ -71,7 +69,7 @@ def q(string):
 def qq(string):
     return '"\'{0}\'"'.format(string)
 
-def natsort(text):
+def natural(text):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
 
 def alnum(string): 

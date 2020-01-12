@@ -1,28 +1,28 @@
 {
-   versions: {
-      "09C": {
-         executable: "g09",
-         profile: [
-            "export g09root=/opt/packages/Gaussian/G09/C01",
-            "source /opt/packages/Gaussian/G09/C01/g09/bsd/g09.profile",
-         ],
-      },
+   "defaults": {
+      "version": "09E"
+   },
+   "versions": {
       "09D": {
-         executable: "g09",
-         profile: [
+         "executable": "g09",
+         "profile": [
             "export g09root=/opt/packages/Gaussian/G09/D01",
-            "source /opt/packages/Gaussian/G09/D01/g09/bsd/g09.profile",
-         ],
+            "source /opt/packages/Gaussian/G09/D01/g09/bsd/g09.profile"
+         ]
       },
       "09E": {
-         executable: "g09",
-         profile: [
+         "executable": "g09",
+         "profile": [
             "export g09root=/opt/packages/Gaussian/G09/E01",
-            "source /opt/packages/Gaussian/G09/E01/g09/bsd/g09.profile",
-         ],
+            "source /opt/packages/Gaussian/G09/E01/g09/bsd/g09.profile"
+         ]
       },
-   },
-   "defaults": {
-      version: "09E",
-   },
+      "09C": {
+         "executable": "g09",
+         "profile": [
+            "export g09root=/opt/packages/Gaussian/G09/C01",
+            "source /opt/packages/Gaussian/G09/C01/g09/bsd/g09.profile"
+         ]
+      }
+   }
 }

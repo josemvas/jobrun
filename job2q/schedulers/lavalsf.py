@@ -5,26 +5,26 @@ from re import search
 from subprocess import Popen, PIPE, STDOUT 
 
 jobid = '%J'
-hosts = "#BSUB -m '{0}'"
-queue = "#BSUB -q '{0}'"
-ncore = "#BSUB -n '{0}'"
-label = "#BSUB -P '{0}'"
-stdout = "#BSUB -o '{0}'"
-stderr = "#BSUB -e '{0}'"
-jobidvar = '$LSB_JOBID'
-jobname = "#BSUB -J '{0}'"
-singlehost = "#BSUB -R 'span[hosts=1]'"
+jobname = '#BSUB -J "{0}"'.format
+hosts = '#BSUB -m "{0}"'.format
+ncore = '#BSUB -n "{0}"'.format
+nhost = '#BSUB -R "span[hosts={0}]"'.format
+queue = '#BSUB -q "{0}"'.format
+stdout = '#BSUB -o "{0}"'.format
+stderr = '#BSUB -e "{0}"'.format
+label = '#BSUB -P "{0}"'.format
 
-mpirun = {
+jobvars = {
+    'jobid' : '$LSB_JOBID',
+    'ncore' : '$(echo $LSB_HOSTS | wc -w)',
+    'iplist' : '$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
+}
+
+mpilauncher = {
     'openmpi' : 'openmpi-mpirun',
     'intelmpi' : 'impi-mpirun',
     'mpich' : 'mpich-mpirun',
 }
-
-environment = (
-    'ncore=$(echo $LSB_HOSTS | wc -w)',
-    'iplist=$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
-)
 
 blocking_states = {
     'PEND': 'El trabajo "{jobname}" no se envió porque ya está encolado con jobid {jobid}',
@@ -57,15 +57,14 @@ def chkjob(jobid):
     error = error.decode('utf-8').strip()
     if p.returncode == 0:
         if output in blocking_states:
-            return blocking_states[output]
+            return blocking_states[output].format
         elif output in ready_states:
-            return False
+            return None
         else:
             return 'El trabajo "{jobname}" no se envió porque su estado no está registrado": ' + output.strip()
     else:
         if error.endswith('is not found'):
-            return False
+            return None
         else:
             return 'El trabajo "{jobname}" no se envió porque ocurrió error al revisar su estado": ' + error
        
-

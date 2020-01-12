@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas, alphanums
+from . import messages
 
 class BoolOperand(object):
     def __init__(self, t, context):
@@ -7,7 +8,7 @@ class BoolOperand(object):
         try:
             self.value = context[t[0]]
         except KeyError as e:
-            raise Exception('Undefined BoolOperand context "{0}"'.format(e.args[0]))
+            messages.runerror('Un operando no fue definido:', e.args[0])
     def __bool__(self):
         return self.value
     def __str__(self):
