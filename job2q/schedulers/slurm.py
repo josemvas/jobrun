@@ -5,14 +5,14 @@ from re import search
 from subprocess import Popen, PIPE
 
 jobid = '%A'
-jobname = '#SBATCH -J "{0}"'format
-hosts = '#SBATCH -w "{0}"'format
-ncore = '#SBATCH -n "{0}"'format
+jobname = '#SBATCH -J "{0}"'.format
+hosts = '#SBATCH -w "{0}"'.format
+ncore = '#SBATCH -n "{0}"'.format
 nhost = '#SBATCH -N "{0}"'.format
-queue = '#SBATCH -p "{0}"'format
-stdout = '#SBATCH -o "{0}"'format
-stderr = '#SBATCH -e "{0}"'format
-label = '#SBATCH --comment="{0}"'format
+queue = '#SBATCH -p "{0}"'.format
+stdout = '#SBATCH -o "{0}"'.format
+stderr = '#SBATCH -e "{0}"'.format
+label = '#SBATCH --comment="{0}"'.format
 
 jobvars = {
     'jobid' : '$SLURM_JOB_ID',
