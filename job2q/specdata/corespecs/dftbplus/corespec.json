@@ -1,5 +1,38 @@
 {
+   "packagekey": "plus",
+   "packagename": "DFTB+",
+   "parallelization": "openmp",
    "makejobdir": "True",
+   "filecheck": "dftb_in.hsd",
+   "stdout": "dftb_out.log",
+   "filenames": {
+      "dftb_in.hsd": "dftb_in.hsd",
+      "dftb_pin.hsd": "dftb_pin.hsd",
+      "dftb_out.log": "dftb_out.log",
+      "charges.bin": "charges.bin",
+      "geo_end.xyz": "geo_end.xyz",
+      "geo_end.gen": "geo_end.gen",
+      "results.tag": "results.tag",
+      "detailed.out": "detailed.out",
+      "detailed.xml": "detailed.xml",
+      "autotest.tag": "autotest.tag",
+      "hessian.out": "hessian.out",
+      "band.out": "band.out",
+      "md.out": "md.out",
+      "EXC.DAT": "EXC.DAT",
+      "TRA.DAT": "TRA.DAT",
+      "SPX.DAT": "SPX.DAT",
+      "XCH.DAT": "XCH.DAT",
+      "XREST.DAT": "XREST.DAT",
+      "COEF.DAT": "COEF.DAT",
+      "XplusY.DAT": "XplusY.DAT",
+      "TDP.DAT": "TDP.DAT",
+      "ARPACK.DAT": "ARPACK.DAT",
+      "TEST_ARPACK.DAT": "TEST_ARPACK.DAT"
+   },
+   "filevars": {
+      "dftbin": "dftb_in.hsd"
+   },
    "inputfiles": [
       "dftb_in.hsd",
       "charges.bin"
@@ -29,40 +62,7 @@
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
    ],
-   "stdout": "dftb_out.log",
-   "packagekey": "plus",
-   "packagename": "DFTB+",
    "prescript": [
       "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
-   ],
-   "filecheck": "dftb_in.hsd",
-   "parallelization": "openmp",
-   "filenames": {
-      "TRA.DAT": "TRA.DAT",
-      "ARPACK.DAT": "ARPACK.DAT",
-      "XREST.DAT": "XREST.DAT",
-      "detailed.out": "detailed.out",
-      "detailed.xml": "detailed.xml",
-      "charges.bin": "charges.bin",
-      "TEST_ARPACK.DAT": "TEST_ARPACK.DAT",
-      "XCH.DAT": "XCH.DAT",
-      "dftb_in.hsd": "dftb_in.hsd",
-      "md.out": "md.out",
-      "TDP.DAT": "TDP.DAT",
-      "band.out": "band.out",
-      "XplusY.DAT": "XplusY.DAT",
-      "dftb_pin.hsd": "dftb_pin.hsd",
-      "EXC.DAT": "EXC.DAT",
-      "geo_end.xyz": "geo_end.xyz",
-      "geo_end.gen": "geo_end.gen",
-      "dftb_out.log": "dftb_out.log",
-      "results.tag": "results.tag",
-      "SPX.DAT": "SPX.DAT",
-      "hessian.out": "hessian.out",
-      "COEF.DAT": "COEF.DAT",
-      "autotest.tag": "autotest.tag"
-   },
-   "filevars": {
-      "dftbin": "dftb_in.hsd"
-   }
+   ]
 }
