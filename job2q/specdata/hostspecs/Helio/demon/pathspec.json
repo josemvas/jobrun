@@ -1,37 +1,37 @@
 {
-   "defaults": {
-      "version": "6.0.1",
-      "parameters": {
-         "basis": "default"
+   "versions": {
+      "6.0.1": {
+         "profile": [
+            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+         ],
+         "executable": "/opt/packages/deMon2k/deMon/6.0.1/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
+      },
+      "6.0.1.d2": {
+         "profile": [
+            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+         ],
+         "executable": "/opt/packages/deMon2k/demon/6.0.1.d2a/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
+      },
+      "6.0.1.d2avx": {
+         "profile": [
+            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+         ],
+         "executable": "/opt/packages/deMon2k/demon/6.0.1.d2a/object.mpi-ic17AVX/deMon.6.0.1.mpi"
+      },
+      "6.0.1.nl": {
+         "profile": [
+            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+         ],
+         "executable": "/opt/packages/deMon2k/demon/6.0.1.vtmd/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
       }
    },
    "parameters": {
       "basis": "/opt/parameters/deMon2k"
    },
-   "versions": {
-      "6.0.1.nl": {
-         "executable": "/opt/packages/deMon2k/demon/6.0.1.vtmd/object.mpi-ic17SSE42/deMon.6.0.1.mpi",
-         "profile": [
-            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ]
-      },
-      "6.0.1.d2avx": {
-         "executable": "/opt/packages/deMon2k/demon/6.0.1.d2a/object.mpi-ic17AVX/deMon.6.0.1.mpi",
-         "profile": [
-            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ]
-      },
-      "6.0.1.d2": {
-         "executable": "/opt/packages/deMon2k/demon/6.0.1.d2a/object.mpi-ic17SSE42/deMon.6.0.1.mpi",
-         "profile": [
-            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ]
-      },
-      "6.0.1": {
-         "executable": "/opt/packages/deMon2k/deMon/6.0.1/object.mpi-ic17SSE42/deMon.6.0.1.mpi",
-         "profile": [
-            "source /opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ]
+   "defaults": {
+      "version": "6.0.1",
+      "parameters": {
+         "basis": "default"
       }
    }
 }

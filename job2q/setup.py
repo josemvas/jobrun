@@ -30,7 +30,7 @@ def setup():
     sourcedir = path.dirname(path.realpath(__file__))
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
-    specdir = path.join(etcdir, 'specs')
+    specdir = path.join(etcdir, 'jobspecs')
     
     hostname = dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(hostspecdir), key=natural))
     
@@ -83,6 +83,8 @@ def setup():
             chmod(path.join(bindir, package), 0o755)
 
 
+
+#    import json
 #    with open(path.join(hostspecdir, 'Miztli','hostspec.json'), 'w') as fh:
 #        json.dump(readxmlspec(path.join(hostspecdir, 'Miztli', 'hostspec.xml')), fh, indent=3)
 #    with open(path.join(hostspecdir, 'Helio','hostspec.json'), 'w') as fh:

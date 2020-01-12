@@ -22,12 +22,13 @@ specdir = path.expanduser(config.specdir)
 hostspec = path.join(specdir, 'hostspec.json')
 corespec = path.join(specdir, 'corespec.json')
 pathspec = path.join(specdir, 'pathspec.json')
-userspec = path.join(home, '.jobspecs', 'jobspec.json')
-#TODO: commonspec =
 
 jobconf = readspec(hostspec)
 jobconf.merge(readspec(corespec))
 jobconf.merge(readspec(pathspec))
+
+#TODO: commonspec =
+userspec = path.join(home, '.jobspec.json')
 if path.isfile(userspec):
     jobconf.merge(readspec(userspec))
 
