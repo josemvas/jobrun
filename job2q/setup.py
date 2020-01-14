@@ -12,8 +12,10 @@ from .readxmlspec import readxmlspec
 
 loader_script = r'''
 #!/bin/sh
-'exec' 'env' "LD_LIBRARY_PATH={pylibs}:$LD_LIBRARY_PATH" \
-'{python}' "$0" "$@" '--specdir={specdir}'
+'exec' 'env' \
+"LD_LIBRARY_PATH={pylibs}:$LD_LIBRARY_PATH" \
+'JOBSPEC_PATH={specdir}' \
+'{python}' "$0" "$@"
 
 from job2q import main
 main.submit()
@@ -81,7 +83,6 @@ def setup():
                     pylibs=pathsep.join(libraries),
                     specdir=contractuser(path.join(specdir, package))))
             chmod(path.join(bindir, package), 0o755)
-
 
 
 #    import json
