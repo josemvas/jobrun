@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from errno import ENOENT
-from os import path, listdir
+from os import path, listdir, environ
 from argparse import ArgumentParser
 from importlib import import_module
 from pathlib import Path
@@ -14,10 +14,7 @@ from .strings import mpiLibs, boolStrings
 from .chemistry import readxyz
 
 alias = path.basename(sys.argv[0])
-parser = ArgumentParser(add_help=False)
-parser.add_argument('--specdir', metavar='SPECDIR', type=str, dest='specdir', required=True, help='Directorio de configuración del trabajo.')
-config, remaining = parser.parse_known_args()
-specdir = path.expanduser(config.specdir)
+specdir = path.expanduser(environ['JOBSPEC_PATH'])
 
 hostspec = path.join(specdir, 'hostspec.json')
 corespec = path.join(specdir, 'corespec.json')
@@ -61,7 +58,7 @@ for key in jobconf.parameters:
     parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
 for key in jobconf.formatkeys:
     parser.add_argument('--' + key, metavar='VALUE', type=str, dest=key, help='Valor de la variable de interpolación.')
-optconf, remaining = parser.parse_known_args(remaining)
+optconf, remaining = parser.parse_known_args()
 
 if optconf.listoptions:
     if jobconf.versions:

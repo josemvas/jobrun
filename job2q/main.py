@@ -2,7 +2,6 @@
 from errno import ENOENT
 from os import path, listdir
 from socket import gethostname, gethostbyname
-from tempfile import NamedTemporaryFile
 from shutil import copyfile
 from time import sleep
 from . import dialogs
@@ -95,16 +94,15 @@ def submit():
     
     if path.isdir(outputdir):
         if path.isdir(hiddendir):
-            idlist = []
-            for i in listdir(hiddendir):
-                try: idlist.append(int(i))
-                except ValueError: pass
-            if idlist:
-                idlist.sort()
-                jobstate = scheduler.chkjob(str(idlist[-1]))
-                if callable(jobstate):
-                    messages.failure(jobstate(jobname=jobname, jobid=idlist[-1]))
-                    return
+            try:
+                with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
+                    jobid = t.read()
+                    jobstate = scheduler.chkjob(jobid)
+                    if callable(jobstate):
+                        messages.failure(jobstate(jobname=jobname, jobid=jobid))
+                        return
+            except FileNotFoundError:
+                pass
         elif path.exists(hiddendir):
             messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
             return
@@ -146,7 +144,7 @@ def submit():
     control.append(scheduler.jobname(jobname))
     environment.append("jobname=" + jobname)
 
-    with NamedTemporaryFile(mode='w+t', delete=False) as t:
+    with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
         t.write(linejoin(i for i in control))
         t.write(linejoin(i for i in environment))
         t.write('for ip in ${iplist[*]}; do' + '\n')
@@ -164,13 +162,15 @@ def submit():
         t.write('done' + '\n')
         t.write(linejoin(wordjoin('ssh', master, q(i)) for i in jobconf.offscript))
     
-    try: jobid = scheduler.submit(t.name)
-    except RuntimeError as e:
+    jobid = scheduler.submit(t.name)
+
+    if jobid is None:
         messages.failure('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
-    else:
-        messages.success('El trabajo', q(jobname), 'se correrá en', str(optconf.ncore), 'núcleo(s) de CPU con el jobid', jobid)
-        copyfile(t.name, pathjoin(hiddendir, jobid))
-        remove(t.name)
+        return
+
+    messages.success('El trabajo', q(jobname), 'se correrá en', str(optconf.ncore), 'núcleo(s) de CPU con el jobid', jobid)
+    with open(pathjoin(hiddendir, 'jobid'), 'w') as t:
+        t.write(jobid)
     
 if __name__ == '__main__':
     submit()
