@@ -65,7 +65,7 @@ def setup():
 
     if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto?'):
 
-        for line in check_output(('ldd', sys.executable)).decode('utf-8').splitlines():
+        for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
             matching = search(r'=> (.+) \(0x', line)
             if matching:
                 libraries.add(path.dirname(matching.group(1)))

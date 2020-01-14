@@ -55,8 +55,8 @@ def submit(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen('sbatch', stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
-    output = output.decode('utf-8').strip()
-    error = error.decode('utf-8').strip()
+    output = output.decode(sys.stdout.encoding).strip()
+    error = error.decode(sys.stdout.encoding).strip()
     if p.returncode == 0:
         return search(r' ([0-9]+)$', output).group(1)
     else:
@@ -65,8 +65,8 @@ def submit(jobscript):
 def chkjob(jobid):
     p = Popen(('squeue', '--noheader', '-o%T', '-j', jobid), stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
-    output = output.decode('utf-8').strip()
-    error = error.decode('utf-8').strip()
+    output = output.decode(sys.stdout.encoding).strip()
+    error = error.decode(sys.stdout.encoding).strip()
     if p.returncode == 0:
         if output in blocking_states:
             return blocking_states[output].format
