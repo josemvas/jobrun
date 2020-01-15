@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from errno import ENOENT
 from os import path, listdir
 from socket import gethostname, gethostbyname
 from shutil import copyfile
 from time import sleep
 from . import dialogs
 from . import messages
-from .parsing import parsebool
+from .parsing import BoolParser
 from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
 from .getconf import jobconf, scheduler, optconf, filelist, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
@@ -47,12 +46,12 @@ def submit():
     filebools = { i : path.isfile(pathjoin(localdir, (filename, i))) for i in jobconf.filenames }
 
     if 'filecheck' in jobconf:
-        if not parsebool(jobconf.filecheck, filebools):
+        if not BoolParser(jobconf.filecheck).ev(filebools):
             messages.failure('Falta(n) alguno(s) de los archivos de entrada requeridos')
             return
     
     if 'fileclash' in jobconf:
-        if parsebool(jobconf.fileclash, filebools):
+        if BoolParser(jobconf.fileclash).ev(filebools):
             messages.failure('Hay un conflicto entre algunos de los archivos de entrada')
             return
     
