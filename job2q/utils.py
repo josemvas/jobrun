@@ -3,7 +3,6 @@ import os
 import re
 import sys
 from collections import Iterable
-from errno import EEXIST, ENOENT
 from itertools import repeat
 from . import messages
 
@@ -12,30 +11,25 @@ home = os.path.expanduser('~')
 def makedirs(path):
     try: os.makedirs(path)
     except FileExistsError as e:
-        if e.errno != EEXIST:
-            raise
+        pass
 
 def remove(path):
     try: os.remove(path)
     except FileNotFoundError as e:
-        if e.errno != ENOENT:
-            raise
+        pass
 
 def rmdir(path):
     try: os.rmdir(path)
     except FileNotFoundError as e:
-        if e.errno != ENOENT:
-            raise
+        pass
 
 def hardlink(source, dest):
     try: os.link(source, dest)
     except FileExistsError as e:
-        if e.errno == EEXIST:
-            os.remove(dest)
-            os.link(source, dest)
+        os.remove(dest)
+        os.link(source, dest)
     except FileNotFoundError as e:
-        if e.errno != ENOENT:
-            raise
+        pass
 
 def contractuser(path):
     if path == home:

@@ -8,7 +8,6 @@ from . import dialogs
 from . import messages
 from .utils import rmdir, makedirs, hardlink, realpath, contractuser, natural
 from .readspec import readspec
-from .readxmlspec import readxmlspec
 
 loader_script = r'''
 #!/bin/sh
@@ -84,8 +83,8 @@ def setup():
                     specdir=contractuser(path.join(specdir, package))))
             chmod(path.join(bindir, package), 0o755)
 
-
 #    import json
+#    from .readxmlspec import readxmlspec
 #    with open(path.join(hostspecdir, 'Miztli','hostspec.json'), 'w') as fh:
 #        json.dump(readxmlspec(path.join(hostspecdir, 'Miztli', 'hostspec.xml')), fh, indent=3)
 #    with open(path.join(hostspecdir, 'Helio','hostspec.json'), 'w') as fh:

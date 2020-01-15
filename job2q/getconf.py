@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from errno import ENOENT
 from os import path, listdir, environ
 from argparse import ArgumentParser
 from importlib import import_module
@@ -169,8 +168,7 @@ for key in jobconf.parameters:
     parameterset = getattr(optconf, key)
     try: options = listdir(parameterdir)
     except FileNotFoundError as e:
-        if e.errno == ENOENT:
-            messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
+        messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
     if not options:
         messages.cfgerror('El directorio de parámetros', parameterdir, 'está vacío')
     if parameterset is None:
