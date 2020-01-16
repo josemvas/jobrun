@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import re
 import sys
-from re import search
-from subprocess import check_output
-from os import path, listdir, chmod, pathsep
 from shutil import copyfile
+from os import path, listdir, chmod, pathsep
+from subprocess import check_output, DEVNULL
 from . import dialogs
 from . import messages
 from .utils import rmdir, makedirs, hardlink, realpath, contractuser, natural
@@ -11,10 +11,10 @@ from .readspec import readspec
 
 loader_script = r'''
 #!/bin/sh
-'exec' 'env' \
-"LD_LIBRARY_PATH={pylibs}:$LD_LIBRARY_PATH" \
-'JOBSPEC_PATH={specdir}' \
-'{python}' "$0" "$@"
+'export' 'PATH=/bin:/usr/bin'
+'export' 'LD_LIBRARY_PATH={libpath}'
+'source' '{scheduler}'
+'exec' 'env' 'SPECPATH={specdir}' '{python}' "$0" "$@"
 
 from job2q import main
 main.submit()
@@ -25,6 +25,11 @@ while main.filelist:
 
 def setup():
 
+    libpath = []
+    configured = []
+    pylibpath = []
+    available = {}
+    
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los ejecutables')
     etcdir = dialogs.inputpath('Escriba la ruta donde se instalará la configuración')
     
@@ -38,10 +43,10 @@ def setup():
     if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.json')):
         messages.cfgerror('El archivo de configuración del host', hostname, 'no existe')
     
-    available = {}
-    configured = []
-    libraries = set()
-    
+    scheduler = readspec(path.join(hostspecdir, hostname,'hostspec.json')).scheduler
+    if not scheduler.profile:
+        messages.cfgerror('No se especificó el archivo de entorno para inicializar el sistema de colas')
+
     if path.isfile(path.join(specdir, 'hostspec.json')):
         if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto?'):
             copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(specdir, 'hostspec.json'))
@@ -51,9 +56,9 @@ def setup():
          
     for package in listdir(path.join(hostspecdir, hostname)):
         if path.isdir(path.join(hostspecdir, hostname, package)):
-            packagename = readspec(path.join(corespecdir, package, 'corespec.json'), 'packagename')
-            if packagename is None:
-                messages.cfgerror('El archivo', path.join(corespecdir, package, 'corespec.json'), 'no tiene un título')
+            packagename = readspec(path.join(corespecdir, package, 'corespec.json')).packagename
+            if not packagename:
+                messages.cfgerror('El archivo', path.join(corespecdir, package, 'corespec.json'), 'no tiene un nombre')
             available[packagename] = package
             if path.isdir(path.join(specdir, package)):
                 configured.append(packagename)
@@ -66,10 +71,17 @@ def setup():
 
     if set(selected).isdisjoint(configured) or dialogs.yesno('Algunos de los paquetes seleccionados ya están configurados, ¿está seguro que quiere restablecer sus configuraciones por defecto?'):
 
+        for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
+            match = re.search(r'^([^\t]+):$', line)
+            if match and match.group(1) not in libpath:
+                libpath.append(match.group(1))
+
         for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
-            matching = search(r'=> (.+) \(0x', line)
-            if matching:
-                libraries.add(path.dirname(matching.group(1)))
+            match = re.search(r'=> (.+) \(0x', line)
+            if match:
+                libdir = path.dirname(match.group(1))
+                if libdir not in libpath and libdir not in pylibpath:
+                    pylibpath.append(libdir)
 
         for package in (available[i] for i in selected):
             makedirs(path.join(specdir, package))
@@ -79,7 +91,8 @@ def setup():
             with open(path.join(bindir, package), 'w') as fh:
                 fh.write(loader_script.lstrip().format(
                     python=sys.executable,
-                    pylibs=pathsep.join(libraries),
+                    scheduler=scheduler.profile,
+                    libpath=pathsep.join(pylibpath),
                     specdir=contractuser(path.join(specdir, package))))
             chmod(path.join(bindir, package), 0o755)
 

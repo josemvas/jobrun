@@ -1,5 +1,8 @@
 {
-   "scheduler": "",
+   "scheduler": {
+      "name" : "",
+      "profile" : ""
+   },
    "defaults": {
       "queue": "",
       "scratch": "",

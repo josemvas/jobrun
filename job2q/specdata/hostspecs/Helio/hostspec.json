@@ -1,5 +1,8 @@
 {
-   "scheduler": "lavalsf",
+   "scheduler": {
+      "name" : "lavalsf",
+      "profile" : "/etc/profile.d/login.d/openlava.sh"
+   },
    "defaults": {
       "queue": "auto",
       "scratch": "/scratch",

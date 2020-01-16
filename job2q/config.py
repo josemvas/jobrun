@@ -9,11 +9,11 @@ from . import messages
 from . import tkboxes
 from .readspec import readspec, BunchDict
 from .utils import home, wordjoin, pathjoin, realpath, natural, p
-from .strings import mpiLibs, boolStrings
+from .strings import mpiLibs, boolStrDict
 from .chemistry import readxyz
 
 alias = path.basename(sys.argv[0])
-specdir = path.expanduser(environ['JOBSPEC_PATH'])
+specdir = path.expanduser(environ['SPECPATH'])
 
 hostspec = path.join(specdir, 'hostspec.json')
 corespec = path.join(specdir, 'corespec.json')
@@ -24,11 +24,14 @@ jobconf.merge(readspec(corespec))
 jobconf.merge(readspec(pathspec))
 
 #TODO: commonspec =
-userspec = path.join(home, '.jobspec.json')
+userspec = path.join(home, '.jobspec')
 if path.isfile(userspec):
     jobconf.merge(readspec(userspec))
 
-scheduler = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
+if not jobconf.scheduler.name:
+    messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
+
+scheduler = import_module('.schedulers.' + jobconf.scheduler.name, package='job2q')
 scheduler.jobvars = BunchDict(scheduler.jobvars)
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
@@ -39,18 +42,18 @@ parser.add_argument('-n', '--ncore', metavar='#CORES', type=int, dest='ncore', d
 parser.add_argument('-N', '--nhost', metavar='#HOSTS', type=int, dest='nhost', default=1, help='Número de nodos de ejecución requeridos.')
 parser.add_argument('-w', '--wait', metavar='TIME', type=float, dest='waitime', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 parser.add_argument('-t', '--template', action='store_true', dest='template', help='Interpolar los archivos de entrada.')
+parser.add_argument('-m', '--mol', metavar='MOLFILE', type=str, dest='molfile', help='Ruta del archivo de coordenadas para la interpolación.')
 parser.add_argument('-j', '--jobname', metavar='MOLNAME', type=str, dest='jobname', help='Nombre del trabajo de interpolación.')
 parser.add_argument('-s', '--sort', dest='sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
-parser.add_argument('-S', '--sortreverse', dest='sortreverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
+parser.add_argument('-S', '--revsort', dest='revsort', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
 parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
 parser.add_argument('-X', '--xdialog', dest='xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
-parser.add_argument('-H', '--here', action='store_true', dest='here', help='Usar la carpeta actual como carpeta de salida')
+parser.add_argument('-H', '--host', metavar='HOSTNAME', type=str, dest='exechost', help='Solicitar un nodo específico de ejecución por su nombre.')
 parser.add_argument('--si', '--yes', dest='defaultanswer', action='store_true', default=None, help='Responder "si" a todas las preguntas.')
 parser.add_argument('--no', dest='defaultanswer', action='store_false', default=None, help='Responder "no" a todas las preguntas.')
 parser.add_argument('--move', dest='move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
+parser.add_argument('--here', action='store_true', dest='here', help='Usar la carpeta actual como carpeta de salida')
 parser.add_argument('--scratch', metavar='SCRATCHDIR', type=str, dest='scratch', help='Cambiar el directorio temporal de escritura.')
-parser.add_argument('--host', metavar='HOSTNAME', type=str, dest='exechost', help='Solicitar un nodo específico de ejecución por su nombre.')
-parser.add_argument('--mol', metavar='MOLFILE', type=str, dest='molfile', help='Ruta del archivo de coordenadas para la interpolación.')
 if len(jobconf.parameters) == 1:
     parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobconf.parameters)[0], help='Nombre del conjunto de parámetros.')
 for key in jobconf.parameters:
@@ -82,11 +85,8 @@ if optconf.xdialog:
 
 if optconf.sort:
     optconf.filelist.sort(key=natural)
-elif optconf.sortreverse:
+elif optconf.revsort:
     optconf.filelist.sort(key=natural, reverse=True)
-
-if not jobconf.scheduler:
-    messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
 
 if not optconf.scratch:
     if jobconf.defaults.scratch:
@@ -109,14 +109,14 @@ if not jobconf.packagekey:
     messages.cfgerror('<title> No se especificó la clave del programa')
 
 if jobconf.makejobdir:
-    try: jobconf.makejobdir = boolStrings[jobconf.makejobdir]
+    try: jobconf.makejobdir = boolStrDict[jobconf.makejobdir]
     except KeyError:
         messages.cfgerror('<outputdir> El texto de este tag debe ser "True" or "False"')
 else:
     messages.cfgerror('<outputdir> No se especificó si se requiere crear una carpeta de salida')
 
 if 'usempilauncher' in jobconf:
-    try: jobconf.usempilauncher = boolStrings[jobconf.usempilauncher]
+    try: jobconf.usempilauncher = boolStrDict[jobconf.usempilauncher]
     except KeyError:
         messages.cfgerror('<usempilauncher> El texto de este tag debe ser "True" o "False"')
 
@@ -215,7 +215,7 @@ else:
     messages.cfgerror('<parallelization> No se especificó el tipo de paralelización del programa')
 
 environment.extend('='.join(i) for i in scheduler.jobvars.items())
-environment.extend(jobconf.environment)
+environment.extend(jobconf.onscript)
 
 for profile in jobconf.profile + profile:
     environment.append(profile)

@@ -5,7 +5,7 @@ listTags = (
     'inputfiles',
     'outputfiles',
     'positionargs',
-    'environment',
+    'onscript',
     'offscript',
     'prescript',
     'postscript',
@@ -55,7 +55,7 @@ mpiLibs = (
     'mpich',
 )
 
-boolStrings = {
+boolStrDict = {
     'True' : True,
     'False' : False,
 }

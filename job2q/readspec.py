@@ -58,12 +58,7 @@ class BunchDict(dict):
             else:
                 self[i] = other[i]
 
-def readspec(jsonfile, key=None):
+def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
-        if key is None:
-            return BunchDict(json.load(fh))
-        else:
-            try: return json.load(fh)[key]
-            except KeyError:
-                return None
+        return BunchDict(json.load(fh))
 

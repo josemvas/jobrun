@@ -5,10 +5,10 @@ from shutil import copyfile
 from time import sleep
 from . import dialogs
 from . import messages
-from .parsing import BoolParser
 from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
-from .getconf import jobconf, scheduler, optconf, filelist, command, control, environment, keywords
+from .config import jobconf, optconf, scheduler, filelist, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
+from .boolparse import BoolParser
 from .strings import mpiLibs
 
 @catch_keyboard_interrupt
@@ -47,12 +47,12 @@ def submit():
 
     if 'filecheck' in jobconf:
         if not BoolParser(jobconf.filecheck).ev(filebools):
-            messages.failure('Falta(n) alguno(s) de los archivos de entrada requeridos')
+            messages.failure('No se encontraron todos los archivos de entrada requeridos')
             return
     
     if 'fileclash' in jobconf:
         if BoolParser(jobconf.fileclash).ev(filebools):
-            messages.failure('Hay un conflicto entre algunos de los archivos de entrada')
+            messages.failure('Hay un conflicto entre los archivos de entrada')
             return
     
     inputname = filename

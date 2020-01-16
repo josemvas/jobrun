@@ -1,6 +1,9 @@
 {
-   "scheduler": "platformlsf",
-   "environment": [
+   "scheduler": {
+      "name" : "platformlsf",
+      "profile" : "/usr/share/lsf/conf/profile.lsf"
+   },
+   "onscript": [
       "module purge"
    ],
    "defaults": {
