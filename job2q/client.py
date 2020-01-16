@@ -6,7 +6,7 @@ from time import sleep
 from . import dialogs
 from . import messages
 from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
-from .config import jobconf, optconf, scheduler, filelist, command, control, environment, keywords
+from .configure import jobconf, optconf, scheduler, filelist, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
 from .boolparse import BoolParser
 from .strings import mpiLibs

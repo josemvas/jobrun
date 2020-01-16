@@ -16,11 +16,11 @@ loader_script = r'''
 'source' '{scheduler}'
 'exec' 'env' 'SPECPATH={specdir}' '{python}' "$0" "$@"
 
-from job2q import main
-main.submit()
-while main.filelist:
-    main.wait()
-    main.submit()
+from job2q.client import submit, wait, filelist
+submit()
+while filelist:
+    wait()
+    submit()
 '''
 
 def setup():
