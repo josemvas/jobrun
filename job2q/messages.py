@@ -25,7 +25,7 @@ def opterror(message):
 
 @join_positional_args
 def cfgerror(message):
-    raise SystemExit(colors.red + '¡Error de configuración! {0}'.format(message) + colors.default)
+    raise SystemExit(colors.red + '[Error de configuración] {0}'.format(message) + colors.default)
 
 @join_positional_args
 def runerror(message):

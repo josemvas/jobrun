@@ -2,7 +2,7 @@
    "packagekey": "ad",
    "packagename": "AutoDock",
    "parallelization": "None",
-   "makejobdir": "True",
+   "makejobdir": "False",
    "filecheck": "dpf",
    "filenames": {
       "dpf": "job.dpf",
@@ -17,9 +17,5 @@
    "optionargs": {
       "p": "dpf",
       "l": "dlg"
-   },
-   "parameters": {
-      "ligand": ".",
-      "protein": "."
    }
 }

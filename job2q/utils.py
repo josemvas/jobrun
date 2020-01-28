@@ -63,7 +63,7 @@ def q(string):
 def qq(string):
     return '"\'{0}\'"'.format(string)
 
-def natural(text):
+def natsort(text):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
 
 def alnum(string): 

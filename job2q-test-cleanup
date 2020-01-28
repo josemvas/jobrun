@@ -4,7 +4,9 @@ find job2q -name \*.pyo -type f -delete
 find job2q -name __pycache__ -type d -delete
 find jobtests -mindepth 2 -type f -delete
 find jobtests -mindepth 1 -type d -delete
-rm -rf jobspecs
+find jobspecs -name \*.json -type f -delete
+find jobspecs -type d -delete
+rm -f hostspec.json
 rm -f autodock
 rm -f demon
 rm -f dftbplus

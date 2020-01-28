@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from os import path
 from . import colors
 
 def catch_keyboard_interrupt(f):
@@ -11,6 +12,11 @@ def catch_keyboard_interrupt(f):
 def join_positional_args(f):
     def wrapper(*args, **kwargs):
         return f(' '.join(args), **kwargs)
+    return wrapper
+
+def join_path_components(f):
+    def wrapper(*args, **kwargs):
+        return f(path.join(*args), **kwargs)
     return wrapper
 
 def override_dialogs(f):

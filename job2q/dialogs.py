@@ -33,18 +33,6 @@ def inputpath(prompt=''):
                 return realpath(answer)
             else:
                 print('Por favor indique una ruta válida')
-def yn(prompt='', default=None):
-    while True:
-        readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
-        answer = input('{} (s/n): '.format(prompt)).strip()
-        if answer:
-            if any(word.startswith(answer.lower()) for word in ('yes', 'si')):
-                return True
-            elif any(word.startswith(answer.lower()) for word in ('no')):
-                return False
-        else:
-            if isinstance(default, bool):
-                return default
 
 @join_positional_args
 @catch_keyboard_interrupt

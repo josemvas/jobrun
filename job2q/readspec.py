@@ -2,6 +2,7 @@
 import json
 from . import messages
 from .strings import listTags, dictTags, textTags
+from .decorators import join_path_components
 
 class BunchList(list):
     def __init__(self, parentlist):
@@ -58,7 +59,18 @@ class BunchDict(dict):
             else:
                 self[i] = other[i]
 
+def ordered(obj):
+    if isinstance(obj, dict):
+        return obj
+    if isinstance(obj, list):
+        return sorted(ordered(x) for x in obj)
+    else:
+        return obj
+
+@join_path_components
 def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
-        return BunchDict(json.load(fh))
+        try: return BunchDict(ordered(json.load(fh)))
+        except ValueError as e:
+            messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 

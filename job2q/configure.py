@@ -8,7 +8,7 @@ from . import dialogs
 from . import messages
 from . import tkboxes
 from .readspec import readspec, BunchDict
-from .utils import home, wordjoin, pathjoin, realpath, natural, p
+from .utils import home, wordjoin, pathjoin, realpath, natsort, p
 from .strings import mpiLibs, boolStrDict
 from .chemistry import readxyz
 
@@ -64,11 +64,11 @@ optconf, remaining = parser.parse_known_args()
 
 if optconf.listoptions:
     if jobconf.versions:
-        messages.listing('Versiones del ejecutable disponibles:', options=sorted(jobconf.versions, key=natural), default=jobconf.defaults.version)
+        messages.listing('Versiones del ejecutable disponibles:', options=sorted(jobconf.versions, key=natsort), default=jobconf.defaults.version)
     for key in jobconf.parameters:
-        messages.listing('Conjuntos de parámetros disponibles', p(key), options=sorted(listdir(jobconf.parameters[key]), key=natural), default=jobconf.defaults.parameters[key])
+        messages.listing('Conjuntos de parámetros disponibles', p(key), options=sorted(listdir(jobconf.parameters[key]), key=natsort), default=jobconf.defaults.parameters[key])
     if jobconf.formatkeys:
-        messages.listing('Variables de interpolación disponibles:', options=sorted(jobconf.formatkeys, key=natural))
+        messages.listing('Variables de interpolación disponibles:', options=sorted(jobconf.formatkeys, key=natsort))
     raise SystemExit()
 
 parser.add_argument('filelist', nargs='+', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
@@ -84,9 +84,9 @@ if optconf.xdialog:
     messages.success = tkboxes.msgbox
 
 if optconf.sort:
-    optconf.filelist.sort(key=natural)
+    optconf.filelist.sort(key=natsort)
 elif optconf.revsort:
-    optconf.filelist.sort(key=natural, reverse=True)
+    optconf.filelist.sort(key=natsort, reverse=True)
 
 if not optconf.scratch:
     if jobconf.defaults.scratch:
@@ -150,7 +150,7 @@ if jobconf.versions:
             else:
                 messages.opterror('La versión establecida por default es inválida')
         else:
-            optconf.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobconf.versions), key=natural))
+            optconf.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobconf.versions), key=natsort))
             if not optconf.version in jobconf.versions:
                 messages.opterror('La versión seleccionada es inválida')
 else:
@@ -175,7 +175,7 @@ for key in jobconf.parameters:
         if key in jobconf.defaults.parameters:
             parameterset = jobconf.defaults.parameters[key]
         else:
-            parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(options, key=natural))
+            parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(options, key=natsort))
     if path.exists(path.join(parameterdir, parameterset)):
         optconf.parameters.append(path.join(parameterdir, parameterset))
     else:
