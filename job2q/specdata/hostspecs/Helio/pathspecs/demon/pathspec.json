@@ -26,12 +26,12 @@
       }
    },
    "parameters": {
-      "basis": "/opt/parameters/deMon2k"
+      "basislib": "/opt/parameters/deMon2k"
    },
    "defaults": {
       "version": "6.0.1",
       "parameters": {
-         "basis": "default"
+         "basislib": "default"
       }
    }
 }

@@ -29,5 +29,14 @@
       "mem",
       "pie",
       "bin"
+   ],
+   "formatkeys": [
+      "title",
+      "method",
+      "basis",
+      "auxis",
+      "ecps",
+      "charge",
+      "spin"
    ]
 }

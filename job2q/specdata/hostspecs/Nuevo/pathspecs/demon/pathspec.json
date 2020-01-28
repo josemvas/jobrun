@@ -2,11 +2,11 @@
    "defaults": {
       "version": "",
       "parameters": {
-         "basis": ""
+         "basislib": ""
       }
    },
    "parameters": {
-      "basis": ""
+      "basislib": ""
    },
    "versions": {
       "": {

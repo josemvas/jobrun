@@ -9,12 +9,12 @@
       }
    },
    "parameters": {
-      "basis": "$TMPU/software/parameters/deMon2k"
+      "basislib": "$TMPU/software/parameters/deMon2k"
    },
    "defaults": {
       "version": "6.0.1",
       "parameters": {
-         "basis": "default"
+         "basislib": "default"
       }
    }
 }
