@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from os import path, listdir
-from socket import gethostname, gethostbyname
 from shutil import copyfile
 from time import sleep
 from . import dialogs
 from . import messages
-from .utils import wordjoin, linejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, qq
+from .utils import wordjoin, barejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, sq
 from .configure import jobconf, optconf, scheduler, filelist, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
 from .boolparse import BoolParser
@@ -72,24 +71,46 @@ def submit():
     outputdir = localdir if optconf.here or not jobconf.makejobdir else pathjoin(localdir, jobname)
     hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
     outputname = pathjoin((jobname, versionkey))
-    master = gethostbyname(gethostname())
+
+    if jobconf.hostcopy == 'local':
+        makeworkdir = 'mkdir -m 700 "\'$workdir\'"'.format
+        removeworkdir = 'rm -rf "\'$workdir\'/*"'.format
+        copyfromhead = 'cp "{}" "{}"'.format
+        copyallfromhead = 'cp "{}"/* "{}"'.format
+        copytohead = 'cp "{}" "{}"'.format
+        runathead = 'ssh $head "{}"'.format
+    elif jobconf.hostcopy == 'remote':
+        makeworkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
+        removeworkdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'$workdir\'/*"; done'.format
+        copyfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'" $host:"\'{}\'"; done'.format
+        copyallfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'/*" $host:"\'{}\'"; done'.format
+        copytohead = 'scp "{}" $head:"\'{}\'"'.format
+        runathead = 'ssh $head "{}"'.format
+    elif jobconf.hostcopy == 'headjump':
+        makeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
+        removeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'$workdir\'/*"; done'.format
+        copyfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'$host:"\'{}\'"; done'.format
+        copyallfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'/*" $host:"\'{}\'"; done'.format
+        copytohead = 'scp "{}" $head:"\'{}\'"'.format
+        runathead = 'ssh $head "{}"'.format
+    else:
+        messages.cfgerror('El método de copia', q(jobconf.hostcopy), 'no es válido')
     
     for item in jobconf.inputfiles:
         for key in item.split('|'):
-            inputfiles.append(wordjoin('ssh', master, 'scp', qq(pathjoin(outputdir, (inputname, key))), \
-               '$ip:' + qq(pathjoin('$workdir', jobconf.filenames[key]))))
+            inputfiles.append(copyfromhead(pathjoin(outputdir, (inputname, key)), pathjoin('$workdir', jobconf.filenames[key])))
     
     for item in jobconf.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(wordjoin('scp', q(pathjoin('$workdir', jobconf.filenames[key])), \
-                master + ':' + qq(pathjoin(outputdir, (outputname, key)))))
+            outputfiles.append(copytohead(pathjoin('$workdir', jobconf.filenames[key]), pathjoin(outputdir, (outputname, key))))
     
     for parset in optconf.parameters:
         if not path.isabs(parset):
             parset = pathjoin(localdir, parset)
-        if path.isdir(parset):
-            parset = pathjoin(parset, '.')
-        inputfiles.append(wordjoin('ssh', master, 'scp -r', qq(parset), '$ip:' + qq('$workdir')))
+        if path.isfile(parset):
+            inputfiles.append(copyfromhead(parset, '$workdir'))
+        elif path.isdir(parset):
+            inputfiles.append(copyallfromhead(parset, '$workdir'))
     
     if path.isdir(outputdir):
         if path.isdir(hiddendir):
@@ -141,30 +162,25 @@ def submit():
                     action(pathjoin(localdir, (filename, key)), pathjoin(outputdir, (filename, key)))
     
     control.append(scheduler.jobname(jobname))
-    environment.append("jobname=" + jobname)
+    environment.append("jobname=" + sq(jobname))
 
     with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
-        t.write(linejoin(i for i in control))
-        t.write(linejoin(i for i in environment))
-        t.write('for ip in ${iplist[*]}; do' + '\n')
-        t.write(' ' * 2 + wordjoin('ssh', master, 'ssh $ip mkdir -m 700 "\'$workdir\'"') + '\n')
-        t.write(linejoin(' ' * 2 + i for i in inputfiles))
-        t.write('done' + '\n')
+        t.write('#!/bin/bash' + '\n')
+        t.write(barejoin(i + '\n' for i in control))
+        t.write(barejoin(i + '\n' for i in environment))
+        t.write(makeworkdir() + '\n')
+        t.write(barejoin(i + '\n' for i in inputfiles))
         t.write('cd "$workdir"' + '\n')
-        t.write(linejoin(i for i in jobconf.prescript))
+        t.write(barejoin(i + '\n' for i in jobconf.prescript))
         t.write(wordjoin(command) + '\n')
-        t.write(linejoin(i for i in jobconf.postscript))
-        t.write(linejoin(i for i in outputfiles))
-        t.write('for ip in ${iplist[*]}; do' + '\n')
-        t.write(' ' * 2 + 'ssh $ip rm -f "\'$workdir\'/*"' + '\n')
-        t.write(' ' * 2 + 'ssh $ip rmdir "\'$workdir\'"' + '\n')
-        t.write('done' + '\n')
-        t.write(linejoin(wordjoin('ssh', master, q(i)) for i in jobconf.offscript))
+        t.write(''.join(i + '\n' for i in jobconf.postscript))
+        t.write(barejoin(i + '\n' for i in outputfiles))
+        t.write(removeworkdir() + '\n')
+        t.write(barejoin(runathead(i) + '\n' for i in jobconf.offscript))
     
     jobid = scheduler.submit(t.name)
 
     if jobid is None:
-        messages.failure('El sistema de colas rechazó el trabajo', q(jobname), 'con el mensaje', q(e.args[0]))
         return
 
     messages.success('El trabajo', q(jobname), 'se correrá en', str(optconf.ncore), 'núcleo(s) de CPU con el jobid', jobid)

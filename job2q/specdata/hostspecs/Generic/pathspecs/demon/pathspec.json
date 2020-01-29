@@ -1,0 +1,20 @@
+{
+   "versions": {
+      "6.0.1": {
+         "executable": "$HOME/.local/deMon2k/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
+         "profile": [
+            "module load mpi/intel-2017_update3",
+            "module load mkl/2017_update3"
+         ]
+      }
+   },
+   "parameters": {
+      "basislib": "$HOME/.local/deMon2k/parameters"
+   },
+   "defaults": {
+      "version": "6.0.1",
+      "parameters": {
+         "basislib": "default"
+      }
+   }
+}

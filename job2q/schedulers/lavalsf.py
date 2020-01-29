@@ -17,7 +17,7 @@ label = '#BSUB -P "{0}"'.format
 jobvars = {
     'jobid' : '$LSB_JOBID',
     'ncore' : '$(echo $LSB_HOSTS | wc -w)',
-    'iplist' : '$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
+    'hosts' : '$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
 }
 
 mpilauncher = {

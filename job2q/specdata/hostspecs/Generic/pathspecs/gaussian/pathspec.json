@@ -1,0 +1,14 @@
+{
+   "defaults": {
+      "version": "09E"
+   },
+   "versions": {
+      "09E": {
+         "executable": "g09",
+         "profile": [
+           "export g09root=$HOME/.local/lib/G09E01",
+            "source $HOME/.local/lib/G09E01/g09/bsd/g09.profile"
+         ]
+      }
+   }
+}

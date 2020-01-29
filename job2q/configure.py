@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import sys
+from pathlib import Path
 from os import path, listdir, environ
 from argparse import ArgumentParser
 from importlib import import_module
-from pathlib import Path
+from socket import gethostbyname
 from . import dialogs
 from . import messages
 from . import tkboxes
 from .readspec import readspec, BunchDict
-from .utils import home, wordjoin, pathjoin, realpath, natsort, p
+from .utils import home, wordjoin, pathjoin, realpath, natsort, p, q, sq
 from .strings import mpiLibs, boolStrDict
 from .chemistry import readxyz
 
@@ -28,10 +29,10 @@ userspec = path.join(home, '.jobspec')
 if path.isfile(userspec):
     jobconf.merge(readspec(userspec))
 
-if not jobconf.scheduler.name:
+if not jobconf.scheduler:
     messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
 
-scheduler = import_module('.schedulers.' + jobconf.scheduler.name, package='job2q')
+scheduler = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
 scheduler.jobvars = BunchDict(scheduler.jobvars)
 
 parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
@@ -216,19 +217,20 @@ else:
 
 environment.extend('='.join(i) for i in scheduler.jobvars.items())
 environment.extend(jobconf.onscript)
+environment.append("head=" + gethostbyname(jobconf.headname))
 
 for profile in jobconf.profile + profile:
     environment.append(profile)
 
 for var in jobconf.filevars:
-    environment.append(var + '=' + jobconf.filenames[jobconf.filevars[var]])
+    environment.append(var + '=' + sq(jobconf.filenames[jobconf.filevars[var]]))
 
 environment.append("shopt -s nullglob extglob")
-environment.append("workdir=" + pathjoin(optconf.scratch, scheduler.jobvars.jobid))
+environment.append("workdir=" + q(pathjoin(optconf.scratch, scheduler.jobvars.jobid)))
 environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
 environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
 environment.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
-environment.append("progname=" + jobconf.packagename)
+environment.append("progname=" + sq(jobconf.packagename))
 
 command.append(realpath(executable) if path.sep in executable else executable)
 

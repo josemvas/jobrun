@@ -17,7 +17,7 @@ label = '#SBATCH --comment="{0}"'.format
 jobvars = {
     'jobid' : '$SLURM_JOB_ID',
     'ncore' : '$SLURM_NTASKS',
-    'iplist' : '$(getent hosts $SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)',
+    'hosts' : '$(getent hosts $SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)',
 }
 
 mpilauncher = {
@@ -60,7 +60,7 @@ def submit(jobscript):
     if p.returncode == 0:
         return search(r' ([0-9]+)$', output).group(1)
     else:
-        print('El sistema de colas no envió el trabajo porque ocurrió un error: ' + error)
+        print('El sistema de colas no envió el trabajo porque ocurrió un error:\n' + error)
         
 def chkjob(jobid):
     p = Popen(('squeue', '--noheader', '-o%T', '-j', jobid), stdout=PIPE, stderr=PIPE, close_fds=True)

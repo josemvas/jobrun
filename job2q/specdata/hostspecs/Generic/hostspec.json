@@ -1,13 +1,13 @@
 {
-   "scheduler": "lavalsf",
-   "headname": "Helio",
+   "scheduler": "",
+   "headname": "",
    "hostcopy": "remote",
    "onscript": [
       "module purge"
    ],
    "defaults": {
-      "queue": "q_htc",
+      "queue": "",
       "scratch": "/scratch",
-      "waitime": "3"
+      "waitime": "1"
    }
 }

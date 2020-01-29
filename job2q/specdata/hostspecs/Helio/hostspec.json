@@ -1,8 +1,7 @@
 {
-   "scheduler": {
-      "name" : "lavalsf",
-      "profile" : "/etc/profile.d/login.d/openlava.sh"
-   },
+   "scheduler": "lavalsf",
+   "headname": "Helio",
+   "hostcopy": "remote",
    "defaults": {
       "queue": "auto",
       "scratch": "/scratch",

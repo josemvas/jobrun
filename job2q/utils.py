@@ -41,18 +41,17 @@ def contractuser(path):
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
 
-def iterjoin(*args, sepgen):
-    return next(sepgen).join(i if isinstance(i, str) else iterjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
+def deepjoin(*args, sepgen):
+    return next(sepgen).join(i if isinstance(i, str) else deepjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
 
 def wordjoin(*args):
-    return iterjoin(*args, sepgen=repeat(' '))
+    return deepjoin(*args, sepgen=repeat(' '))
 
-def linejoin(*args):
-    lines = iterjoin(*args, sepgen=repeat('\n'))
-    return lines + '\n' if lines else ''
+def barejoin(*args):
+    return deepjoin(*args, sepgen=repeat(''))
 
 def pathjoin(*args):
-    return iterjoin(*args, sepgen=iter(os.path.sep + '.-'))
+    return deepjoin(*args, sepgen=iter(os.path.sep + '.-'))
 
 def p(string):
     return '({0})'.format(string)
@@ -60,8 +59,8 @@ def p(string):
 def q(string):
     return '"{0}"'.format(string)
 
-def qq(string):
-    return '"\'{0}\'"'.format(string)
+def sq(string):
+    return "'{0}'".format(string)
 
 def natsort(text):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
