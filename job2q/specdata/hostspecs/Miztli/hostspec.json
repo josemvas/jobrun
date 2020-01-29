@@ -1,6 +1,6 @@
 {
-   "scheduler": "lavalsf",
-   "headname": "Helio",
+   "scheduler": "platformlsf",
+   "headname": "mn330",
    "hostcopy": "remote",
    "onscript": [
       "module purge"
