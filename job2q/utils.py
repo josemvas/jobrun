@@ -5,6 +5,7 @@ import sys
 from collections import Iterable
 from itertools import repeat
 from . import messages
+from .decorators import join_path_components
 
 home = os.path.expanduser('~')
 
@@ -37,6 +38,14 @@ def contractuser(path):
     elif path.startswith(home + os.sep):
         return '~' + path[len(home):]
     return path
+
+@join_path_components
+def normalpath(path):
+    return os.path.normpath(os.path.expanduser(os.path.expandvars(path)))
+
+@join_path_components
+def isabspath(path):
+    return os.path.isabs(os.path.expanduser(os.path.expandvars(path)))
 
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))

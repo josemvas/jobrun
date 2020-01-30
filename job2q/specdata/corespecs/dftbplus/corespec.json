@@ -5,7 +5,7 @@
    "makejobdir": "True",
    "filecheck": "dftb_in.hsd",
    "stdout": "dftb_out.log",
-   "filenames": {
+   "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
       "dftb_pin.hsd": "dftb_pin.hsd",
       "dftb_out.log": "dftb_out.log",

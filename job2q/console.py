@@ -16,11 +16,17 @@ loader_script = r'''
 'SPECPATH={specdir}' \
 '{python}' "$0" "$@"
 
-from job2q.client import submit, wait, filelist
-submit()
-while filelist:
-    wait()
+from job2q import *
+configure()
+if remote:
+    while files:
+        upload()
+    transmit()
+else:
     submit()
+    while files:
+        wait()
+        submit()
 '''
 
 def setup():
@@ -32,7 +38,7 @@ def setup():
     pkgdirs = {}
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los ejecutables')
-    etcdir = dialogs.inputpath('Escriba la ruta donde se instalará la configuración')
+    etcdir = dialogs.inputpath('Escriba la ruta donde se escribirán los archivos de configuración')
     
     sourcedir = path.dirname(path.realpath(__file__))
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
@@ -44,11 +50,7 @@ def setup():
     if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.json')):
         messages.cfgerror('El archivo de configuración del host', hostname, 'no existe')
     
-    if path.isfile(path.join(etcdir, 'hostspec.json')):
-        if dialogs.yesno('El sistema ya está configurado, ¿quiere reestablecer la configuración por defecto?'):
-            copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
-    else:
-        makedirs(specdir)
+    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(hostspecdir, hostname, 'hostspec.json') == readspec(etcdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
         copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
          
     for pkgdir in listdir(path.join(hostspecdir, hostname, 'pathspecs')):
@@ -62,8 +64,9 @@ def setup():
         messages.warning('No hay programas configurados para este host')
         return
 
-    for pkgdir in listdir(specdir):
-        configured.append(pkgdir)
+    if path.isdir(specdir):
+        for pkgdir in listdir(specdir):
+            configured.append(pkgdir)
 
     selected = [pkgdirs[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(pkgnames.values(), key=natsort), default=[pkgnames[i] for i in configured])]
 
@@ -72,7 +75,7 @@ def setup():
         hardlink(path.join(etcdir, 'hostspec.json'), path.join(specdir, pkgdir, 'hostspec.json'))
         copyfile(path.join(corespecdir, pkgdir, 'corespec.json'), path.join(specdir, pkgdir, 'corespec.json'))
         copypathspec = True
-        if pkgdir not in configured or not path.isfile(path.join(specdir, pkgdir, 'pathspec.json')) or readspec(hostspecdir, hostname, 'pathspecs', pkgdir, 'pathspec.json') == readspec(specdir, pkgdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(pkgnames[pkgdir]), 'difiere de la configuración por defecto, ¿desea reestablecer su configuración?', default=False):
+        if pkgdir not in configured or not path.isfile(path.join(specdir, pkgdir, 'pathspec.json')) or readspec(hostspecdir, hostname, 'pathspecs', pkgdir, 'pathspec.json') == readspec(specdir, pkgdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(pkgnames[pkgdir]), 'difiere de la configuración por defecto, ¿desea reestablecerla?', default=False):
             copyfile(path.join(hostspecdir, hostname, 'pathspecs', pkgdir, 'pathspec.json'), path.join(specdir, pkgdir, 'pathspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():

@@ -7,7 +7,7 @@
    ],
    "defaults": {
       "queue": "",
-      "scratch": "/scratch",
+      "scrdir": "/scratch",
       "waitime": "1"
    }
 }

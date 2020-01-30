@@ -5,7 +5,7 @@
    "makejobdir": "True",
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
-   "filenames": {
+   "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",
       "log": "job.log",

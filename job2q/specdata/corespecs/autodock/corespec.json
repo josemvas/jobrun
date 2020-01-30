@@ -4,7 +4,7 @@
    "parallelization": "None",
    "makejobdir": "False",
    "filecheck": "dpf",
-   "filenames": {
+   "filekeys": {
       "dpf": "job.dpf",
       "dlg": "job.dlg"
    },

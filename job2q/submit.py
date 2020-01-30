@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
-from os import path, listdir
-from shutil import copyfile
 from time import sleep
+from shutil import copyfile
+from importlib import import_module
+from os import execl, path, listdir, getcwd
+from getpass import getuser 
 from . import dialogs
 from . import messages
-from .utils import wordjoin, barejoin, pathjoin, remove, makedirs, realpath, alnum, p, q, sq
-from .configure import jobconf, optconf, scheduler, filelist, command, control, environment, keywords
+from .readspec import BunchDict
+from .utils import wordjoin, barejoin, pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
+from .configure import jobconf, optconf, files, command, control, environment, keywords
 from .decorators import catch_keyboard_interrupt
 from .boolparse import BoolParser
 from .strings import mpiLibs
 
-@catch_keyboard_interrupt
-def wait():
-    sleep(optconf.waitime)
-
-@catch_keyboard_interrupt
-def submit():
-
-    outputfiles = []
-    inputfiles = []
+def popfile():
     
-    filepath = path.abspath(filelist.pop(0))
+    filepath = path.abspath(files.pop(0))
     basename = path.basename(filepath)
+
+    if isabspath(filepath):
+        localdir = path.dirname(normalpath(filepath))
+    else:
+        if optconf.cwdir:
+            localdir = path.dirname(normalpath(optconf.cwdir, filepath))
+        else:
+            localdir = path.dirname(normalpath(path.getcwd(), filepath))
+        filepath = normalpath(localdir, filepath)
     
     if path.isfile(filepath):
-        localdir = path.dirname(filepath)
         for key in (k for i in jobconf.inputfiles for k in i.split('|')):
             if basename.endswith('.' + key):
                 filename = basename[:-len(key)-1]
@@ -42,7 +45,10 @@ def submit():
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
         return
 
-    filebools = { i : path.isfile(pathjoin(localdir, (filename, i))) for i in jobconf.filenames }
+    filebools = {}
+
+    for key in jobconf.filekeys:
+        filebools[key] = path.isfile(pathjoin(localdir, (filename, key)))
 
     if 'filecheck' in jobconf:
         if not BoolParser(jobconf.filecheck).ev(filebools):
@@ -54,8 +60,17 @@ def submit():
             messages.failure('Hay un conflicto entre los archivos de entrada')
             return
     
-    inputname = filename
+    return localdir, filename
+
+@catch_keyboard_interrupt
+def submit():
+
+    localdir, filename = popfile()
     versionkey = jobconf.packagekey + alnum(optconf.version)
+    scheduler = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
+    jobstr = BunchDict(scheduler.jobstr)
+    queuejob = scheduler.queuejob
+    checkjob = scheduler.checkjob
 
     if filename.endswith('.' + versionkey):
         jobname = filename[:-len(versionkey)-1]
@@ -65,10 +80,19 @@ def submit():
         jobname = filename
 
     if optconf.jobname:
-        inputname = pathjoin((optconf.jobname, inputname))
         jobname = pathjoin((optconf.jobname, jobname))
+        inputname = pathjoin((optconf.jobname, inputname))
+    else:
+        inputname = filename
 
-    outputdir = localdir if optconf.here or not jobconf.makejobdir else pathjoin(localdir, jobname)
+    if optconf.outdir:
+        if isabspath(optconf.outdir):
+            outputdir = normalpath(optconf.outdir)
+        else:
+            outputdir = normalpath(localdir, optconf.outdir)
+    else:
+        outputdir = normalpath(localdir, jobname)
+        
     hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
     outputname = pathjoin((jobname, versionkey))
 
@@ -96,28 +120,32 @@ def submit():
     else:
         messages.cfgerror('El método de copia', q(jobconf.hostcopy), 'no es válido')
     
+    inputfiles = []
+
     for item in jobconf.inputfiles:
         for key in item.split('|'):
-            inputfiles.append(copyfromhead(pathjoin(outputdir, (inputname, key)), pathjoin('$workdir', jobconf.filenames[key])))
+            inputfiles.append(copyfromhead(pathjoin(outputdir, (inputname, key)), pathjoin('$workdir', jobconf.filekeys[key])))
     
+    outputfiles = []
+
     for item in jobconf.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(copytohead(pathjoin('$workdir', jobconf.filenames[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append(copytohead(pathjoin('$workdir', jobconf.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
-    for parset in optconf.parameters:
-        if not path.isabs(parset):
-            parset = pathjoin(localdir, parset)
-        if path.isfile(parset):
-            inputfiles.append(copyfromhead(parset, '$workdir'))
-        elif path.isdir(parset):
-            inputfiles.append(copyallfromhead(parset, '$workdir'))
+    for parameter in optconf.parameters:
+        if not isabspath(parameter):
+            parameter = normalpath(localdir, parameter)
+        if path.isfile(parameter):
+            inputfiles.append(copyfromhead(parameter, '$workdir'))
+        elif path.isdir(parameter):
+            inputfiles.append(copyallfromhead(parameter, '$workdir'))
     
     if path.isdir(outputdir):
         if path.isdir(hiddendir):
             try:
                 with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
                     jobid = t.read()
-                    jobstate = scheduler.chkjob(jobid)
+                    jobstate = checkjob(jobid)
                     if callable(jobstate):
                         messages.failure(jobstate(jobname=jobname, jobid=jobid))
                         return
@@ -129,7 +157,7 @@ def submit():
         else:
             makedirs(hiddendir)
         if not set(listdir(outputdir)).isdisjoint(pathjoin((outputname, k)) for i in jobconf.outputfiles for k in i.split('|')):
-            if optconf.defaultanswer is False or optconf.defaultanswer is None and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?'):
+            if optconf.defaultanswer is False or (optconf.defaultanswer is not True and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 return
         for item in jobconf.outputfiles:
             for key in item.split('|'):
@@ -161,7 +189,7 @@ def submit():
                 if path.isfile(pathjoin(localdir, (filename, key))):
                     action(pathjoin(localdir, (filename, key)), pathjoin(outputdir, (filename, key)))
     
-    control.append(scheduler.jobname(jobname))
+    control.append(jobstr.jobname(jobname))
     environment.append("jobname=" + sq(jobname))
 
     with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
@@ -178,7 +206,7 @@ def submit():
         t.write(removeworkdir() + '\n')
         t.write(barejoin(runathead(i) + '\n' for i in jobconf.offscript))
     
-    jobid = scheduler.submit(t.name)
+    jobid = queuejob(t.name)
 
     if jobid is None:
         return
@@ -187,6 +215,20 @@ def submit():
     with open(pathjoin(hiddendir, 'jobid'), 'w') as t:
         t.write(jobid)
     
+@catch_keyboard_interrupt
+def upload():
+    localdir, filename = popfile()
+
+@catch_keyboard_interrupt
+def transmit():
+# Unpacking requires python 3.5
+#    os.execl('ssh', optconf.remote, *sys.argv, '--cwdir={}@{}'.format(getuser(), jobconf.headname), '--move')
+    pass
+
+@catch_keyboard_interrupt
+def wait():
+    sleep(optconf.waitime)
+
 if __name__ == '__main__':
     submit()
 

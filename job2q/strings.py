@@ -17,7 +17,7 @@ dictTags = (
     'versions',
     'optionargs',
     'parameters',
-    'filenames',
+    'filekeys',
     'filevars',
 )
 
@@ -31,7 +31,7 @@ textTags = (
     'filecheck',
     'fileclash',
     'queue',
-    'scratch',
+    'scrdir',
     'waitime',
     'executable',
     'version',

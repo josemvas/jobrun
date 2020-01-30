@@ -4,7 +4,7 @@
    "hostcopy": "remote",
    "defaults": {
       "queue": "auto",
-      "scratch": "/scratch",
+      "scrdir": "/scratch",
       "waitime": "1"
    },
    "offscript": [

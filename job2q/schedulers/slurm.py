@@ -4,17 +4,18 @@ import os
 from re import search
 from subprocess import Popen, PIPE
 
-jobid = '%A'
-jobname = '#SBATCH -J "{0}"'.format
-hosts = '#SBATCH -w "{0}"'.format
-ncore = '#SBATCH -n "{0}"'.format
-nhost = '#SBATCH -N "{0}"'.format
-queue = '#SBATCH -p "{0}"'.format
-stdout = '#SBATCH -o "{0}"'.format
-stderr = '#SBATCH -e "{0}"'.format
-label = '#SBATCH --comment="{0}"'.format
+jobstr = {
+    'jobname' : '#SBATCH -J "{}"'.format,
+    'label' : '#SBATCH --comment="{}"'.format,
+    'hosts' : '#SBATCH -w "{}"'.format,
+    'ncore' : '#SBATCH -n "{}"'.format,
+    'nhost' : '#SBATCH -N "{}"'.format,
+    'queue' : '#SBATCH -p "{}"'.format,
+    'stdout' : '#SBATCH -o "{}/%A.out"'.format,
+    'stderr' : '#SBATCH -e "{}/%A.err"'.format,
+}
 
-jobvars = {
+jobenv = {
     'jobid' : '$SLURM_JOB_ID',
     'ncore' : '$SLURM_NTASKS',
     'hosts' : '$(getent hosts $SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)',
@@ -51,7 +52,7 @@ ready_states = (
     'OUT_OF_MEMORY',
 )
 
-def submit(jobscript):
+def queuejob(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen('sbatch', stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
@@ -62,7 +63,7 @@ def submit(jobscript):
     else:
         print('El sistema de colas no envió el trabajo porque ocurrió un error:\n' + error)
         
-def chkjob(jobid):
+def checkjob(jobid):
     p = Popen(('squeue', '--noheader', '-o%T', '-j', jobid), stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
     output = output.decode(sys.stdout.encoding).strip()

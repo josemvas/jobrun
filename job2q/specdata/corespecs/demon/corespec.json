@@ -5,7 +5,7 @@
    "usempilauncher": "True",
    "makejobdir": "True",
    "filecheck": "inp",
-   "filenames": {
+   "filekeys": {
       "inp": "deMon.inp",
       "rst": "deMon.rst",
       "trj": "deMon.trj",

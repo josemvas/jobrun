@@ -4,17 +4,18 @@ import os
 from re import search
 from subprocess import Popen, PIPE, STDOUT 
 
-jobid = '%J'
-jobname = '#BSUB -J "{0}"'.format
-hosts = '#BSUB -m "{0}"'.format
-ncore = '#BSUB -n "{0}"'.format
-nhost = '#BSUB -R "span[hosts={0}]"'.format
-queue = '#BSUB -q "{0}"'.format
-stdout = '#BSUB -o "{0}"'.format
-stderr = '#BSUB -e "{0}"'.format
-label = '#BSUB -P "{0}"'.format
+jobstr = {
+    'jobname' : '#BSUB -J "{}"'.format,
+    'label' : '#BSUB -P "{}"'.format,
+    'hosts' : '#BSUB -m "{}"'.format,
+    'ncore' : '#BSUB -n "{}"'.format,
+    'nhost' : '#BSUB -R "span[hosts={}]"'.format,
+    'queue' : '#BSUB -q "{}"'.format,
+    'stdout' : '#BSUB -o "{}/%J.out"'.format,
+    'stderr' : '#BSUB -e "{}/%J.err"'.format,
+}
 
-jobvars = {
+jobenv = {
     'jobid' : '$LSB_JOBID',
     'ncore' : '$(echo $LSB_HOSTS | wc -w)',
     'hosts' : '$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
@@ -39,7 +40,7 @@ ready_states = (
     'EXIT',
 )
 
-def submit(jobscript):
+def queuejob(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen(('bsub'), stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
@@ -50,7 +51,7 @@ def submit(jobscript):
     else:
         print('El sistema de colas no envió el trabajo porque ocurrió un error: ' + error)
         
-def chkjob(jobid):
+def checkjob(jobid):
     p = Popen(('bjobs', '-ostat', '-noheader', jobid), stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
     output = output.decode(sys.stdout.encoding).strip()

@@ -6,7 +6,7 @@
    "makejobdir": "True",
    "stdout": "log",
    "filecheck": "INCAR and POSCAR and POTCAR",
-   "filenames": {
+   "filekeys": {
       "INCAR": "INCAR",
       "POSCAR": "POSCAR",
       "KPOINTS": "KPOINTS",
