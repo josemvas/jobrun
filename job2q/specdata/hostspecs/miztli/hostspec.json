@@ -1,4 +1,5 @@
 {
+   "hostname" : "Miztli",
    "headname": "mn330",
    "scheduler": "platformlsf",
    "hostcopy": "remote",

@@ -4,7 +4,7 @@ import readline
 from glob import glob
 from os import path, getcwd
 from . import messages
-from .utils import realpath, wordjoin
+from .utils import realpath, normalpath
 from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args
 
 readline.set_completer_delims(' \t\n')
@@ -24,13 +24,16 @@ class tabCompleter(object):
 
 @join_positional_args
 @catch_keyboard_interrupt
-def inputpath(prompt=''):
+def inputpath(prompt='', absolute=False):
     while True:
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
             if path.exists(answer):
-                return realpath(answer)
+                if absolute:
+                    return realpath(answer)
+                else:
+                    return normalpath(answer)
             else:
                 print('Por favor indique una ruta válida')
 

@@ -1,7 +1,7 @@
 {
-   "packagekey": "vasp",
-   "packagename": "VASP",
-   "parallelization": "intelmpi",
+   "progkey": "vasp",
+   "progname": "VASP",
+   "concurrency": "intelmpi",
    "usempilauncher": "True",
    "makejobdir": "True",
    "stdout": "log",

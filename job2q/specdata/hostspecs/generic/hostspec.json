@@ -1,6 +1,7 @@
 {
-   "scheduler": "",
+   "hostname" : "Generic",
    "headname": "",
+   "scheduler": "",
    "hostcopy": "remote",
    "onscript": [
       "module purge"

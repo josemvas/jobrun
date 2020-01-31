@@ -1,2 +1,4 @@
-from .configure import remote, files, configure
-from .submit import wait, submit, upload, transmit
+from .details import remotehost
+from .jobutils import files, decode, configure
+from .transmit import upload, transmit
+from .submit import wait, submit

@@ -1,7 +1,7 @@
 {
-   "packagekey": "g",
-   "packagename": "Gaussian",
-   "parallelization": "openmp",
+   "progkey": "g",
+   "progname": "Gaussian",
+   "concurrency": "openmp",
    "makejobdir": "True",
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",

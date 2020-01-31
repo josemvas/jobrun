@@ -7,7 +7,7 @@ from itertools import repeat
 from . import messages
 from .decorators import join_path_components
 
-home = os.path.expanduser('~')
+homedir = os.path.expanduser('~')
 
 def makedirs(path):
     try: os.makedirs(path)
@@ -32,20 +32,20 @@ def hardlink(source, dest):
     except FileNotFoundError as e:
         pass
 
-def contractuser(path):
-    if path == home:
+def collapseuser(path):
+    if path == homedir:
         return '~'
-    elif path.startswith(home + os.sep):
-        return '~' + path[len(home):]
+    elif path.startswith(homedir + os.sep):
+        return '~' + path[len(homedir):]
     return path
-
-@join_path_components
-def normalpath(path):
-    return os.path.normpath(os.path.expanduser(os.path.expandvars(path)))
 
 @join_path_components
 def isabspath(path):
     return os.path.isabs(os.path.expanduser(os.path.expandvars(path)))
+
+@join_path_components
+def normalpath(path):
+    return os.path.normpath(os.path.expanduser(os.path.expandvars(path)))
 
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))

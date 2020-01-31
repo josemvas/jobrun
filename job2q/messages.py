@@ -33,7 +33,7 @@ def runerror(message):
     raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 
 @join_positional_args
-def listing(message, options=[], default=None):
+def listing(message, items=[], default=None):
     if message:
         print(message)
     for option in options:

@@ -6,46 +6,64 @@ from os import path, listdir, chmod, pathsep
 from subprocess import check_output, DEVNULL
 from . import dialogs
 from . import messages
-from .utils import rmdir, makedirs, hardlink, realpath, contractuser, natsort, q
+from .utils import rmdir, makedirs, hardlink, realpath, normalpath, natsort, q
 from .readspec import readspec
 
 loader_script = r'''
 #!/bin/sh
 'exec' 'env' \
-"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{libpath}" \
-'SPECPATH={specdir}' \
+"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{pylibpath}" \
+"PYTHONPATH={modulepath}" "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
 from job2q import *
-configure()
-if remote:
+if remotehost:
+    decode()
     while files:
         upload()
     transmit()
 else:
+    decode()
+    configure()
     submit()
     while files:
         wait()
         submit()
 '''
 
-def setup():
+def setup(*, relpath=False):
 
     libpath = []
-    configured = []
     pylibpath = []
-    pkgnames = {}
-    pkgdirs = {}
+    hostnames = {}
+    hostdirnames = {}
+    prognames = {}
+    progdirnames = {}
+    configured = []
     
-    bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los ejecutables')
-    etcdir = dialogs.inputpath('Escriba la ruta donde se escribirán los archivos de configuración')
+    bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', absolute=True)
+    etcdir = path.join(bindir, 'job2q')
+    makedirs(etcdir)
     
     sourcedir = path.dirname(path.realpath(__file__))
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
     specdir = path.join(etcdir, 'jobspecs')
     
-    hostname = dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(listdir(hostspecdir), key=natsort))
+    for dirname in listdir(hostspecdir):
+        hostnames[dirname] = readspec(path.join(hostspecdir, dirname, 'hostspec.json')).hostname
+        hostdirnames[hostnames[dirname]] = dirname
+
+    if not hostnames:
+        messages.warning('No hay hosts configurados')
+        return
+
+    if path.isfile(path.join(etcdir, 'hostspec.json')):
+        defaulthost = readspec(path.join(etcdir, 'hostspec.json')).hostname
+    else:
+        defaulthost = None
+
+    hostname = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(hostnames.values(), key=natsort), default=defaulthost)]
     
     if not path.isfile(path.join(hostspecdir, hostname, 'hostspec.json')):
         messages.cfgerror('El archivo de configuración del host', hostname, 'no existe')
@@ -53,30 +71,27 @@ def setup():
     if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(hostspecdir, hostname, 'hostspec.json') == readspec(etcdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
         copyfile(path.join(hostspecdir, hostname, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
          
-    for pkgdir in listdir(path.join(hostspecdir, hostname, 'pathspecs')):
-        pkgname = readspec(path.join(corespecdir, pkgdir, 'corespec.json')).packagename
-        if not pkgname:
-            messages.cfgerror('El archivo', path.join(corespecdir, pkgdir, 'corespec.json'), 'no especifica el nombre del programa')
-        pkgnames[pkgdir] = pkgname
-        pkgdirs[pkgname] = pkgdir
+    for dirname in listdir(path.join(hostspecdir, hostname, 'pathspecs')):
+        prognames[dirname] = readspec(path.join(corespecdir, dirname, 'corespec.json')).progname
+        progdirnames[prognames[dirname]] = dirname
 
-    if not pkgnames:
+    if not prognames:
         messages.warning('No hay programas configurados para este host')
         return
 
     if path.isdir(specdir):
-        for pkgdir in listdir(specdir):
-            configured.append(pkgdir)
+        for dirname in listdir(specdir):
+            configured.append(dirname)
 
-    selected = [pkgdirs[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(pkgnames.values(), key=natsort), default=[pkgnames[i] for i in configured])]
+    selected = [progdirnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(prognames.values(), key=natsort), default=[prognames[i] for i in configured])]
 
-    for pkgdir in selected:
-        makedirs(path.join(specdir, pkgdir))
-        hardlink(path.join(etcdir, 'hostspec.json'), path.join(specdir, pkgdir, 'hostspec.json'))
-        copyfile(path.join(corespecdir, pkgdir, 'corespec.json'), path.join(specdir, pkgdir, 'corespec.json'))
+    for dirname in selected:
+        makedirs(path.join(specdir, dirname))
+        hardlink(path.join(etcdir, 'hostspec.json'), path.join(specdir, dirname, 'hostspec.json'))
+        copyfile(path.join(corespecdir, dirname, 'corespec.json'), path.join(specdir, dirname, 'corespec.json'))
         copypathspec = True
-        if pkgdir not in configured or not path.isfile(path.join(specdir, pkgdir, 'pathspec.json')) or readspec(hostspecdir, hostname, 'pathspecs', pkgdir, 'pathspec.json') == readspec(specdir, pkgdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(pkgnames[pkgdir]), 'difiere de la configuración por defecto, ¿desea reestablecerla?', default=False):
-            copyfile(path.join(hostspecdir, hostname, 'pathspecs', pkgdir, 'pathspec.json'), path.join(specdir, pkgdir, 'pathspec.json'))
+        if dirname not in configured or not path.isfile(path.join(specdir, dirname, 'pathspec.json')) or readspec(hostspecdir, hostname, 'pathspecs', dirname, 'pathspec.json') == readspec(specdir, dirname, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[dirname]), 'difiere de la configuración por defecto, ¿desea reestablecerla?', default=False):
+            copyfile(path.join(hostspecdir, hostname, 'pathspecs', dirname, 'pathspec.json'), path.join(specdir, dirname, 'pathspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)
@@ -90,13 +105,21 @@ def setup():
             if libdir not in libpath and libdir not in pylibpath:
                 pylibpath.append(libdir)
 
-    for package in listdir(specdir):
-        with open(path.join(bindir, package), 'w') as fh:
+    for dirname in listdir(specdir):
+        if relpath:
+            modulepath = path.join('${0%/*}', path.relpath(path.dirname(sourcedir), bindir))
+            specpath = path.join('${0%/*}', path.relpath(path.join(specdir, dirname), bindir))
+        else:
+            modulepath = path.dirname(sourcedir)
+            specpath = normalpath(specdir, dirname)
+        with open(path.join(bindir, dirname), 'w') as fh:
             fh.write(loader_script.lstrip().format(
                 python=sys.executable,
-                libpath=pathsep.join(pylibpath),
-                specdir=contractuser(path.join(specdir, package))))
-        chmod(path.join(bindir, package), 0o755)
+                pylibpath=pathsep.join(pylibpath),
+                modulepath=modulepath,
+                specpath=specpath,
+            ))
+        chmod(path.join(bindir, dirname), 0o755)
 
 #    import json
 #    from .readxmlspec import readxmlspec

@@ -1,7 +1,7 @@
 {
-   "packagekey": "orca",
-   "packagename": "ORCA",
-   "parallelization": "openmpi",
+   "progkey": "orca",
+   "progname": "ORCA",
+   "concurrency": "openmpi",
    "usempilauncher": "False",
    "makejobdir": "True",
    "filecheck": "inp",

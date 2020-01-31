@@ -1,7 +1,7 @@
 {
-   "packagekey": "plus",
-   "packagename": "DFTB+",
-   "parallelization": "openmp",
+   "progkey": "plus",
+   "progname": "DFTB+",
+   "concurrency": "openmp",
    "makejobdir": "True",
    "filecheck": "dftb_in.hsd",
    "stdout": "dftb_out.log",

@@ -1,7 +1,7 @@
 {
-   "packagekey": "ad",
-   "packagename": "AutoDock",
-   "parallelization": "None",
+   "progkey": "ad",
+   "progname": "AutoDock",
+   "concurrency": "None",
    "makejobdir": "False",
    "filecheck": "dpf",
    "filekeys": {

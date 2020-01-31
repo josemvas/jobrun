@@ -1,7 +1,7 @@
 {
-   "packagekey": "deMon",
-   "packagename": "deMon2k",
-   "parallelization": "intelmpi",
+   "progkey": "deMon",
+   "progname": "deMon2k",
+   "concurrency": "intelmpi",
    "usempilauncher": "True",
    "makejobdir": "True",
    "filecheck": "inp",

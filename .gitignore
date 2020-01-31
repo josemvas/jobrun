@@ -9,11 +9,5 @@ dist/
 __pycache__/
 
 # Testing
-/jobtests/*/
-/jobspecs/
-/autodock
-/demon
-/dftbplus
-/gaussian
-/orca
-/vasp
+/tests/*/
+/bin/

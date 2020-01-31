@@ -1,6 +1,7 @@
 {
-   "scheduler": "lavalsf",
+   "hostname" : "Helio",
    "headname": "helio",
+   "scheduler": "lavalsf",
    "hostcopy": "remote",
    "defaults": {
       "queue": "auto",

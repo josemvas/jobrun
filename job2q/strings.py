@@ -23,11 +23,10 @@ dictTags = (
 
 textTags = (
     'scheduler',
-    'packagename',
-    'parallelization',
+    'concurrency',
     'usempilauncher',
     'makejobdir',
-    'packagekey',
+    'progkey',
     'filecheck',
     'fileclash',
     'queue',

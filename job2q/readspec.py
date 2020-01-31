@@ -8,7 +8,7 @@ class BunchList(list):
     def __init__(self, parentlist):
         for item in parentlist:
             if isinstance(item, dict):
-                self.append(BunchDict(item))
+                self.append(Bunch(item))
             elif isinstance(item, list):
                 self.append(BunchList(item))
             else:
@@ -25,11 +25,11 @@ class BunchList(list):
             else:
                 self.append(other[i])
 
-class BunchDict(dict):
+class Bunch(dict):
     def __init__(self, parentdict):
         for key, value in parentdict.items():
             if isinstance(value, dict):
-                self[key] = BunchDict(value)
+                self[key] = Bunch(value)
             elif isinstance(value, list):
                 self[key] = BunchList(value)
             else:
@@ -44,9 +44,11 @@ class BunchDict(dict):
         if item in listTags:
             return BunchList([])
         elif item in dictTags:
-            return BunchDict({})
+            return Bunch({})
         elif item in textTags:
             return ''
+        else:
+            messages.cfgerror('La propiedad', item, 'no puede faltar en el archivo de configuración')
     def merge(self, other):
         for i in other:
             if i in self:
@@ -70,7 +72,7 @@ def ordered(obj):
 @join_path_components
 def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
-        try: return BunchDict(ordered(json.load(fh)))
+        try: return Bunch(ordered(json.load(fh)))
         except ValueError as e:
             messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 

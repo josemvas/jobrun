@@ -4,7 +4,7 @@ import os
 from re import search
 from subprocess import Popen, PIPE
 
-jobstr = {
+jobformat = {
     'jobname' : '#SBATCH -J "{}"'.format,
     'label' : '#SBATCH --comment="{}"'.format,
     'hosts' : '#SBATCH -w "{}"'.format,
@@ -15,7 +15,7 @@ jobstr = {
     'stderr' : '#SBATCH -e "{}/%A.err"'.format,
 }
 
-jobenv = {
+jobenvars = {
     'jobid' : '$SLURM_JOB_ID',
     'ncore' : '$SLURM_NTASKS',
     'hosts' : '$(getent hosts $SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)',
@@ -54,7 +54,7 @@ ready_states = (
 
 def queuejob(jobscript):
     with open(jobscript, 'r') as fh:
-        p = Popen('sbatch', stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
+        p = Popen(['sbatch'], stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
@@ -64,7 +64,7 @@ def queuejob(jobscript):
         print('El sistema de colas no envió el trabajo porque ocurrió un error:\n' + error)
         
 def checkjob(jobid):
-    p = Popen(('squeue', '--noheader', '-o%T', '-j', jobid), stdout=PIPE, stderr=PIPE, close_fds=True)
+    p = Popen(['squeue', '--noheader', '-o%T', '-j', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
