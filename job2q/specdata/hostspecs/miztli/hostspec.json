@@ -1,6 +1,6 @@
 {
-   "hostname" : "Miztli",
-   "masterhost": "mn330",
+   "clustername" : "Miztli",
+   "hostname": "$HOSTNAME",
    "remotejobs" : "$TMPU",
    "scheduler": "platformlsf",
    "hostcopy": "remote",

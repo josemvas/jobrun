@@ -1,6 +1,6 @@
 {
-   "hostname" : "Generic",
-   "masterhost": "",
+   "clustername" : "Generic",
+   "hostname": "",
    "remotejobs" : "",
    "scheduler": "",
    "hostcopy": "remote",

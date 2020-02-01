@@ -7,11 +7,13 @@ from getpass import getuser
 from . import dialogs
 from . import messages
 from .readspec import Bunch
-from .utils import pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
-from .config import jobconf, options, files, commandline, jobcomments, environment, keywords, nextfile
-from .decorators import catch_keyboard_interrupt
 from .boolparse import BoolParser
+from .decorators import catch_keyboard_interrupt
+from .utils import pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
+from .jobparse import jobcomments, environment, commandline, jobspecs, options, keywords, files
+from .jobdigest import nextfile
 from .strings import mpiLibs
+
 
 @catch_keyboard_interrupt
 def wait():
@@ -25,31 +27,31 @@ def submit():
     except AssertionError:
         return
 
-    versionkey = jobconf.progkey + alnum(options.version)
-    scheduler = import_module('.schedulers.' + jobconf.scheduler, package='job2q')
+    versionkey = jobspecs.progkey + alnum(options.version)
+    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
     jobformat = Bunch(scheduler.jobformat)
     queuejob = scheduler.queuejob
     checkjob = scheduler.checkjob
 
     filebools = {}
 
-    for key in jobconf.filekeys:
+    for key in jobspecs.filekeys:
         filebools[key] = path.isfile(pathjoin(parentdir, (filename, key)))
 
-    if 'filecheck' in jobconf:
-        if not BoolParser(jobconf.filecheck).ev(filebools):
+    if 'filecheck' in jobspecs:
+        if not BoolParser(jobspecs.filecheck).ev(filebools):
             messages.failure('No se encontraron todos los archivos de entrada requeridos')
             return
     
-    if 'fileclash' in jobconf:
-        if BoolParser(jobconf.fileclash).ev(filebools):
+    if 'fileclash' in jobspecs:
+        if BoolParser(jobspecs.fileclash).ev(filebools):
             messages.failure('Hay un conflicto entre los archivos de entrada')
             return
     
     if filename.endswith('.' + versionkey):
         jobname = filename[:-len(versionkey)-1]
-    elif filename.endswith('.' + jobconf.progkey):
-        jobname = filename[:-len(jobconf.progkey)-1]
+    elif filename.endswith('.' + jobspecs.progkey):
+        jobname = filename[:-len(jobspecs.progkey)-1]
     else:
         jobname = filename
 
@@ -70,21 +72,21 @@ def submit():
     hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
     outputname = pathjoin((jobname, versionkey))
 
-    if jobconf.hostcopy == 'local':
+    if jobspecs.hostcopy == 'local':
         makeworkdir = 'mkdir -m 700 "\'$workdir\'"'.format
         removeworkdir = 'rm -rf "\'$workdir\'/*"'.format
         copyfromhead = 'cp "{}" "{}"'.format
         copyallfromhead = 'cp "{}"/* "{}"'.format
         copytohead = 'cp "{}" "{}"'.format
         runathead = 'ssh $head "{}"'.format
-    elif jobconf.hostcopy == 'remote':
+    elif jobspecs.hostcopy == 'remote':
         makeworkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
         removeworkdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'$workdir\'/*"; done'.format
         copyfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'" $host:"\'{}\'"; done'.format
         copyallfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'/*" $host:"\'{}\'"; done'.format
         copytohead = 'scp "{}" $head:"\'{}\'"'.format
         runathead = 'ssh $head "{}"'.format
-    elif jobconf.hostcopy == 'headjump':
+    elif jobspecs.hostcopy == 'headjump':
         makeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
         removeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'$workdir\'/*"; done'.format
         copyfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'$host:"\'{}\'"; done'.format
@@ -92,19 +94,19 @@ def submit():
         copytohead = 'scp "{}" $head:"\'{}\'"'.format
         runathead = 'ssh $head "{}"'.format
     else:
-        messages.cfgerror('El método de copia', q(jobconf.hostcopy), 'no es válido')
+        messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
     inputfiles = []
 
-    for item in jobconf.inputfiles:
+    for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            inputfiles.append(copyfromhead(pathjoin(outputdir, (inputname, key)), pathjoin('$workdir', jobconf.filekeys[key])))
+            inputfiles.append(copyfromhead(pathjoin(outputdir, (inputname, key)), pathjoin('$workdir', jobspecs.filekeys[key])))
     
     outputfiles = []
 
-    for item in jobconf.outputfiles:
+    for item in jobspecs.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(copytohead(pathjoin('$workdir', jobconf.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append(copytohead(pathjoin('$workdir', jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
     for parameter in options.parameters:
         if not isabspath(parameter):
@@ -130,14 +132,14 @@ def submit():
             return
         else:
             makedirs(hiddendir)
-        if not set(listdir(outputdir)).isdisjoint(pathjoin((outputname, k)) for i in jobconf.outputfiles for k in i.split('|')):
+        if not set(listdir(outputdir)).isdisjoint(pathjoin((outputname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
             if options.no is True or (options.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 return
-        for item in jobconf.outputfiles:
+        for item in jobspecs.outputfiles:
             for key in item.split('|'):
                 remove(pathjoin(outputdir, (outputname, key)))
         if parentdir != outputdir:
-            for item in jobconf.inputfiles:
+            for item in jobspecs.inputfiles:
                 for key in item.split('|'):
                     remove(pathjoin(outputdir, (inputname, key)))
     elif path.exists(outputdir):
@@ -148,7 +150,7 @@ def submit():
         makedirs(hiddendir)
     
     if options.template:
-        for item in jobconf.inputfiles:
+        for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(parentdir, (filename, key))):
                     with open(pathjoin(parentdir, (filename, key)), 'r') as t, open(pathjoin(outputdir, (inputname, key)), 'w') as f:
@@ -158,7 +160,7 @@ def submit():
                             return
     elif parentdir != outputdir:
         action = path.rename if options.move else copyfile
-        for item in jobconf.inputfiles:
+        for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(parentdir, (filename, key))):
                     action(pathjoin(parentdir, (filename, key)), pathjoin(outputdir, (filename, key)))
@@ -173,12 +175,12 @@ def submit():
         t.write(makeworkdir() + '\n')
         t.write(''.join(i + '\n' for i in inputfiles))
         t.write('cd "$workdir"' + '\n')
-        t.write(''.join(i + '\n' for i in jobconf.prescript))
+        t.write(''.join(i + '\n' for i in jobspecs.prescript))
         t.write(' '.join(commandline) + '\n')
-        t.write(''.join(i + '\n' for i in jobconf.postscript))
+        t.write(''.join(i + '\n' for i in jobspecs.postscript))
         t.write(''.join(i + '\n' for i in outputfiles))
         t.write(removeworkdir() + '\n')
-        t.write(''.join(runathead(i) + '\n' for i in jobconf.offscript))
+        t.write(''.join(runathead(i) + '\n' for i in jobspecs.offscript))
     
     jobid = queuejob(t.name)
 

@@ -43,7 +43,7 @@
       "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
    ],
-   "formatkeys": [
+   "keywords": [
       "title",
       "method",
       "basis",

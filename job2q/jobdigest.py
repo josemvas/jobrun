@@ -1,0 +1,258 @@
+# -*- coding: utf-8 -*-
+import sys
+from pathlib import Path
+from argparse import ArgumentParser
+from os import path, listdir, getcwd
+from importlib import import_module
+from . import dialogs
+from . import tkboxes
+from . import messages
+from .strings import mpiLibs, boolStrDict
+from .utils import realpath, normalpath, isabspath, natsort, p, q, sq
+from .jobparse import info, jobcomments, environment, commandline, jobspecs, options, keywords, files
+from .chemistry import readxyz
+from .readspec import Bunch
+
+
+def digest():
+
+    if not jobspecs.scheduler:
+        messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
+    
+    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
+    jobformat = Bunch(scheduler.jobformat)
+    jobenvars = Bunch(scheduler.jobenvars)
+    mpilauncher = scheduler.mpilauncher
+    
+    if options.sort:
+        files.sort(key=natsort)
+    elif options.sortreverse:
+        files.sort(key=natsort, reverse=True)
+    
+    if options.wait is None:
+        try: options.wait = float(jobspecs.defaults.waitime)
+        except AttributeError: options.wait = 0
+    
+    if options.xdialog:
+        dialogs.yesno = tkboxes.ynbox
+        messages.failure = tkboxes.msgbox
+        messages.success = tkboxes.msgbox
+    
+    if not options.scrdir:
+        if jobspecs.defaults.scrdir:
+            options.scrdir = jobspecs.defaults.scrdir
+        else:
+            messages.cfgerror('<scrdir> No se especificó el directorio temporal de escritura por defecto')
+    
+    options.scrdir = realpath(options.scrdir)
+    
+    if not options.queue:
+        if jobspecs.defaults.queue:
+            options.queue = jobspecs.defaults.queue
+        else:
+            messages.cfgerror('<default><queue> No se especificó la cola por defecto')
+    
+    if not jobspecs.progname:
+        messages.cfgerror('<title> No se especificó el nombre del programa')
+    
+    if not jobspecs.progkey:
+        messages.cfgerror('<title> No se especificó la clave del programa')
+    
+    if jobspecs.makejobdir:
+        try: jobspecs.makejobdir = boolStrDict[jobspecs.makejobdir]
+        except KeyError:
+            messages.cfgerror('<outputdir> El texto de este tag debe ser "True" or "False"')
+    else:
+        messages.cfgerror('<outputdir> No se especificó si se requiere crear una carpeta de salida')
+    
+    if 'usempilauncher' in jobspecs:
+        try: jobspecs.usempilauncher = boolStrDict[jobspecs.usempilauncher]
+        except KeyError:
+            messages.cfgerror('<usempilauncher> El texto de este tag debe ser "True" o "False"')
+    
+    if options.interactive:
+        jobspecs.defaults = []
+    
+    if not jobspecs.filekeys:
+        messages.cfgerror('<filekeys> La lista de archivos del programa no existe o está vacía')
+    
+    if jobspecs.inputfiles:
+        for item in jobspecs.inputfiles:
+            for key in item.split('|'):
+                if not key in jobspecs.filekeys:
+                    messages.cfgerror('<inputfiles><e>{0}</e> El nombre de este archivo de entrada no fue definido'.format(key))
+    else:
+        messages.cfgerror('<inputfiles> La lista de archivos de entrada no existe o está vacía')
+    
+    if jobspecs.outputfiles:
+        for item in jobspecs.outputfiles:
+            for key in item.split('|'):
+                if not key in jobspecs.filekeys:
+                    messages.cfgerror('<otputfiles><e>{0}</e> El nombre de este archivo de salida no fue definido'.format(key))
+    else:
+        messages.cfgerror('<outputfiles> La lista de archivos de salida no existe o está vacía')
+    
+    if jobspecs.versions:
+        if not options.version:
+            if 'version' in jobspecs.defaults:
+                if jobspecs.defaults.version in jobspecs.versions:
+                    options.version = jobspecs.defaults.version
+                else:
+                    messages.opterror('La versión establecida por default es inválida')
+            else:
+                options.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobspecs.versions), key=natsort))
+                if not options.version in jobspecs.versions:
+                    messages.opterror('La versión seleccionada es inválida')
+    else:
+        messages.cfgerror('<versions> La lista de versiones no existe o está vacía')
+    
+    if not jobspecs.versions[options.version].executable:
+        messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
+    
+    executable = jobspecs.versions[options.version].executable
+    profile = jobspecs.versions[options.version].profile
+    
+    options.parameters = []
+    for key in jobspecs.parameters:
+        parameterdir = realpath(jobspecs.parameters[key])
+        parameterset = options[key]
+        try: items = listdir(parameterdir)
+        except FileNotFoundError as e:
+            messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
+        if not items:
+            messages.cfgerror('El directorio de parámetros', parameterdir, 'está vacío')
+        if parameterset is None:
+            if key in jobspecs.defaults.parameters:
+                parameterset = jobspecs.defaults.parameters[key]
+            else:
+                parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
+        if path.exists(path.join(parameterdir, parameterset)):
+            options.parameters.append(path.join(parameterdir, parameterset))
+        else:
+            messages.opterror('La ruta de parámetros', path.join(parameterdir, parameterset), 'no existe')
+    
+    jobcomments.append(jobformat.label(jobspecs.progname))
+    jobcomments.append(jobformat.queue(options.queue))
+    jobcomments.append(jobformat.stdout(options.scrdir))
+    jobcomments.append(jobformat.stderr(options.scrdir))
+    
+    if options.node:
+        jobcomments.append(jobformat.hosts(options.node))
+    
+    #TODO: MPI support for Slurm
+    if jobspecs.concurrency:
+        if jobspecs.concurrency.lower() == 'none':
+            jobcomments.append(jobformat.nhost(options.nhost))
+        elif jobspecs.concurrency.lower() == 'openmp':
+            jobcomments.append(jobformat.ncore(options.ncore))
+            jobcomments.append(jobformat.nhost(options.nhost))
+            environment.append('export OMP_NUM_THREADS=' + str(options.ncore))
+        elif jobspecs.concurrency.lower() in mpiLibs:
+            if not 'usempilauncher' in jobspecs:
+                messages.cfgerror('<usempilauncher> No se especificó si el programa es lanzado por mpirun')
+            jobcomments.append(jobformat.ncore(options.ncore))
+            jobcomments.append(jobformat.nhost(options.nhost))
+            if jobspecs.usempilauncher:
+                commandline.append(mpilauncher[jobspecs.concurrency])
+        else:
+            messages.cfgerror('El tipo de paralelización ' + jobspecs.concurrency + ' no está soportado')
+    else:
+        messages.cfgerror('<concurrency> No se especificó el tipo de paralelización del programa')
+    
+    environment.append("head=" + info.master)
+    environment.extend('='.join(i) for i in jobenvars.items())
+    environment.extend(jobspecs.onscript)
+    
+    for profile in jobspecs.profile + profile:
+        environment.append(profile)
+    
+    for var in jobspecs.filevars:
+        environment.append(var + '=' + sq(jobspecs.filekeys[jobspecs.filevars[var]]))
+    
+    environment.append("shopt -s nullglob extglob")
+    environment.append("workdir=" + q(path.join(options.scrdir, jobenvars.jobid)))
+    environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
+    environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
+    environment.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
+    environment.append("progname=" + sq(jobspecs.progname))
+    
+    commandline.append(realpath(executable) if path.sep in executable else executable)
+    
+    for key in jobspecs.optionargs:
+        if not jobspecs.optionargs[key] in jobspecs.filekeys:
+            messages.cfgerror('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+        commandline.append('-{key} {val}'.format(key=key, val=jobspecs.filekeys[jobspecs.optionargs[key]]))
+    
+    for item in jobspecs.positionargs:
+        for key in item.split('|'):
+            if not key in jobspecs.filekeys:
+                messages.cfgerror('<positionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+        commandline.append('@' + p('|'.join(jobspecs.filekeys[i] for i in item.split('|'))))
+    
+    if 'stdin' in jobspecs:
+        try: commandline.append('0<' + ' ' + jobspecs.filekeys[jobspecs.stdin])
+        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdin + '" en el tag <stdin> no fue definido.')
+    if 'stdout' in jobspecs:
+        try: commandline.append('1>' + ' ' + jobspecs.filekeys[jobspecs.stdout])
+        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdout + '" en el tag <stdout> no fue definido.')
+    if 'stderr' in jobspecs:
+        try: commandline.append('2>' + ' ' + jobspecs.filekeys[jobspecs.stderr])
+        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stderr + '" en el tag <stderr> no fue definido.')
+    
+    if options.template:
+        if options.molfile:
+            molpath = Path(options.molfile)
+            if molpath.is_file():
+                keywords['mol0'] = molpath.resolve()
+                if molpath.suffix == '.xyz':
+                    for i, step in enumerate(readxyz(molpath), 1):
+                        keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                    if not options.jobname:
+                        options.jobname = molpath.stem
+                else:
+                    messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+            elif molpath.is_dir():
+                messages.opterror('El archivo de coordenadas', molpath, 'es un directorio')
+            elif molpath.exists():
+                messages.opterror('El archivo de coordenadas', molpath, 'no es un archivo regular')
+            else:
+                messages.opterror('El archivo de coordenadas', molpath, 'no existe')
+        elif not options.jobname:
+            messages.opterror('Se debe especificar el archivo de coordenadas y/o el nombre del trabajo para poder interpolar')
+        
+
+def nextfile():
+    
+    filepath = path.abspath(files.pop(0))
+    basename = path.basename(filepath)
+
+    if isabspath(filepath):
+        parentdir = path.dirname(normalpath(filepath))
+    else:
+        if info.clientdir:
+            parentdir = path.dirname(normalpath(info.clientdir, filepath))
+        else:
+            parentdir = path.dirname(normalpath(path.getcwd(), filepath))
+        filepath = normalpath(parentdir, filepath)
+    
+    if path.isfile(filepath):
+        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
+            if basename.endswith('.' + key):
+                filename = basename[:-len(key)-1]
+                extension = key
+                break
+        else:
+            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
+            raise AssertionError()
+    elif path.isdir(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
+        raise AssertionError()
+    elif path.exists(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+        raise AssertionError()
+    else:
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
+        raise AssertionError()
+
+    return parentdir, filename, extension
+

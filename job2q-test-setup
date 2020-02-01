@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-assert sys.version_info >= (3, 5)
+assert sys.version_info >= (3, 4)
 from job2q.utils import makedirs
 from job2q.console import setup
 makedirs('./bin')

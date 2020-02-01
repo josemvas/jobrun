@@ -9,7 +9,7 @@ listTags = (
     'offscript',
     'prescript',
     'postscript',
-    'formatkeys',
+    'keywords',
 )
 
 dictTags = (

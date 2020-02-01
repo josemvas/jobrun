@@ -58,7 +58,7 @@ def yesno(prompt='', default=None):
 @join_positional_args(wordseps)
 @catch_keyboard_interrupt
 @override_dialogs
-def chooseone(prompt='', choices=[]):
+def chooseone(prompt='', choices=[], default=None):
     readline.set_completer(tabCompleter(choices).tclist)
     print(prompt)
     for choice in choices:
