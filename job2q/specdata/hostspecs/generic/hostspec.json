@@ -1,6 +1,7 @@
 {
    "hostname" : "Generic",
-   "headname": "",
+   "masterhost": "",
+   "remotejobs" : "",
    "scheduler": "",
    "hostcopy": "remote",
    "onscript": [

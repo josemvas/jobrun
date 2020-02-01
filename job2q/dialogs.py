@@ -5,7 +5,7 @@ from glob import glob
 from os import path, getcwd
 from . import messages
 from .utils import realpath, normalpath
-from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args
+from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args, wordseps
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
@@ -22,7 +22,7 @@ class tabCompleter(object):
         if self.maxtcs is None or len(completed) < int(self.maxtcs):
             return [i + ' ' for i in self.choices if i.startswith(text) and i not in completed][n]
 
-@join_positional_args
+@join_positional_args(wordseps)
 @catch_keyboard_interrupt
 def inputpath(prompt='', absolute=False):
     while True:
@@ -37,7 +37,7 @@ def inputpath(prompt='', absolute=False):
             else:
                 print('Por favor indique una ruta válida')
 
-@join_positional_args
+@join_positional_args(wordseps)
 @catch_keyboard_interrupt
 def yesno(prompt='', default=None):
     while True:
@@ -55,7 +55,7 @@ def yesno(prompt='', default=None):
             if isinstance(default, bool):
                 return default
 
-@join_positional_args
+@join_positional_args(wordseps)
 @catch_keyboard_interrupt
 @override_dialogs
 def chooseone(prompt='', choices=[]):
@@ -70,7 +70,7 @@ def chooseone(prompt='', choices=[]):
         else:
             messages.warning('Elección inválida, intente de nuevo')
 
-@join_positional_args
+@join_positional_args(wordseps)
 @catch_keyboard_interrupt
 @override_dialogs
 def choosemany(prompt='', choices=[], default=[]):

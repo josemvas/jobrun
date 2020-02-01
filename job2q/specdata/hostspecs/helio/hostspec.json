@@ -1,6 +1,6 @@
 {
    "hostname" : "Helio",
-   "headname": "helio",
+   "masterhost": "helio",
    "scheduler": "lavalsf",
    "hostcopy": "remote",
    "defaults": {

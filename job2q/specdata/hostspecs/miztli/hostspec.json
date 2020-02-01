@@ -1,9 +1,9 @@
 {
    "hostname" : "Miztli",
-   "headname": "mn330",
+   "masterhost": "mn330",
+   "remotejobs" : "$TMPU",
    "scheduler": "platformlsf",
    "hostcopy": "remote",
-   "rootdir": "$TMPU",
    "onscript": [
       "module purge"
    ],

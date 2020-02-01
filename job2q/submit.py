@@ -7,8 +7,8 @@ from getpass import getuser
 from . import dialogs
 from . import messages
 from .readspec import Bunch
-from .utils import wordjoin, barejoin, pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
-from .jobutils import jobconf, options, files, commandline, jobcomments, environment, keywords, nextfile
+from .utils import pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
+from .config import jobconf, options, files, commandline, jobcomments, environment, keywords, nextfile
 from .decorators import catch_keyboard_interrupt
 from .boolparse import BoolParser
 from .strings import mpiLibs
@@ -55,7 +55,7 @@ def submit():
 
     if options.jobname:
         jobname = pathjoin((options.jobname, jobname))
-        inputname = pathjoin((options.jobname, inputname))
+        inputname = pathjoin((options.jobname, filename))
     else:
         inputname = filename
 
@@ -168,17 +168,17 @@ def submit():
 
     with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
         t.write('#!/bin/bash' + '\n')
-        t.write(barejoin(i + '\n' for i in jobcomments))
-        t.write(barejoin(i + '\n' for i in environment))
+        t.write(''.join(i + '\n' for i in jobcomments))
+        t.write(''.join(i + '\n' for i in environment))
         t.write(makeworkdir() + '\n')
-        t.write(barejoin(i + '\n' for i in inputfiles))
+        t.write(''.join(i + '\n' for i in inputfiles))
         t.write('cd "$workdir"' + '\n')
-        t.write(barejoin(i + '\n' for i in jobconf.prescript))
-        t.write(wordjoin(commandline) + '\n')
+        t.write(''.join(i + '\n' for i in jobconf.prescript))
+        t.write(' '.join(commandline) + '\n')
         t.write(''.join(i + '\n' for i in jobconf.postscript))
-        t.write(barejoin(i + '\n' for i in outputfiles))
+        t.write(''.join(i + '\n' for i in outputfiles))
         t.write(removeworkdir() + '\n')
-        t.write(barejoin(runathead(i) + '\n' for i in jobconf.offscript))
+        t.write(''.join(runathead(i) + '\n' for i in jobconf.offscript))
     
     jobid = queuejob(t.name)
 

@@ -13,18 +13,19 @@ loader_script = r'''
 #!/bin/sh
 'exec' 'env' \
 "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{pylibpath}" \
-"PYTHONPATH={modulepath}" "SPECPATH={specpath}" \
+"PYTHONPATH={modulepath}" \
+"SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
 from job2q import *
-if remotehost:
+if remote:
     decode()
     while files:
         upload()
     transmit()
 else:
     decode()
-    configure()
+    inspect()
     submit()
     while files:
         wait()

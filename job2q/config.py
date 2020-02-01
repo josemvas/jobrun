@@ -1,74 +1,51 @@
 # -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
+from getpass import getuser 
+from socket import gethostbyname
 from argparse import ArgumentParser
 from os import path, listdir, getcwd, environ
 from importlib import import_module
-from socket import gethostbyname
-from . import details
 from . import dialogs
-from . import messages
 from . import tkboxes
-from .readspec import readspec, Bunch
-from .utils import homedir, wordjoin, pathjoin, realpath, normalpath, isabspath, natsort, p, q, sq
+from . import messages
 from .strings import mpiLibs, boolStrDict
+from .utils import pathjoin, realpath, normalpath, isabspath, natsort, p, q, sq
+from .readspec import readspec, Bunch
 from .chemistry import readxyz
 
-jobconf = Bunch({})
-options = Bunch({})
-files = []
-
+alias = None
+master = None
+remote = None
+specdir = None
+homedir = None
+username = None
+clientdir = None
 jobcomments = []
 environment = []
 commandline = []
+jobconf = Bunch({})
+options = Bunch({})
 keywords = {}
-
-def nextfile():
-    
-    filepath = path.abspath(files.pop(0))
-    basename = path.basename(filepath)
-
-    if isabspath(filepath):
-        parentdir = path.dirname(normalpath(filepath))
-    else:
-        if details.clientdir:
-            parentdir = path.dirname(normalpath(details.clientdir, filepath))
-        else:
-            parentdir = path.dirname(normalpath(path.getcwd(), filepath))
-        filepath = normalpath(parentdir, filepath)
-    
-    if path.isfile(filepath):
-        for key in (k for i in jobconf.inputfiles for k in i.split('|')):
-            if basename.endswith('.' + key):
-                filename = basename[:-len(key)-1]
-                extension = key
-                break
-        else:
-            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobconf.progname)
-            raise(AssertionError)
-    elif path.isdir(filepath):
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
-        raise(AssertionError)
-    elif path.exists(filepath):
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
-        raise(AssertionError)
-    else:
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
-        raise(AssertionError)
-
-    return parentdir, filename, extension
-
+files = []
 
 def decode():
 
-    details.alias = path.basename(sys.argv[0])
-    specdir = path.expanduser(environ['SPECPATH'])
+    global alias
+    global master
+    global specdir
+    global homedir
+    global clientdir
+    global username
+    global remote
 
-    if 'JOBCLIENT' in environ:
-        if 'REMOTEJOBS' in environ:
-            details.clientdir = normalpath(environ['REMOTEJOBS'], environ['JOBCLIENT'])
-        else:
-            messages.cfgerror('No se pueden aceptar trabajos remotos porque la variable de entorno $REMOTEJOBS aún no existe')
+    alias = path.basename(sys.argv[0])
+    homedir = path.expanduser('~')
+    username=getuser()
+    
+    try: specdir = normalpath(environ['SPECPATH'])
+    except KeyError:
+        messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     
     hostspec = path.join(specdir, 'hostspec.json')
     corespec = path.join(specdir, 'corespec.json')
@@ -82,7 +59,16 @@ def decode():
     if path.isfile(userspec):
         jobconf.merge(readspec(userspec))
     
-    parser = ArgumentParser(prog=details.alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
+    try: master = jobconf.masterhost
+    except AttributeError:
+        messages.cfgerror('No se definió "masterhost" en la configuración')
+    
+    if 'REMOTECLIENT' in environ:
+        try: clientdir = normalpath(jobconf.remotejobs, environ['REMOTECLIENT'])
+        except AttributeError:
+            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTEJOBS')
+    
+    parser = ArgumentParser(prog=alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--lsopt', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
     parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
@@ -97,7 +83,7 @@ def decode():
     parser.add_argument('-i', '--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
     parser.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
-    parser.add_argument('--no', dest='no', action='store_false', default=False, help='Responder "no" a todas las preguntas.')
+    parser.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
     parser.add_argument('--outdir', metavar='OUTDIR', type=str, help='Cambiar el directorio de salida.')
     parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Cambiar el directorio de escritura.')
@@ -124,14 +110,13 @@ def decode():
     
     parser.add_argument('-R', '--remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo remotamente en HOSTNAME.')
     parsed, remaining = parser.parse_known_args()
+    remote = parsed.remote
 
     parser.add_argument('files', nargs='+', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
-
     files[:] = parser.parse_args(remaining).files
-    details.clienthost = gethostbyname(jobconf.headname)
-    details.remotehost = parsed.remote
 
-def configure():
+
+def inspect():
 
     if not jobconf.scheduler:
         messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
@@ -149,12 +134,6 @@ def configure():
         files.sort(key=natsort)
     elif options.sortreverse:
         files.sort(key=natsort, reverse=True)
-    
-    if details.clientdir:
-        if isabspath(details.clientdir):
-            details.clientdir = normalpath(details.clientdir)
-        else: 
-            details.clientdir = normalpath(jobconf.rootdir, details.clientdir)
     
     if options.wait is None:
         try: options.wait = float(jobconf.defaults.waitime)
@@ -286,9 +265,9 @@ def configure():
     else:
         messages.cfgerror('<concurrency> No se especificó el tipo de paralelización del programa')
     
+    environment.append("head=" + master)
     environment.extend('='.join(i) for i in jobenvars.items())
     environment.extend(jobconf.onscript)
-    environment.append("head=" + gethostbyname(jobconf.headname))
     
     for profile in jobconf.profile + profile:
         environment.append(profile)
@@ -308,7 +287,7 @@ def configure():
     for key in jobconf.optionargs:
         if not jobconf.optionargs[key] in jobconf.filekeys:
             messages.cfgerror('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
-        commandline.append(wordjoin('-' + key, jobconf.filekeys[jobconf.optionargs[key]]))
+        commandline.append('-{key} {val}'.format(key=key, val=jobconf.filekeys[jobconf.optionargs[key]]))
     
     for item in jobconf.positionargs:
         for key in item.split('|'):
@@ -347,3 +326,39 @@ def configure():
         elif not options.jobname:
             messages.opterror('Se debe especificar el archivo de coordenadas y/o el nombre del trabajo para poder interpolar')
         
+
+def nextfile():
+    
+    filepath = path.abspath(files.pop(0))
+    basename = path.basename(filepath)
+
+    if isabspath(filepath):
+        parentdir = path.dirname(normalpath(filepath))
+    else:
+        if clientdir:
+            parentdir = path.dirname(normalpath(clientdir, filepath))
+        else:
+            parentdir = path.dirname(normalpath(path.getcwd(), filepath))
+        filepath = normalpath(parentdir, filepath)
+    
+    if path.isfile(filepath):
+        for key in (k for i in jobconf.inputfiles for k in i.split('|')):
+            if basename.endswith('.' + key):
+                filename = basename[:-len(key)-1]
+                extension = key
+                break
+        else:
+            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobconf.progname)
+            raise AssertionError()
+    elif path.isdir(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
+        raise AssertionError()
+    elif path.exists(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+        raise AssertionError()
+    else:
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
+        raise AssertionError()
+
+    return parentdir, filename, extension
+

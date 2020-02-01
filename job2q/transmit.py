@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from os import execl, path
-from getpass import getuser 
+from os import execv, path
 from subprocess import run, DEVNULL
 from . import messages
 from .utils import pathjoin
-from .jobutils import details, jobconf, options, nextfile
+from .config import jobconf, options, nextfile, alias, username, master, remote
 from .decorators import catch_keyboard_interrupt
 
 remotefiles = []
@@ -22,9 +21,9 @@ def upload():
     for key in jobconf.filekeys:
         if path.isfile(pathjoin(parentdir, (filename, key))):
             jobfiles.append(pathjoin(parentdir, (filename, key)))
-    run(['scp', *jobfiles, details.remotehost + ':' + '$REMOTEJOBS/{user}@{host}'.format(user=getuser(), host=details.clienthost)], stdout=DEVNULL)
+    run(['scp'] + jobfiles + [remote + ':' + '$REMOTEJOBS/{user}@{host}'.format(user=username, host=master)], stdout=DEVNULL)
 
 @catch_keyboard_interrupt
 def transmit():
-    execl('ssh', __file__, '-t', details.remotehost, 'JOBCLIENT={user}@{host}'.format(user=getuser(), host=details.clienthost), details.alias, *('--{option}={value}'.format(option=option, value=options[option]) for option in options), *remotefiles)
+    execv('ssh', [__file__, '-t', remote, 'REMOTECLIENT={user}@{host}'.format(user=username, host=master), alias] + ['--{opt}={val}'.format(opt=opt, val=options[opt]) for opt in options] + remotefiles)
 

@@ -2,12 +2,8 @@
 import os
 import re
 import sys
-from collections import Iterable
-from itertools import repeat
 from . import messages
-from .decorators import join_path_components
-
-homedir = os.path.expanduser('~')
+from .decorators import join_positional_args, pathseps, wordseps, nothing
 
 def makedirs(path):
     try: os.makedirs(path)
@@ -32,35 +28,20 @@ def hardlink(source, dest):
     except FileNotFoundError as e:
         pass
 
-def collapseuser(path):
-    if path == homedir:
-        return '~'
-    elif path.startswith(homedir + os.sep):
-        return '~' + path[len(homedir):]
+@join_positional_args(pathseps)
+def pathjoin(path):
     return path
 
-@join_path_components
+@join_positional_args(pathseps)
 def isabspath(path):
     return os.path.isabs(os.path.expanduser(os.path.expandvars(path)))
 
-@join_path_components
+@join_positional_args(pathseps)
 def normalpath(path):
     return os.path.normpath(os.path.expanduser(os.path.expandvars(path)))
 
 def realpath(path):
     return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
-
-def deepjoin(*args, sepgen):
-    return next(sepgen).join(i if isinstance(i, str) else deepjoin(*i, sepgen=sepgen) if isinstance(i, Iterable) else str(i) for i in args if i)
-
-def wordjoin(*args):
-    return deepjoin(*args, sepgen=repeat(' '))
-
-def barejoin(*args):
-    return deepjoin(*args, sepgen=repeat(''))
-
-def pathjoin(*args):
-    return deepjoin(*args, sepgen=iter(os.path.sep + '.-'))
 
 def p(string):
     return '({0})'.format(string)

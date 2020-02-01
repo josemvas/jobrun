@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import tkinter
-from .decorators import join_positional_args
+from .decorators import join_positional_args, wordseps
 from argparse import ArgumentParser
 
 class MessageBox(object):
@@ -74,7 +74,7 @@ class MessageBox(object):
         self.root.clipboard_clear()
         self.root.clipboard_append(self.msg)
 
-@join_positional_args
+@join_positional_args(wordseps)
 def ynbox(prompt):
     msgbox = MessageBox(prompt, 'Si', 'No', None)
     msgbox.root.mainloop()
@@ -82,14 +82,14 @@ def ynbox(prompt):
     msgbox.root.destroy()
     return msgbox.returning
 
-@join_positional_args
+@join_positional_args(wordseps)
 def msgbox(message):
     msgbox = MessageBox(message, 'OK', None, None)
     msgbox.root.mainloop()
     # the function pauses here until the mainloop is quit
     msgbox.root.destroy()
 
-@join_positional_args
+@join_positional_args(wordseps)
 def listbox(message, choices):
     msgbox = MessageBox(message, 'Continuar', 'Cancelar', choices)
     msgbox.root.mainloop()

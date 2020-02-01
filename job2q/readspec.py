@@ -2,7 +2,7 @@
 import json
 from . import messages
 from .strings import listTags, dictTags, textTags
-from .decorators import join_path_components
+from .decorators import join_positional_args, pathseps
 
 class BunchList(list):
     def __init__(self, parentlist):
@@ -69,7 +69,7 @@ def ordered(obj):
     else:
         return obj
 
-@join_path_components
+@join_positional_args(pathseps)
 def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
         try: return Bunch(ordered(json.load(fh)))
