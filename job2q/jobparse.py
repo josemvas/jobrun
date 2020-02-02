@@ -2,7 +2,7 @@
 import sys
 import json
 from getpass import getuser 
-from socket import gethostbyname
+from socket import gethostname, gethostbyname
 from argparse import ArgumentParser
 from os import path, listdir, environ
 from . import messages
@@ -85,7 +85,8 @@ def parse():
     cluster.program = path.basename(sys.argv[0])
     cluster.user = getuser()
     
-    try: cluster.specdir = normalpath(environ['SPECPATH'])
+    try:
+        cluster.specdir = normalpath(environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     
@@ -101,16 +102,14 @@ def parse():
     if path.isfile(userspec):
         jobspecs.merge(readspec(userspec))
     
-    try: cluster.master = path.expandvars(jobspecs.hostname)
+    try: cluster.master = jobspecs.hostname.format(hostname=gethostname())
     except AttributeError:
-        messages.cfgerror('No se definió el valor de "hostname" en la configuración')
-    
-    if 'REMOTECLIENT' in environ:
-        if 'REMOTESHARE' in environ:
-            cluster.clientdir = normalpath(environ['REMOTESHARE'], environ['REMOTECLIENT'])
-        else:
-            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
-    
+        messages.cfgerror('No se definió la propiedad "hostname" en la configuración')
+
+#    if boolean(jobspecs.remotejobs):
+#        if not 'REMOTESHARE' in environ:
+#            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
+
     parser = ArgumentParser(prog=cluster.program, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--lsopt', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
@@ -157,12 +156,12 @@ def parse():
     parser.add_argument('files', nargs='+', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
     files[:] = parser.parse_args(remaining).files
 
-    if parsed.remote is None:
-        return True
-    else:
+    if parsed.remote:
         cluster.remotehost = parsed.remote
         cluster.remoteshare = '$REMOTESHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
         return False
+    else:
+        return True
 
 cluster = Bunch({})
 options = Bunch({})

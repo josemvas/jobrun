@@ -11,7 +11,7 @@ jobformat = {
     'ncore' : '#BSUB -n "{}"'.format,
     'nhost' : '#BSUB -R "span[hosts={}]"'.format,
     'queue' : '#BSUB -q "{}"'.format,
-    'stdout' : '#BSUB -o "{}/%J.out"'.format,
+    'stdoutput' : '#BSUB -o "{}/%J.out"'.format,
     'stderr' : '#BSUB -e "{}/%J.err"'.format,
 }
 

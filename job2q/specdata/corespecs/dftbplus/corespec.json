@@ -1,10 +1,12 @@
 {
    "progkey": "plus",
    "progname": "DFTB+",
-   "concurrency": "openmp",
-   "makejobdir": "True",
+   "parallelib": "openmp",
    "filecheck": "dftb_in.hsd",
-   "stdout": "dftb_out.log",
+   "stdoutput": "dftb_out.log",
+   "defaults" : {
+      "outputdir": "{inputdir}/{jobname}"
+   },
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
       "dftb_pin.hsd": "dftb_pin.hsd",

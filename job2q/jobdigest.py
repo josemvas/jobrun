@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 from . import dialogs
 from . import tkboxes
 from . import messages
-from .strings import knownmpis, booldict
+from .strings import mpilibs, booldict
 from .utils import realpath, normalpath, isabspath, pathjoin, natsort, p, q, sq
 from .jobparse import cluster, jobcomments, environment, commandline, jobspecs, options, files
 from .chemistry import readxyz
@@ -36,7 +36,10 @@ def digest():
         dialogs.yesno = tkboxes.ynbox
         messages.failure = tkboxes.msgbox
         messages.success = tkboxes.msgbox
-    
+
+    if not options.outdir and not jobspecs.defaults.outputdir:
+        messages.cfgerror('Debe especificar la carpeta de salida por el programa no establece una por defecto')
+            
     if not options.scrdir:
         if jobspecs.defaults.scrdir:
             options.scrdir = jobspecs.defaults.scrdir
@@ -57,17 +60,10 @@ def digest():
     if not jobspecs.progkey:
         messages.cfgerror('<title> No se especificó la clave del programa')
     
-    if jobspecs.makejobdir:
-        try: jobspecs.makejobdir = booldict[jobspecs.makejobdir]
+    if 'mpilauncher' in jobspecs:
+        try: jobspecs.mpilauncher = booldict[jobspecs.mpilauncher]
         except KeyError:
-            messages.cfgerror('<outputdir> El texto de este tag debe ser "True" or "False"')
-    else:
-        messages.cfgerror('<outputdir> No se especificó si se requiere crear una carpeta de salida')
-    
-    if 'usempilauncher' in jobspecs:
-        try: jobspecs.usempilauncher = booldict[jobspecs.usempilauncher]
-        except KeyError:
-            messages.cfgerror('<usempilauncher> El texto de este tag debe ser "True" o "False"')
+            messages.cfgerror('<mpilauncher> El texto de este tag debe ser "True" o "False"')
     
     if options.interactive:
         jobspecs.defaults = []
@@ -132,31 +128,31 @@ def digest():
     
     jobcomments.append(jobformat.label(jobspecs.progname))
     jobcomments.append(jobformat.queue(options.queue))
-    jobcomments.append(jobformat.stdout(options.scrdir))
+    jobcomments.append(jobformat.stdoutput(options.scrdir))
     jobcomments.append(jobformat.stderr(options.scrdir))
     
     if options.node:
         jobcomments.append(jobformat.hosts(options.node))
     
     #TODO: MPI support for Slurm
-    if jobspecs.concurrency:
-        if jobspecs.concurrency.lower() == 'none':
+    if jobspecs.parallelib:
+        if jobspecs.parallelib.lower() == 'none':
             jobcomments.append(jobformat.nhost(options.nhost))
-        elif jobspecs.concurrency.lower() == 'openmp':
+        elif jobspecs.parallelib.lower() == 'openmp':
             jobcomments.append(jobformat.ncore(options.ncore))
             jobcomments.append(jobformat.nhost(options.nhost))
             environment.append('export OMP_NUM_THREADS=' + str(options.ncore))
-        elif jobspecs.concurrency.lower() in knownmpis:
-            if not 'usempilauncher' in jobspecs:
-                messages.cfgerror('<usempilauncher> No se especificó si el programa es lanzado por mpirun')
+        elif jobspecs.parallelib.lower() in mpilibs:
+            if not 'mpilauncher' in jobspecs:
+                messages.cfgerror('<mpilauncher> No se especificó si el programa es lanzado por mpirun')
             jobcomments.append(jobformat.ncore(options.ncore))
             jobcomments.append(jobformat.nhost(options.nhost))
-            if jobspecs.usempilauncher:
-                commandline.append(mpilauncher[jobspecs.concurrency])
+            if jobspecs.mpilauncher:
+                commandline.append(mpilauncher[jobspecs.parallelib])
         else:
-            messages.cfgerror('El tipo de paralelización ' + jobspecs.concurrency + ' no está soportado')
+            messages.cfgerror('El tipo de paralelización ' + jobspecs.parallelib + ' no está soportado')
     else:
-        messages.cfgerror('<concurrency> No se especificó el tipo de paralelización del programa')
+        messages.cfgerror('<parallelib> No se especificó el tipo de paralelización del programa')
     
     environment.append("head=" + cluster.master)
     environment.extend('='.join(i) for i in jobenvars.items())
@@ -191,9 +187,9 @@ def digest():
     if 'stdin' in jobspecs:
         try: commandline.append('0<' + ' ' + jobspecs.filekeys[jobspecs.stdin])
         except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdin + '" en el tag <stdin> no fue definido.')
-    if 'stdout' in jobspecs:
-        try: commandline.append('1>' + ' ' + jobspecs.filekeys[jobspecs.stdout])
-        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdout + '" en el tag <stdout> no fue definido.')
+    if 'stdoutput' in jobspecs:
+        try: commandline.append('1>' + ' ' + jobspecs.filekeys[jobspecs.stdoutput])
+        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdoutput + '" en el tag <stdoutput> no fue definido.')
     if 'stderr' in jobspecs:
         try: commandline.append('2>' + ' ' + jobspecs.filekeys[jobspecs.stderr])
         except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stderr + '" en el tag <stderr> no fue definido.')

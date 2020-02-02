@@ -1,7 +1,6 @@
 {
    "clustername" : "Miztli",
-   "hostname": "$HOSTNAME",
-   "remotejobs" : "$TMPU",
+   "hostname": "{hostname}",
    "scheduler": "platformlsf",
    "hostcopy": "remote",
    "onscript": [

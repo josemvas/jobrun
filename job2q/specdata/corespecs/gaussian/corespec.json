@@ -1,10 +1,12 @@
 {
    "progkey": "g",
    "progname": "Gaussian",
-   "concurrency": "openmp",
-   "makejobdir": "True",
+   "parallelib": "openmp",
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
+   "defaults" : {
+      "outputdir": "{inputdir}/{jobname}"
+   },
    "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",

@@ -1,9 +1,11 @@
 {
    "progkey": "ad",
    "progname": "AutoDock",
-   "concurrency": "None",
-   "makejobdir": "False",
+   "parallelib": "None",
    "filecheck": "dpf",
+   "defaults" : {
+      "outputdir": "{inputdir}"
+   },
    "filekeys": {
       "dpf": "job.dpf",
       "dlg": "job.dlg"

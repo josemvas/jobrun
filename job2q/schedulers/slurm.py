@@ -11,7 +11,7 @@ jobformat = {
     'ncore' : '#SBATCH -n "{}"'.format,
     'nhost' : '#SBATCH -N "{}"'.format,
     'queue' : '#SBATCH -p "{}"'.format,
-    'stdout' : '#SBATCH -o "{}/%A.out"'.format,
+    'stdoutput' : '#SBATCH -o "{}/%A.out"'.format,
     'stderr' : '#SBATCH -e "{}/%A.err"'.format,
 }
 

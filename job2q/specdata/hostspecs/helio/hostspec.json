@@ -1,6 +1,6 @@
 {
    "clustername" : "Helio",
-   "hostname": "$HOSTNAME",
+   "hostname": "{hostname}",
    "scheduler": "lavalsf",
    "hostcopy": "remote",
    "defaults": {

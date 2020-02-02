@@ -23,9 +23,9 @@ dictags = (
 
 textags = (
     'scheduler',
-    'concurrency',
-    'usempilauncher',
-    'makejobdir',
+    'parallelib',
+    'mpilauncher',
+    'outdir',
     'progkey',
     'filecheck',
     'fileclash',
@@ -34,11 +34,11 @@ textags = (
     'waitime',
     'executable',
     'version',
-    'stdout',
+    'stdoutput',
     'stderr',
 )
 
-knownmpis = (
+mpilibs = (
     'openmpi',
     'intelmpi',
     'mpich',

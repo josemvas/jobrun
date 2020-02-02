@@ -1,10 +1,12 @@
 {
    "progkey": "deMon",
    "progname": "deMon2k",
-   "concurrency": "intelmpi",
-   "usempilauncher": "True",
-   "makejobdir": "True",
+   "parallelib": "intelmpi",
+   "mpilauncher": "True",
    "filecheck": "inp",
+   "defaults" : {
+      "outputdir": "{inputdir}/{jobname}"
+   },
    "filekeys": {
       "inp": "deMon.inp",
       "rst": "deMon.rst",

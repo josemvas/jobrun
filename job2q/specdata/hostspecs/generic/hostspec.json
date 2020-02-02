@@ -1,7 +1,6 @@
 {
    "clustername" : "Generic",
-   "hostname": "",
-   "remotejobs" : "",
+   "hostname": "{hostname}",
    "scheduler": "",
    "hostcopy": "remote",
    "onscript": [

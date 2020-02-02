@@ -1,11 +1,13 @@
 {
    "progkey": "vasp",
    "progname": "VASP",
-   "concurrency": "intelmpi",
-   "usempilauncher": "True",
-   "makejobdir": "True",
-   "stdout": "log",
+   "parallelib": "intelmpi",
+   "mpilauncher": "True",
    "filecheck": "INCAR and POSCAR and POTCAR",
+   "stdoutput": "log",
+   "defaults" : {
+      "outputdir": "{inputdir}/{jobname}"
+   },
    "filekeys": {
       "INCAR": "INCAR",
       "POSCAR": "POSCAR",

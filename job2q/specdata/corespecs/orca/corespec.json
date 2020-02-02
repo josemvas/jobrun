@@ -1,11 +1,13 @@
 {
    "progkey": "orca",
    "progname": "ORCA",
-   "concurrency": "openmpi",
-   "usempilauncher": "False",
-   "makejobdir": "True",
+   "parallelib": "openmpi",
+   "mpilauncher": "False",
    "filecheck": "inp",
-   "stdout": "out",
+   "stdoutput": "out",
+   "defaults" : {
+      "outputdir": "{inputdir}/{jobname}"
+   },
    "filekeys": {
       "inp": "job.inp",
       "out": "job.out",
