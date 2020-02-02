@@ -6,35 +6,34 @@ from os import path, listdir, chmod, pathsep
 from subprocess import check_output, DEVNULL
 from . import dialogs
 from . import messages
+from .jobparse import readspec
 from .utils import rmdir, makedirs, hardlink, realpath, normalpath, natsort, q
-from .readspec import readspec
 
 loader_script = r'''
 #!/bin/sh
 'exec' 'env' \
-"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{pylibpath}" \
+"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{pyldpath}" \
 "PYTHONPATH={modulepath}" \
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
 from job2q import *
-parse()
-if info.remote:
-    while files:
-        upload()
-    remit()
-else:
+if parse():
     digest()
     submit()
     while files:
         wait()
         submit()
+else:
+    while files:
+        upload()
+    remit()
 '''
 
 def setup(*, relpath=False):
 
     libpath = []
-    pylibpath = []
+    pyldpath = []
     clusternames = {}
     hostdirnames = {}
     prognames = {}
@@ -105,8 +104,8 @@ def setup(*, relpath=False):
         match = re.search(r'=> (.+) \(0x', line)
         if match:
             libdir = path.dirname(match.group(1))
-            if libdir not in libpath and libdir not in pylibpath:
-                pylibpath.append(libdir)
+            if libdir not in libpath and libdir not in pyldpath:
+                pyldpath.append(libdir)
 
     for dirname in listdir(specdir):
         if relpath:
@@ -118,7 +117,7 @@ def setup(*, relpath=False):
         with open(path.join(bindir, dirname), 'w') as fh:
             fh.write(loader_script.lstrip().format(
                 python=sys.executable,
-                pylibpath=pathsep.join(pylibpath),
+                pyldpath=pathsep.join(pyldpath),
                 modulepath=modulepath,
                 specpath=specpath,
             ))

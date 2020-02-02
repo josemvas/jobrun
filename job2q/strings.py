@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-listTags = (
+listags = (
     'profile',
     'inputfiles',
     'outputfiles',
@@ -12,7 +12,7 @@ listTags = (
     'keywords',
 )
 
-dictTags = (
+dictags = (
     'defaults',
     'versions',
     'optionargs',
@@ -21,7 +21,7 @@ dictTags = (
     'filevars',
 )
 
-textTags = (
+textags = (
     'scheduler',
     'concurrency',
     'usempilauncher',
@@ -38,23 +38,13 @@ textTags = (
     'stderr',
 )
 
-optionTags = (
-    'parameters',
-)
-
-commandTags = {
-    'export' : 'export',
-    'source' : 'source',
-    'load' : 'module load',
-}
-
-mpiLibs = (
+knownmpis = (
     'openmpi',
     'intelmpi',
     'mpich',
 )
 
-boolStrDict = {
+booldict = {
     'True' : True,
     'False' : False,
 }

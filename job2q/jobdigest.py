@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
-from argparse import ArgumentParser
-from os import path, listdir, getcwd
 from importlib import import_module
+from os import path, listdir, getcwd
+from argparse import ArgumentParser
 from . import dialogs
 from . import tkboxes
 from . import messages
-from .strings import mpiLibs, boolStrDict
-from .utils import realpath, normalpath, isabspath, natsort, p, q, sq
-from .jobparse import info, jobcomments, environment, commandline, jobspecs, options, keywords, files
+from .strings import knownmpis, booldict
+from .utils import realpath, normalpath, isabspath, pathjoin, natsort, p, q, sq
+from .jobparse import cluster, jobcomments, environment, commandline, jobspecs, options, files
 from .chemistry import readxyz
-from .readspec import Bunch
-
+from .classes import Bunch
 
 def digest():
 
@@ -59,14 +58,14 @@ def digest():
         messages.cfgerror('<title> No se especificó la clave del programa')
     
     if jobspecs.makejobdir:
-        try: jobspecs.makejobdir = boolStrDict[jobspecs.makejobdir]
+        try: jobspecs.makejobdir = booldict[jobspecs.makejobdir]
         except KeyError:
             messages.cfgerror('<outputdir> El texto de este tag debe ser "True" or "False"')
     else:
         messages.cfgerror('<outputdir> No se especificó si se requiere crear una carpeta de salida')
     
     if 'usempilauncher' in jobspecs:
-        try: jobspecs.usempilauncher = boolStrDict[jobspecs.usempilauncher]
+        try: jobspecs.usempilauncher = booldict[jobspecs.usempilauncher]
         except KeyError:
             messages.cfgerror('<usempilauncher> El texto de este tag debe ser "True" o "False"')
     
@@ -147,7 +146,7 @@ def digest():
             jobcomments.append(jobformat.ncore(options.ncore))
             jobcomments.append(jobformat.nhost(options.nhost))
             environment.append('export OMP_NUM_THREADS=' + str(options.ncore))
-        elif jobspecs.concurrency.lower() in mpiLibs:
+        elif jobspecs.concurrency.lower() in knownmpis:
             if not 'usempilauncher' in jobspecs:
                 messages.cfgerror('<usempilauncher> No se especificó si el programa es lanzado por mpirun')
             jobcomments.append(jobformat.ncore(options.ncore))
@@ -159,7 +158,7 @@ def digest():
     else:
         messages.cfgerror('<concurrency> No se especificó el tipo de paralelización del programa')
     
-    environment.append("head=" + info.master)
+    environment.append("head=" + cluster.master)
     environment.extend('='.join(i) for i in jobenvars.items())
     environment.extend(jobspecs.onscript)
     
@@ -199,6 +198,10 @@ def digest():
         try: commandline.append('2>' + ' ' + jobspecs.filekeys[jobspecs.stderr])
         except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stderr + '" en el tag <stderr> no fue definido.')
     
+    for key in jobspecs.keywords:
+        if key in options:
+            keywords[key] = options[key]
+
     if options.template:
         if options.molfile:
             molpath = Path(options.molfile)
@@ -221,38 +224,5 @@ def digest():
             messages.opterror('Se debe especificar el archivo de coordenadas y/o el nombre del trabajo para poder interpolar')
         
 
-def nextfile():
-    
-    filepath = path.abspath(files.pop(0))
-    basename = path.basename(filepath)
-
-    if isabspath(filepath):
-        parentdir = path.dirname(normalpath(filepath))
-    else:
-        if info.clientdir:
-            parentdir = path.dirname(normalpath(info.clientdir, filepath))
-        else:
-            parentdir = path.dirname(normalpath(path.getcwd(), filepath))
-        filepath = normalpath(parentdir, filepath)
-    
-    if path.isfile(filepath):
-        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
-            if basename.endswith('.' + key):
-                filename = basename[:-len(key)-1]
-                extension = key
-                break
-        else:
-            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
-            raise AssertionError()
-    elif path.isdir(filepath):
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
-        raise AssertionError()
-    elif path.exists(filepath):
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
-        raise AssertionError()
-    else:
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
-        raise AssertionError()
-
-    return parentdir, filename, extension
-
+keywords = {}
+remotefiles = []

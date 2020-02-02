@@ -1,36 +1,98 @@
 # -*- coding: utf-8 -*-
 import sys
+import json
 from getpass import getuser 
 from socket import gethostbyname
 from argparse import ArgumentParser
 from os import path, listdir, environ
 from . import messages
+from .classes import Bunch
 from .utils import normalpath, natsort, p
-from .readspec import readspec, Bunch
+from .decorators import join_positional_args, pathseps
+from .strings import listags, dictags, textags
 
-info = Bunch({})
-jobspecs = Bunch({})
-options = Bunch({})
-jobcomments = []
-environment = []
-commandline = []
-keywords = {}
-files = []
+class SpecList(list):
+    def __init__(self, parentlist):
+        for item in parentlist:
+            if isinstance(item, dict):
+                self.append(SpecBunch(item))
+            elif isinstance(item, list):
+                self.append(SpecList(item))
+            else:
+                self.append(item)
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
+                else:
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
+            else:
+                self.append(other[i])
+
+class SpecBunch(Bunch):
+    def __init__(self, parentdict):
+        for key, value in parentdict.items():
+            if isinstance(value, dict):
+                self[key] = SpecBunch(value)
+            elif isinstance(value, list):
+                self[key] = SpecList(value)
+            else:
+                self[key] = value
+    def __setattr__(self, item, value):
+            self.__setitem__(item, value)
+    def __missing__(self, item):
+        if item in listags:
+            return SpecList([])
+        elif item in dictags:
+            return SpecBunch({})
+        elif item in textags:
+            return None
+        else:
+            raise AttributeError(item)
+    def merge(self, other):
+        for i in other:
+            if i in self:
+                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
+                    self[i].merge(other[i])
+                elif other[i] == self[i]:
+                    pass # same leaf value
+                else:
+                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
+            else:
+                self[i] = other[i]
+
+def ordered(obj):
+    if isinstance(obj, dict):
+        return obj
+    if isinstance(obj, list):
+        return sorted(ordered(x) for x in obj)
+    else:
+        return obj
+
+@join_positional_args(pathseps)
+def readspec(jsonfile):
+    with open(jsonfile, 'r') as fh:
+        try: return SpecBunch(ordered(json.load(fh)))
+        except ValueError as e:
+            messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 
 def parse():
 
-    info.user = getuser()
-    info.homedir = path.expanduser('~')
-    info.alias = path.basename(sys.argv[0])
+    cluster.homedir = path.expanduser('~')
+    cluster.program = path.basename(sys.argv[0])
+    cluster.user = getuser()
     
-    try: info.specdir = normalpath(environ['SPECPATH'])
+    try: cluster.specdir = normalpath(environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     
-    hostspec = path.join(info.specdir, 'hostspec.json')
-    corespec = path.join(info.specdir, 'corespec.json')
-    pathspec = path.join(info.specdir, 'pathspec.json')
-    userspec = path.join(info.homedir, '.jobspec.json')
+    hostspec = path.join(cluster.specdir, 'hostspec.json')
+    corespec = path.join(cluster.specdir, 'corespec.json')
+    pathspec = path.join(cluster.specdir, 'pathspec.json')
+    userspec = path.join(cluster.homedir, '.jobspec.json')
     
     jobspecs.merge(readspec(hostspec))
     jobspecs.merge(readspec(corespec))
@@ -39,17 +101,17 @@ def parse():
     if path.isfile(userspec):
         jobspecs.merge(readspec(userspec))
     
-    try: info.master = path.expandvars(jobspecs.hostname)
+    try: cluster.master = path.expandvars(jobspecs.hostname)
     except AttributeError:
         messages.cfgerror('No se definió el valor de "hostname" en la configuración')
     
     if 'REMOTECLIENT' in environ:
         if 'REMOTESHARE' in environ:
-            info.clientdir = normalpath(environ['REMOTESHARE'], environ['REMOTECLIENT'])
+            cluster.clientdir = normalpath(environ['REMOTESHARE'], environ['REMOTECLIENT'])
         else:
             messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
     
-    parser = ArgumentParser(prog=info.alias, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
+    parser = ArgumentParser(prog=cluster.program, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--lsopt', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
     parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
@@ -91,13 +153,22 @@ def parse():
     
     parser.add_argument('-R', '--remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo remotamente en HOSTNAME.')
     parsed, remaining = parser.parse_known_args()
-    info.remote = parsed.remote
 
     parser.add_argument('files', nargs='+', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
     files[:] = parser.parse_args(remaining).files
 
-    for key in jobspecs.keywords:
-        if key in options:
-            keywords[key] = options[key]
+    if parsed.remote is None:
+        return True
+    else:
+        cluster.remotehost = parsed.remote
+        cluster.remoteshare = '$REMOTESHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
+        return False
 
+cluster = Bunch({})
+options = Bunch({})
+jobspecs = SpecBunch({})
+jobcomments = []
+environment = []
+commandline = []
+files = []
 

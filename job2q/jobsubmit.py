@@ -2,22 +2,77 @@
 from time import sleep
 from shutil import copyfile
 from importlib import import_module
-from os import execl, path, listdir
+from subprocess import call, DEVNULL
+from os import path, listdir, execv
 from getpass import getuser 
 from . import dialogs
 from . import messages
-from .readspec import Bunch
 from .boolparse import BoolParser
 from .decorators import catch_keyboard_interrupt
 from .utils import pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
-from .jobparse import jobcomments, environment, commandline, jobspecs, options, keywords, files
-from .jobdigest import nextfile
-from .strings import mpiLibs
+from .jobparse import jobcomments, environment, commandline, jobspecs, options, cluster, files
+from .jobdigest import keywords, remotefiles
+from .classes import Bunch, Identity
+from .strings import knownmpis
 
+def nextfile():
+    
+    filepath = path.abspath(files.pop(0))
+    basename = path.basename(filepath)
+
+    if isabspath(filepath):
+        parentdir = path.dirname(normalpath(filepath))
+    else:
+        if cluster.clientdir:
+            parentdir = path.dirname(normalpath(cluster.clientdir, filepath))
+        else:
+            parentdir = path.dirname(normalpath(path.getcwd(), filepath))
+        filepath = normalpath(parentdir, filepath)
+    
+    if path.isfile(filepath):
+        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
+            if basename.endswith('.' + key):
+                filename = basename[:-len(key)-1]
+                extension = key
+                break
+        else:
+            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
+            raise AssertionError()
+    elif path.isdir(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
+        raise AssertionError()
+    elif path.exists(filepath):
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+        raise AssertionError()
+    else:
+        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
+        raise AssertionError()
+
+    return parentdir, filename, extension
 
 @catch_keyboard_interrupt
 def wait():
     sleep(options.wait)
+
+@catch_keyboard_interrupt
+def upload():
+
+    try:
+        parentdir, filename, extension = nextfile()
+    except AssertionError:
+        return
+
+    jobfiles = []
+    relparentdir = path.relpath(parentdir, cluster.homedir)
+    for key in jobspecs.filekeys:
+        if path.isfile(pathjoin(parentdir, (filename, key))):
+            jobfiles.append(pathjoin(cluster.homedir, '.', relparentdir, (filename, key)))
+    call(['rsync', '-R'] + jobfiles + [cluster.remotehost + ':' + cluster.remoteshare])
+    remotefiles.append(pathjoin(cluster.remoteshare, relparentdir, (filename, extension)))
+
+@catch_keyboard_interrupt
+def remit():
+    execv('/usr/bin/ssh', [__file__, '-t', cluster.remotehost, 'REMOTECLIENT={user}@{host}'.format(user=cluster.user, host=cluster.master), cluster.program] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if Identity(val) not in (None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def submit():

@@ -1,4 +1,3 @@
+from .jobparse import parse, files
+from .jobsubmit import wait, upload, remit, submit
 from .jobdigest import digest
-from .jobparse import files, parse, info
-from .jobsubmit import wait, submit
-from .jobremit import upload, remit
