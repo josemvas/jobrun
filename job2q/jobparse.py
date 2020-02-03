@@ -110,11 +110,7 @@ def parse():
     except AttributeError:
         messages.cfgerror('No se definió la propiedad "hostname" en la configuración')
 
-#    if boolean(jobspecs.remotejobs):
-#        if not 'REMOTESHARE' in environ:
-#            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
-
-    parser = ArgumentParser(prog=cluster.program, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
+    parser = ArgumentParser(prog=cluster.program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--lsopt', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
     parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
@@ -125,13 +121,13 @@ def parse():
     parser.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
     parser.add_argument('-j', '--jobname', metavar='MOLNAME', type=str, help='Nombre del trabajo de interpolación.')
     parser.add_argument('-s', '--sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
-    parser.add_argument('-S', '--sortreverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
+    parser.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
     parser.add_argument('-i', '--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
     parser.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
     parser.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
-    parser.add_argument('--outdir', metavar='OUTDIR', type=str, help='Cambiar el directorio de salida.')
+    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Cambiar el directorio de salida.')
     parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Cambiar el directorio de escritura.')
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
     
@@ -154,14 +150,28 @@ def parse():
             messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
         raise SystemExit()
     
-    parser.add_argument('-R', '--remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo remotamente en HOSTNAME.')
+
+    parser.add_argument('-r', '--remote-to', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
+    parser.add_argument('-R', '--remote-from', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo del host remoto HOSTNAME.')
     parsed, remaining = parser.parse_known_args()
 
-    parser.add_argument('files', nargs='+', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
-    files[:] = parser.parse_args(remaining).files
+    parser.add_argument('files', nargs='*', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
+    parsed, remaining = parser.parse_known_args()
 
-    if parsed.remote:
-        cluster.remotehost = parsed.remote
+    files[:] = parsed.files
+
+    parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir')
+    parser.parse_args(remaining)
+
+    if not files:
+        messages.opterror('Se requiere especificar al menos un archivo de entrada')
+
+    if parsed.remote_from:
+        if not 'REMOTESHARE' in environ:
+            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
+
+    if parsed.remote_to:
+        cluster.remotehost = parsed.remote_to
         cluster.remoteshare = '$REMOTESHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
         return False
     else:

@@ -37,10 +37,10 @@ def runerror(message):
 def listing(message, items=[], default=None):
     if message:
         print(message)
-    for option in options:
-        if option == default:
-            print(' '*2 + option + ' ' + '(default)')
+    for item in items:
+        if item == default:
+            print(' '*2 + item + ' ' + '(default)')
         else:
-            print(' '*2 + option)
+            print(' '*2 + item)
 
 

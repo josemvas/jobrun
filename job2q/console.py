@@ -126,20 +126,3 @@ def setup(*, relpath=False):
             ))
         chmod(path.join(bindir, dirname), 0o755)
 
-#    import json
-#    from .readxmlspec import readxmlspec
-#    with open(path.join(hostspecdir, 'Miztli','hostspec.json'), 'w') as fh:
-#        json.dump(readxmlspec(path.join(hostspecdir, 'Miztli', 'hostspec.xml')), fh, indent=3)
-#    with open(path.join(hostspecdir, 'Helio','hostspec.json'), 'w') as fh:
-#        json.dump(readxmlspec(path.join(hostspecdir, 'Helio', 'hostspec.xml')), fh, indent=3)
-#    for package in listdir(corespecdir):
-#        with open(path.join(corespecdir, package, 'corespec.json'), 'w') as fh:
-#            json.dump(readxmlspec(path.join(corespecdir, package, 'corespec.xml')), fh, indent=3)
-#    for package in listdir(path.join(hostspecdir, 'Helio')):
-#        if path.isdir(path.join(hostspecdir, 'Helio', package)):
-#            with open(path.join(hostspecdir, 'Helio', package,'pathspec.json'), 'w') as fh:
-#                json.dump(readxmlspec(path.join(hostspecdir, 'Helio', package, 'pathspec.xml')), fh, indent=3)
-#    for package in listdir(path.join(hostspecdir, 'Miztli')):
-#        if path.isdir(path.join(hostspecdir, 'Miztli', package)):
-#            with open(path.join(hostspecdir, 'Miztli', package,'pathspec.json'), 'w') as fh:
-#                json.dump(readxmlspec(path.join(hostspecdir, 'Miztli', package, 'pathspec.xml')), fh, indent=3)
