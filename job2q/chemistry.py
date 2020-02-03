@@ -3,7 +3,7 @@ from job2q import messages
 
 def readxyz(path):
     optrj = []
-    with path.open(mode='r') as fh:
+    with open(path, mode='r') as fh:
         while True:
             try:
                 coords = [ ]

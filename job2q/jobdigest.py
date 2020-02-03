@@ -176,7 +176,7 @@ def digest():
     environment.append("progname=" + sq(jobspecs.progname))
     
     try:
-        commandline.append(AbsPath(executable), expand=True)
+        commandline.append(AbsPath(executable, expand=True))
     except NotAbsolutePath:
         commandline.append(executable)
     
@@ -213,7 +213,7 @@ def digest():
                 molpath = AbsPath(getcwd(), options.molfile)
             if molpath.isfile():
                 keywords['mol0'] = molpath
-                if molpath.hassuffix('xyz'):
+                if molpath.hasext('.xyz'):
                     for i, step in enumerate(readxyz(molpath), 1):
                         keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
                     if not options.jobname:

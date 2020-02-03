@@ -47,7 +47,7 @@ def setup(*, relpath=False):
     etcdir = path.join(bindir, 'job2q')
     makedirs(etcdir)
     
-    sourcedir = AbsPath(__file__).parent
+    sourcedir = AbsPath(__file__).parent()
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
     specdir = path.join(etcdir, 'jobspecs')

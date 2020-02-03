@@ -16,26 +16,26 @@ class Bunch(dict):
             raise AttributeError(item)
 
 class AbsPath(str):
-   def __new__(cls, *args, expand=False):
-      filepath = path.normpath(pathjoin(*args))
-      if expand:
-          filepath = path.expanduser(path.expandvars(filepath))
-      if not path.isabs(filepath):
-          raise NotAbsolutePath(filepath, 'is not an absolute path')
-      obj = str.__new__(cls, filepath)
-      if obj != '/':
-          obj.parent = AbsPath(path.dirname(filepath))
-          obj.name = path.basename(filepath)
-          obj.stem, obj.suffix = path.splitext(obj.name)
-          return obj
-   def hassuffix(suffix):
-      return self.suffix == suffix
-   def exists(self):
-      return path.exists(self)
-   def isfile(self):
-      return path.isfile(self)
-   def isdir(self):
-      return path.isdir(self)
-   def listdir(self):
-      return listdir(self)
+    def __new__(cls, *args, expand=False):
+        filepath = path.normpath(pathjoin(*args))
+        if expand:
+            filepath = path.expanduser(path.expandvars(filepath))
+        if not path.isabs(filepath):
+            raise NotAbsolutePath(filepath, 'is not an absolute path')
+        obj = str.__new__(cls, filepath)
+        obj.name = path.basename(filepath)
+        obj.stem, obj.suffix = path.splitext(obj.name)
+        return obj
+    def parent(self):
+        return AbsPath(path.dirname(self))
+    def hasext(self, suffix):
+        return self.suffix == suffix
+    def exists(self):
+        return path.exists(self)
+    def isfile(self):
+        return path.isfile(self)
+    def isdir(self):
+        return path.isdir(self)
+    def listdir(self):
+        return listdir(self)
 

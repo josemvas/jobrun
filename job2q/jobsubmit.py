@@ -25,7 +25,7 @@ def nextfile():
     except NotAbsolutePath:
         filepath = AbsPath(getcwd(), file)
 
-    inputdir = filepath.parent
+    inputdir = filepath.parent()
     basename = filepath.name
     
     if filepath.isfile():
