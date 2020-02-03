@@ -3,13 +3,14 @@ import sys
 import json
 from getpass import getuser 
 from socket import gethostname, gethostbyname
+from os import path, listdir, environ, getcwd
 from argparse import ArgumentParser
-from os import path, listdir, environ
 from . import messages
-from .classes import Bunch
-from .utils import normalpath, natsort, p
+from .classes import Bunch, AbsPath
+from .exceptions import NotAbsolutePath
 from .decorators import join_positional_args, pathseps
 from .strings import listags, dictags, textags
+from .utils import natsort, p
 
 class SpecList(list):
     def __init__(self, parentlist):
@@ -86,7 +87,10 @@ def parse():
     cluster.user = getuser()
     
     try:
-        cluster.specdir = normalpath(environ['SPECPATH'])
+        try:
+            cluster.specdir = AbsPath(environ['SPECPATH'])
+        except NotAbsolutePath:
+            cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     
@@ -166,8 +170,5 @@ def parse():
 cluster = Bunch({})
 options = Bunch({})
 jobspecs = SpecBunch({})
-jobcomments = []
-environment = []
-commandline = []
 files = []
 

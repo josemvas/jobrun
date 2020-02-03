@@ -2,12 +2,15 @@
 import re
 import sys
 from shutil import copyfile
-from os import path, listdir, chmod, pathsep
 from subprocess import check_output, DEVNULL
+from os import path, listdir, chmod, pathsep
+from os.path import isfile, isdir
 from . import dialogs
 from . import messages
 from .jobparse import readspec
-from .utils import rmdir, makedirs, hardlink, realpath, normalpath, natsort, q
+from .utils import rmdir, makedirs, hardlink, natsort, q
+from .exceptions import NotAbsolutePath
+from .classes import AbsPath
 
 loader_script = r'''
 #!/bin/sh
@@ -40,11 +43,11 @@ def setup(*, relpath=False):
     progdirnames = {}
     configured = []
     
-    bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', absolute=True)
+    bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
     etcdir = path.join(bindir, 'job2q')
     makedirs(etcdir)
     
-    sourcedir = path.dirname(path.realpath(__file__))
+    sourcedir = AbsPath(__file__).parent
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
     specdir = path.join(etcdir, 'jobspecs')
@@ -113,7 +116,7 @@ def setup(*, relpath=False):
             specpath = path.join('${0%/*}', path.relpath(path.join(specdir, dirname), bindir))
         else:
             modulepath = path.dirname(sourcedir)
-            specpath = normalpath(specdir, dirname)
+            specpath = AbsPath(specdir, dirname)
         with open(path.join(bindir, dirname), 'w') as fh:
             fh.write(loader_script.lstrip().format(
                 python=sys.executable,

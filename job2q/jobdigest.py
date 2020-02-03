@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 import sys
-from pathlib import Path
 from importlib import import_module
 from os import path, listdir, getcwd
 from argparse import ArgumentParser
 from . import dialogs
 from . import tkboxes
 from . import messages
+from .classes import Bunch, AbsPath
+from .exceptions import NotAbsolutePath
+from .utils import pathjoin, natsort, p, q, sq
+from .jobparse import cluster, jobspecs, options, files
 from .strings import mpilibs, booldict
-from .utils import realpath, normalpath, isabspath, pathjoin, natsort, p, q, sq
-from .jobparse import cluster, jobcomments, environment, commandline, jobspecs, options, files
 from .chemistry import readxyz
-from .classes import Bunch
 
 def digest():
 
@@ -46,7 +46,7 @@ def digest():
         else:
             messages.cfgerror('<scrdir> No se especificó el directorio temporal de escritura por defecto')
     
-    options.scrdir = realpath(options.scrdir)
+    options.scrdir = AbsPath(options.scrdir)
     
     if not options.queue:
         if jobspecs.defaults.queue:
@@ -107,22 +107,26 @@ def digest():
     executable = jobspecs.versions[options.version].executable
     profile = jobspecs.versions[options.version].profile
     
-    options.parameters = []
     for key in jobspecs.parameters:
-        parameterdir = realpath(jobspecs.parameters[key])
-        parameterset = options[key]
-        try: items = listdir(parameterdir)
+        try:
+            parameterdir = AbsPath(jobspecs.parameters[key], expand=True)
+        except NotAbsolutePath:
+            parameterdir = AbsPath(getcwd(), jobspecs.parameters[key], expand=True)
+        try:
+            items = parameterdir.listdir()
         except FileNotFoundError as e:
             messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
         if not items:
             messages.cfgerror('El directorio de parámetros', parameterdir, 'está vacío')
-        if parameterset is None:
+        if options[key]:
+            parameterset = options[key]
+        else:
             if key in jobspecs.defaults.parameters:
                 parameterset = jobspecs.defaults.parameters[key]
             else:
                 parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
         if path.exists(path.join(parameterdir, parameterset)):
-            options.parameters.append(path.join(parameterdir, parameterset))
+            parameters.append(path.join(parameterdir, parameterset))
         else:
             messages.opterror('La ruta de parámetros', path.join(parameterdir, parameterset), 'no existe')
     
@@ -171,7 +175,10 @@ def digest():
     environment.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
     environment.append("progname=" + sq(jobspecs.progname))
     
-    commandline.append(realpath(executable) if path.sep in executable else executable)
+    try:
+        commandline.append(AbsPath(executable), expand=True)
+    except NotAbsolutePath:
+        commandline.append(executable)
     
     for key in jobspecs.optionargs:
         if not jobspecs.optionargs[key] in jobspecs.filekeys:
@@ -200,17 +207,20 @@ def digest():
 
     if options.template:
         if options.molfile:
-            molpath = Path(options.molfile)
-            if molpath.is_file():
-                keywords['mol0'] = molpath.resolve()
-                if molpath.suffix == '.xyz':
+            try:
+                molpath = AbsPath(options.molfile)
+            except NotAbsolutePath:
+                molpath = AbsPath(getcwd(), options.molfile)
+            if molpath.isfile():
+                keywords['mol0'] = molpath
+                if molpath.hassuffix('xyz'):
                     for i, step in enumerate(readxyz(molpath), 1):
                         keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
                     if not options.jobname:
                         options.jobname = molpath.stem
                 else:
                     messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
-            elif molpath.is_dir():
+            elif molpath.isdir():
                 messages.opterror('El archivo de coordenadas', molpath, 'es un directorio')
             elif molpath.exists():
                 messages.opterror('El archivo de coordenadas', molpath, 'no es un archivo regular')
@@ -221,4 +231,8 @@ def digest():
         
 
 keywords = {}
+jobcomments = []
+environment = []
 remotefiles = []
+commandline = []
+parameters = []

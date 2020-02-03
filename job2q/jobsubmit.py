@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from time import sleep
 from shutil import copyfile
-from importlib import import_module
-from os import path, listdir, execv, getcwd
+from os import path, execv, getcwd
 from subprocess import call, DEVNULL
+from importlib import import_module
 from getpass import getuser 
 from . import dialogs
 from . import messages
 from .boolparse import BoolParser
 from .decorators import catch_keyboard_interrupt
-from .utils import pathjoin, remove, makedirs, normalpath, isabspath, alnum, p, q, sq
-from .jobparse import jobcomments, environment, commandline, jobspecs, options, cluster, files
-from .jobdigest import keywords, remotefiles
-from .classes import Bunch, Identity, Path
+from .exceptions import NotAbsolutePath, InputFileError
+from .jobdigest import keywords, jobcomments, environment, commandline, parameters, remotefiles
+from .utils import pathjoin, remove, makedirs, alnum, p, q, sq
+from .jobparse import cluster, jobspecs, options, files
+from .classes import Bunch, Identity, AbsPath
 from .strings import mpilibs
 
 def nextfile():
@@ -20,14 +21,14 @@ def nextfile():
     file = files.pop(0)
 
     try:
-        filepath = Path(file)
-    except ValueError:
-        filepath = Path(getcwd(), file)
+        filepath = AbsPath(file)
+    except NotAbsolutePath:
+        filepath = AbsPath(getcwd(), file)
 
-    inputdir = filepath.parent()
-    basename = filepath.stem()
+    inputdir = filepath.parent
+    basename = filepath.name
     
-    if path.isfile(filepath):
+    if filepath.isfile():
         for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
             if basename.endswith('.' + key):
                 inputname = basename[:-len(key)-1]
@@ -35,16 +36,16 @@ def nextfile():
                 break
         else:
             messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
-            raise AssertionError()
-    elif path.isdir(filepath):
+            raise InputFileError()
+    elif filepath.isdir():
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
-        raise AssertionError()
-    elif path.exists(filepath):
+        raise InputFileError()
+    elif filepath.exists():
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
-        raise AssertionError()
+        raise InputFileError()
     else:
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
-        raise AssertionError()
+        raise InputFileError()
 
     return inputdir, inputname, inputext
 
@@ -57,7 +58,7 @@ def upload():
 
     try:
         inputdir, inputname, inputext = nextfile()
-    except AssertionError:
+    except InputFileError:
         return
 
     jobfiles = []
@@ -77,7 +78,7 @@ def submit():
 
     try:
         inputdir, inputname, inputext = nextfile()
-    except AssertionError:
+    except InputFileError:
         return
 
     versionkey = jobspecs.progkey + alnum(options.version)
@@ -115,15 +116,15 @@ def submit():
         actualname = inputname
 
     if options.outdir:
-        if isabspath(options.outdir):
-            outputdir = normalpath(options.outdir)
-        else:
-            outputdir = normalpath(inputdir, options.outdir)
+        try:
+            outputdir = AbsPath(options.outdir)
+        except NotAbsolutePath:
+            outputdir = AbsPath(inputdir, options.outdir)
     else:
-        outputdir = jobspecs.defaults.outputdir.replace('/', path.sep).format(inputdir=inputdir, jobname=jobname)
+        outputdir = AbsPath(jobspecs.defaults.outputdir.format(**{'/':path.sep, 'inputdir':inputdir, 'jobname':jobname}))
         
-    hiddendir = pathjoin(outputdir, ('.' + jobname, versionkey))
-    outputname = pathjoin((jobname, versionkey))
+    hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
+    outputname = '.'.join([jobname, versionkey])
 
     if jobspecs.hostcopy == 'local':
         makeworkdir = 'mkdir -m 700 "\'$workdir\'"'.format
@@ -161,16 +162,18 @@ def submit():
         for key in item.split('|'):
             outputfiles.append(copytohead(pathjoin('$workdir', jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
-    for parameter in options.parameters:
-        if not isabspath(parameter):
-            parameter = normalpath(inputdir, parameter)
-        if path.isfile(parameter):
+    for parameter in parameters:
+        try:
+            parameter = AbsPath(parameter, expand=True)
+        except NotAbsolutePath:
+            parameter = AbsPath(inputdir, parameter, expand=True)
+        if parameter.isfile():
             inputfiles.append(copyfromhead(parameter, '$workdir'))
-        elif path.isdir(parameter):
+        elif parameter.isdir():
             inputfiles.append(copyallfromhead(parameter, '$workdir'))
     
-    if path.isdir(outputdir):
-        if path.isdir(hiddendir):
+    if outputdir.isdir():
+        if hiddendir.isdir():
             try:
                 with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
                     jobid = t.read()
@@ -180,12 +183,12 @@ def submit():
                         return
             except FileNotFoundError:
                 pass
-        elif path.exists(hiddendir):
+        elif hiddendir.exists():
             messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
             return
         else:
             makedirs(hiddendir)
-        if not set(listdir(outputdir)).isdisjoint(pathjoin((outputname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
+        if not set(outputdir.listdir()).isdisjoint(pathjoin((outputname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
             if options.no is True or (options.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 return
         for item in jobspecs.outputfiles:
@@ -195,7 +198,7 @@ def submit():
             for item in jobspecs.inputfiles:
                 for key in item.split('|'):
                     remove(pathjoin(outputdir, (actualname, key)))
-    elif path.exists(outputdir):
+    elif outputdir.exists():
         messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
         return
     else:

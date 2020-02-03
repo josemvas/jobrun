@@ -2,8 +2,12 @@
 import os
 import re
 import sys
-from . import messages
-from .decorators import join_positional_args, pathseps, wordseps, nothing
+
+wordseps = (' ', '')
+pathseps = (os.path.sep, '.')
+
+def deepjoin(a, i):
+    return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)
 
 def makedirs(path):
     try: os.makedirs(path)
@@ -28,20 +32,8 @@ def hardlink(source, dest):
     except FileNotFoundError as e:
         pass
 
-@join_positional_args(pathseps)
-def pathjoin(path):
-    return path
-
-@join_positional_args(pathseps)
-def isabspath(path):
-    return os.path.isabs(os.path.expanduser(os.path.expandvars(path)))
-
-@join_positional_args(pathseps)
-def normalpath(path):
-    return os.path.normpath(os.path.expanduser(os.path.expandvars(path)))
-
-def realpath(path):
-    return os.path.realpath(os.path.expanduser(os.path.expandvars(path)))
+def pathjoin(*args):
+    return deepjoin(args, iter(pathseps))
 
 def p(string):
     return '({0})'.format(string)

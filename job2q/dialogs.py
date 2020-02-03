@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import sys
 import readline
-from glob import glob
 from os import path, getcwd
+from glob import glob
 from . import messages
-from .utils import realpath, normalpath
-from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args, wordseps
+from .utils import wordseps
+from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args
+from .exceptions import NotAbsolutePath
+from .classes import AbsPath
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
@@ -24,16 +26,17 @@ class tabCompleter(object):
 
 @join_positional_args(wordseps)
 @catch_keyboard_interrupt
-def inputpath(prompt='', absolute=False):
+def inputpath(prompt='', check=lambda _:True):
     while True:
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            if path.exists(answer):
-                if absolute:
-                    return realpath(answer)
-                else:
-                    return normalpath(answer)
+            try:
+                anspath = AbsPath(answer)
+            except NotAbsolutePath:
+                anspath = AbsPath(getcwd(), answer)
+            if check(anspath):
+                return anspath
             else:
                 print('Por favor indique una ruta válida')
 

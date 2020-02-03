@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 from . import colors
-from .decorators import join_positional_args, wordseps
+from .decorators import join_positional_args
+from .utils import wordseps
 
 @join_positional_args(wordseps)
 def success(message):

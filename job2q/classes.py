@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from os.path import join, isabs, dirname, basename, normpath, expanduser, expandvars
-from . import messages
+from os import path, listdir
+from .utils import pathjoin
+from .exceptions import NotAbsolutePath
 
 class Identity(object):
     def __init__(self, obj):
@@ -14,14 +15,27 @@ class Bunch(dict):
         except KeyError:
             raise AttributeError(item)
 
-class Path(str):
-   def __new__(cls, *args):
-      path = normpath(expanduser(expandvars(join(*args))))
-      if not isabs(path):
-          raise ValueError(path, 'is not an absolute path')
-      return str.__new__(cls, path)
-   def parent(self):
-      return dirname(self)
-   def stem(self):
-      return basename(self)
+class AbsPath(str):
+   def __new__(cls, *args, expand=False):
+      filepath = path.normpath(pathjoin(*args))
+      if expand:
+          filepath = path.expanduser(path.expandvars(filepath))
+      if not path.isabs(filepath):
+          raise NotAbsolutePath(filepath, 'is not an absolute path')
+      obj = str.__new__(cls, filepath)
+      if obj != '/':
+          obj.parent = AbsPath(path.dirname(filepath))
+          obj.name = path.basename(filepath)
+          obj.stem, obj.suffix = path.splitext(obj.name)
+          return obj
+   def hassuffix(suffix):
+      return self.suffix == suffix
+   def exists(self):
+      return path.exists(self)
+   def isfile(self):
+      return path.isfile(self)
+   def isdir(self):
+      return path.isdir(self)
+   def listdir(self):
+      return listdir(self)
 

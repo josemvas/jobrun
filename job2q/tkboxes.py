@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import tkinter
-from .decorators import join_positional_args, wordseps
+from .utils import wordseps
+from .decorators import join_positional_args
 from argparse import ArgumentParser
 
 class MessageBox(object):

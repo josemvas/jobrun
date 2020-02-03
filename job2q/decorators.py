@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
-from os import path
-#from itertools import repeat
 from . import colors
-
-nothing = ('')
-wordseps = (' ', '')
-pathseps = (path.sep, '.')
-
-def deepjoin(a, i):
-    return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)
+from .utils import deepjoin, pathseps
 
 def join_positional_args(seq):
     def decorator(f):
