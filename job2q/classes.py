@@ -3,11 +3,9 @@ import os
 from .utils import pathjoin
 from .exceptions import NotAbsolutePath
 
-class Identity(object):
-    def __init__(self, obj):
-        self.obj = obj
-    def __eq__(self, other):
-        return other is self.obj
+class IdentityList(list):
+    def __contains__(self, other):
+        return any(o is other for o in self)
 
 class Bunch(dict):
     def __getattr__(self, item):

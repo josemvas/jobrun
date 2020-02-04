@@ -1,6 +1,6 @@
 {
    "clustername" : "Miztli",
-   "hostname": "{hostname}",
+   "headname": "{hostname}",
    "scheduler": "platformlsf",
    "hostcopy": "remote",
    "onscript": [

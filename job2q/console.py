@@ -7,7 +7,7 @@ from os import path, listdir, chmod, pathsep
 from os.path import isfile, isdir
 from . import dialogs
 from . import messages
-from .jobparse import readspec
+from .jobparse import readspec, parse
 from .utils import rmdir, makedirs, hardlink, natsort, q
 from .exceptions import NotAbsolutePath
 from .classes import AbsPath

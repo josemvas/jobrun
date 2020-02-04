@@ -77,6 +77,11 @@ def readspec(jsonfile):
         except ValueError as e:
             messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 
+#def sync():
+#    homedir = path.expanduser('~')
+#    usershare = '$JOBSHARE/{user}@{host}'.format(user=getuser(), host=headname)
+#    call(['echo', 'rsync', '--dry-run', tohost + ':' + usershare, homedir])
+
 def parse():
 
     cluster.homedir = path.expanduser('~')
@@ -84,10 +89,9 @@ def parse():
     cluster.user = getuser()
     
     try:
-        try:
-            cluster.specdir = AbsPath(environ['SPECPATH'])
-        except NotAbsolutePath:
-            cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
+        cluster.specdir = AbsPath(environ['SPECPATH'])
+    except NotAbsolutePath:
+        cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     
@@ -103,9 +107,9 @@ def parse():
     if path.isfile(userspec):
         jobspecs.merge(readspec(userspec))
     
-    try: cluster.master = jobspecs.hostname.format(hostname=gethostname())
+    try: cluster.head = jobspecs.headname.format(hostname=gethostname())
     except AttributeError:
-        messages.cfgerror('No se definió la propiedad "hostname" en la configuración')
+        messages.cfgerror('No se definió la propiedad "headname" en la configuración')
 
     parser = ArgumentParser(prog=cluster.program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
     parser.add_argument('-l', '--list', action='store_true', help='Mostrar las versiones de los programas y parámetros disponibles.')
@@ -165,14 +169,15 @@ def parse():
         messages.opterror('Se requiere especificar al menos un archivo de entrada')
 
     if parsed.remote_from:
-        if 'JOB2QSHARE' in environ:
+        if 'JOBSHARE' in environ:
             remote.fromhost = parsed.remote_from
         else:
-            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
+            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $JOBSHARE')
 
     if parsed.remote_to:
         remote.tohost = parsed.remote_to
-        remote.usershare = '$JOB2QSHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
+        remote.share = '$JOBSHARE'
+        remote.user = '{user}@{host}'.format(user=cluster.user, host=cluster.head)
         return False
     else:
         return True

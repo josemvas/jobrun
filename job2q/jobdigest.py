@@ -4,11 +4,10 @@ from importlib import import_module
 from os import path, listdir, getcwd
 from argparse import ArgumentParser
 from . import dialogs
-from . import tkboxes
 from . import messages
 from .details import mpilibs
 from .classes import Bunch, AbsPath
-from .utils import pathjoin, natsort, p, q, sq, boolstrings
+from .utils import pathjoin, natsort, p, q, sq, boolstrings, join_positional_args, wordseps
 from .jobparse import cluster, jobspecs, options, files
 from .exceptions import NotAbsolutePath
 from .chemistry import readxyz
@@ -33,9 +32,14 @@ def digest():
         except AttributeError: options.wait = 0
     
     if options.xdialog:
-        dialogs.yesno = tkboxes.ynbox
-        messages.failure = tkboxes.msgbox
-        messages.success = tkboxes.msgbox
+        try:
+            from bulletin import TkDialogs
+        except ImportError:
+            raise SystemExit()
+        else:
+            dialogs.yesno = join_positional_args(wordseps)(TkDialogs().yesno)
+            messages.failure = join_positional_args(wordseps)(TkDialogs().message)
+            messages.success = join_positional_args(wordseps)(TkDialogs().message)
 
     if not options.outdir and not jobspecs.defaults.outputdir:
         messages.cfgerror('Debe especificar la carpeta de salida por el programa no establece una por defecto')
@@ -158,7 +162,7 @@ def digest():
     else:
         messages.cfgerror('<parallelib> No se especificó el tipo de paralelización del programa')
     
-    environment.append("head=" + cluster.master)
+    environment.append("head=" + cluster.head)
     environment.extend('='.join(i) for i in jobenvars.items())
     environment.extend(jobspecs.onscript)
     
