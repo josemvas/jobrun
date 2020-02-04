@@ -77,11 +77,6 @@ def readspec(jsonfile):
         except ValueError as e:
             messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 
-#def sync():
-#    homedir = path.expanduser('~')
-#    usershare = '$JOBSHARE/{user}@{host}'.format(user=getuser(), host=headname)
-#    call(['echo', 'rsync', '--dry-run', tohost + ':' + usershare, homedir])
-
 def parse():
 
     cluster.homedir = path.expanduser('~')
@@ -166,7 +161,7 @@ def parse():
     parser.parse_args(remaining)
 
     if not files:
-        messages.opterror('Se requiere especificar al menos un archivo de entrada')
+        messages.opterror('Debe especificar al menos un archivo de entrada')
 
     if parsed.remote_from:
         if 'JOBSHARE' in environ:
