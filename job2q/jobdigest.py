@@ -209,34 +209,59 @@ def digest():
         if key in options:
             keywords[key] = options[key]
 
-    if options.template:
-        if options.molfile:
-            try:
-                molpath = AbsPath(options.molfile)
-            except NotAbsolutePath:
-                molpath = AbsPath(getcwd(), options.molfile)
-            if molpath.isfile():
-                keywords['mol0'] = molpath
-                if molpath.hasext('.xyz'):
-                    for i, step in enumerate(readxyz(molpath), 1):
-                        keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
-                    if not options.jobname:
-                        options.jobname = molpath.stem
-                else:
-                    messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
-            elif molpath.isdir():
-                messages.opterror('El archivo de coordenadas', molpath, 'es un directorio')
-            elif molpath.exists():
-                messages.opterror('El archivo de coordenadas', molpath, 'no es un archivo regular')
+    if options.template and options.molfile:
+        try:
+            molfile = AbsPath(options.molfile)
+        except NotAbsolutePath:
+            molfile = AbsPath(getcwd(), options.molfile)
+        if molfile.isfile():
+            if molfile.hasext('.xyz'):
+                keywords['mol0'] = molfile
+                for i, step in enumerate(readxyz(molfile), 1):
+                    keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                if not options.jobname:
+                    options.jobname = molfile.stem
             else:
-                messages.opterror('El archivo de coordenadas', molpath, 'no existe')
-        elif not options.jobname:
-            messages.opterror('Se debe especificar el archivo de coordenadas y/o el nombre del trabajo para poder interpolar')
+                messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+        elif molfile.isdir():
+            messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
+        elif molfile.exists():
+            messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
+        else:
+            messages.opterror('El archivo de coordenadas', molfile, 'no existe')
+    elif options.template and not options.molfile and not options.jobname:
+        messages.opterror('Se debe especificar el archivo de coordenadas o el nombre del trabajo para interpolar el archivo de entrada')
+    elif options.molfile and not options.template:
+        messages.warning('Se especificó un archivo de coordenadas pero no se solicitó interpolar el archivo de entrada')
         
+    if jobspecs.hostcopy == 'local':
+        node.makeworkdir = 'mkdir -m 700 "\'$workdir\'"'.format
+        node.removeworkdir = 'rm -rf "\'$workdir\'/*"'.format
+        node.copyfromhead = 'cp "{}" "{}"'.format
+        node.copyallfromhead = 'cp "{}"/* "{}"'.format
+        node.copytohead = 'cp "{}" "{}"'.format
+        node.runathead = 'ssh $head "{}"'.format
+    elif jobspecs.hostcopy == 'remote':
+        node.makeworkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
+        node.removeworkdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'$workdir\'/*"; done'.format
+        node.copyfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'" $host:"\'{}\'"; done'.format
+        node.copyallfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'/*" $host:"\'{}\'"; done'.format
+        node.copytohead = 'scp "{}" $head:"\'{}\'"'.format
+        node.runathead = 'ssh $head "{}"'.format
+    elif jobspecs.hostcopy == 'headjump':
+        node.makeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
+        node.removeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'$workdir\'/*"; done'.format
+        node.copyfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'$host:"\'{}\'"; done'.format
+        node.copyallfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'/*" $host:"\'{}\'"; done'.format
+        node.copytohead = 'scp "{}" $head:"\'{}\'"'.format
+        node.runathead = 'ssh $head "{}"'.format
+    else:
+        messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
+    
 
-keywords = {}
 jobcomments = []
 environment = []
-remotefiles = []
 commandline = []
 parameters = []
+node = Bunch({})
+keywords = {}

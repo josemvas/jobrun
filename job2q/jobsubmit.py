@@ -9,9 +9,9 @@ from . import dialogs
 from . import messages
 from .boolparse import BoolParser
 from .exceptions import NotAbsolutePath, InputFileError
-from .utils import pathjoin, remove, makedirs, alnum, p, q, sq, catch_keyboard_interrupt
-from .jobdigest import keywords, jobcomments, environment, commandline, parameters, remotefiles
 from .jobparse import cluster, remote, jobspecs, options, files
+from .utils import pathjoin, remove, makedirs, alnum, p, q, sq, catch_keyboard_interrupt
+from .jobdigest import keywords, jobcomments, environment, commandline, parameters, node
 from .classes import Bunch, AbsPath, IdentityList
 
 def nextfile():
@@ -59,16 +59,20 @@ def upload():
     except InputFileError:
         return
 
-    jobfiles = []
     relparentdir = path.relpath(inputdir, cluster.homedir)
+    remotefiles.append(pathjoin(remote.share, remote.user, relparentdir, (inputname, inputext)))
+
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
-            jobfiles.append(pathjoin(cluster.homedir, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-R'] + jobfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
-    remotefiles.append(pathjoin(remote.share, remote.user, relparentdir, (inputname, inputext)))
+            remoteinputfiles.append(pathjoin(cluster.homedir, '.', relparentdir, (inputname, key)))
 
 @catch_keyboard_interrupt
 def remit():
+    if options.molfile:
+        relmolpath = path.relpath(options.molfile, cluster.homedir)
+        options.molfile = pathjoin(remote.share, remote.user, relmolpath)
+        remoteinputfiles.append(pathjoin(cluster.homedir, '.', relmolpath))
+    call(['rsync', '-R'] + remoteinputfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
     execv('/usr/bin/ssh', [__file__, '-t', remote.tohost, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
 
 @catch_keyboard_interrupt
@@ -124,41 +128,17 @@ def submit():
     hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
     outputname = '.'.join([jobname, versionkey])
 
-    if jobspecs.hostcopy == 'local':
-        makeworkdir = 'mkdir -m 700 "\'$workdir\'"'.format
-        removeworkdir = 'rm -rf "\'$workdir\'/*"'.format
-        copyfromhead = 'cp "{}" "{}"'.format
-        copyallfromhead = 'cp "{}"/* "{}"'.format
-        copytohead = 'cp "{}" "{}"'.format
-        runathead = 'ssh $head "{}"'.format
-    elif jobspecs.hostcopy == 'remote':
-        makeworkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
-        removeworkdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'$workdir\'/*"; done'.format
-        copyfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'" $host:"\'{}\'"; done'.format
-        copyallfromhead = 'for host in ${{hosts[*]}}; do scp $head:"\'{}\'/*" $host:"\'{}\'"; done'.format
-        copytohead = 'scp "{}" $head:"\'{}\'"'.format
-        runathead = 'ssh $head "{}"'.format
-    elif jobspecs.hostcopy == 'headjump':
-        makeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -m 700 "\'$workdir\'"; done'.format
-        removeworkdir = 'for host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'$workdir\'/*"; done'.format
-        copyfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'$host:"\'{}\'"; done'.format
-        copyallfromhead = 'for host in ${{hosts[*]}}; do ssh $head scp "\'{}\'/*" $host:"\'{}\'"; done'.format
-        copytohead = 'scp "{}" $head:"\'{}\'"'.format
-        runathead = 'ssh $head "{}"'.format
-    else:
-        messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
-    
     inputfiles = []
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            inputfiles.append(copyfromhead(pathjoin(outputdir, (actualname, key)), pathjoin('$workdir', jobspecs.filekeys[key])))
+            inputfiles.append(node.copyfromhead(pathjoin(outputdir, (actualname, key)), pathjoin('$workdir', jobspecs.filekeys[key])))
     
     outputfiles = []
 
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(copytohead(pathjoin('$workdir', jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append(node.copytohead(pathjoin('$workdir', jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
     for parameter in parameters:
         try:
@@ -166,9 +146,9 @@ def submit():
         except NotAbsolutePath:
             parameter = AbsPath(inputdir, parameter, expand=True)
         if parameter.isfile():
-            inputfiles.append(copyfromhead(parameter, '$workdir'))
+            inputfiles.append(node.copyfromhead(parameter, '$workdir'))
         elif parameter.isdir():
-            inputfiles.append(copyallfromhead(parameter, '$workdir'))
+            inputfiles.append(node.copyallfromhead(parameter, '$workdir'))
     
     if outputdir.isdir():
         if hiddendir.isdir():
@@ -226,15 +206,15 @@ def submit():
         t.write('#!/bin/bash' + '\n')
         t.write(''.join(i + '\n' for i in jobcomments))
         t.write(''.join(i + '\n' for i in environment))
-        t.write(makeworkdir() + '\n')
+        t.write(node.makeworkdir() + '\n')
         t.write(''.join(i + '\n' for i in inputfiles))
         t.write('cd "$workdir"' + '\n')
         t.write(''.join(i + '\n' for i in jobspecs.prescript))
         t.write(' '.join(commandline) + '\n')
         t.write(''.join(i + '\n' for i in jobspecs.postscript))
         t.write(''.join(i + '\n' for i in outputfiles))
-        t.write(removeworkdir() + '\n')
-        t.write(''.join(runathead(i) + '\n' for i in jobspecs.offscript))
+        t.write(node.removeworkdir() + '\n')
+        t.write(''.join(node.runathead(i) + '\n' for i in jobspecs.offscript))
     
     jobid = queuejob(t.name)
 
@@ -245,6 +225,9 @@ def submit():
     with open(pathjoin(hiddendir, 'jobid'), 'w') as t:
         t.write(jobid)
     
+remotefiles = []
+remoteinputfiles = []
+
 if __name__ == '__main__':
     submit()
 

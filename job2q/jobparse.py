@@ -41,8 +41,6 @@ class SpecBunch(Bunch):
                 self[key] = SpecList(value)
             else:
                 self[key] = value
-    def __setattr__(self, item, value):
-            self.__setitem__(item, value)
     def __missing__(self, item):
         if item in dictags:
             return SpecBunch({})

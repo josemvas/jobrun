@@ -4,6 +4,8 @@ from .utils import pathjoin
 from .exceptions import NotAbsolutePath
 
 class IdentityList(list):
+    def __init__(self, *args):
+        list.__init__(self, args)
     def __contains__(self, other):
         return any(o is other for o in self)
 
@@ -12,6 +14,8 @@ class Bunch(dict):
         try: return self.__getitem__(item)
         except KeyError:
             raise AttributeError(item)
+    def __setattr__(self, item, value):
+            self.__setitem__(item, value)
 
 class AbsPath(str):
     def __new__(cls, *args, expand=False):
