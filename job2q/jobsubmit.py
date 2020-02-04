@@ -73,7 +73,7 @@ def remit():
         options.molfile = pathjoin(remote.share, remote.user, relmolpath)
         remoteinputfiles.append(pathjoin(cluster.homedir, '.', relmolpath))
     call(['rsync', '-R'] + remoteinputfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
-    execv('/usr/bin/ssh', [__file__, '-t', remote.tohost, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
+    execv('/usr/bin/ssh', [__file__, '-t', remote.tohost, 'TELEGRAM_BOT_URL=' + cluster.telegram, 'TELEGRAM_CHAT_ID=' + cluster.chatid, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def submit():
@@ -123,7 +123,7 @@ def submit():
         except NotAbsolutePath:
             outputdir = AbsPath(inputdir, options.outdir)
     else:
-        outputdir = AbsPath(jobspecs.defaults.outputdir.format(**{'/':path.sep, 'inputdir':inputdir, 'jobname':jobname}))
+        outputdir = AbsPath(jobspecs.defaults.outputdir.format(jobname=jobname, inputdir=inputdir, **{'/':path.sep}))
         
     hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
     outputname = '.'.join([jobname, versionkey])
@@ -188,7 +188,8 @@ def submit():
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (inputname, key))):
                     with open(pathjoin(inputdir, (inputname, key)), 'r') as t, open(pathjoin(outputdir, (actualname, key)), 'w') as f:
-                        try: f.write(t.read().format(**keywords))
+                        try:
+                            f.write(t.read().format(**keywords))
                         except KeyError as e:
                             messages.failure('Hay variables indefinidas en la plantilla', pathjoin((inputname, key)), p(e.args[0]))
                             return
@@ -202,6 +203,14 @@ def submit():
     jobcomments.append(jobformat.jobname(jobname))
     environment.append("jobname=" + sq(jobname))
 
+    offscript = []
+
+    for line in jobspecs.offscript:
+        try:
+           offscript.append(line.format(jobname=jobname, **cluster))
+        except KeyError:
+           pass
+
     with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
         t.write('#!/bin/bash' + '\n')
         t.write(''.join(i + '\n' for i in jobcomments))
@@ -214,7 +223,7 @@ def submit():
         t.write(''.join(i + '\n' for i in jobspecs.postscript))
         t.write(''.join(i + '\n' for i in outputfiles))
         t.write(node.removeworkdir() + '\n')
-        t.write(''.join(node.runathead(i) + '\n' for i in jobspecs.offscript))
+        t.write(''.join(node.runathead(i) + '\n' for i in offscript))
     
     jobid = queuejob(t.name)
 

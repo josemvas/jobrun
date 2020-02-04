@@ -83,11 +83,17 @@ def parse():
     
     try:
         cluster.specdir = AbsPath(environ['SPECPATH'])
-    except NotAbsolutePath:
-        cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
+    except NotAbsolutePath:
+        cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
     
+    try:
+        cluster.telegram = environ['TELEGRAM_BOT_URL']
+        cluster.chatid = environ['TELEGRAM_CHAT_ID']
+    except KeyError:
+        pass
+
     hostspec = path.join(cluster.specdir, 'hostspec.json')
     corespec = path.join(cluster.specdir, 'corespec.json')
     pathspec = path.join(cluster.specdir, 'pathspec.json')
@@ -100,6 +106,10 @@ def parse():
     if path.isfile(userspec):
         jobspecs.merge(readspec(userspec))
     
+    try: cluster.name = jobspecs.clustername
+    except AttributeError:
+        messages.cfgerror('No se definió la propiedad "clustername" en la configuración')
+
     try: cluster.head = jobspecs.headname.format(hostname=gethostname())
     except AttributeError:
         messages.cfgerror('No se definió la propiedad "headname" en la configuración')
@@ -125,11 +135,12 @@ def parse():
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
     
-    if len(jobspecs.parameters):
-        parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobspecs.parameters)[0], help='Nombre del conjunto de parámetros.')
-
-    for key in jobspecs.parameters:
-        parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+    if len(jobspecs.parameters) == 1:
+        key = jobspecs.parameters.keys()[0]
+        parser.add_argument('-p', '--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+    elif len(jobspecs.parameters) > 1:
+        for key in jobspecs.parameters:
+            parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
 
     for key in jobspecs.keywords:
         parser.add_argument('--' + key, metavar=key.upper(), type=str, dest=key, help='Valor de la variable {}'.format(key.upper()))

@@ -206,7 +206,7 @@ def digest():
         except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stderr + '" en el tag <stderr> no fue definido.')
     
     for key in jobspecs.keywords:
-        if key in options:
+        if options[key] is not None:
             keywords[key] = options[key]
 
     if options.template and options.molfile:
@@ -258,7 +258,6 @@ def digest():
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
-
 jobcomments = []
 environment = []
 commandline = []

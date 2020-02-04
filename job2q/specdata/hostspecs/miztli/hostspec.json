@@ -10,5 +10,8 @@
       "queue": "q_htc",
       "scrdir": "/scratch",
       "waitime": "3"
-   }
+   },
+   "offscript": [
+      "curl -s -X POST '{telegram}' -d chat_id={chatid} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {name} ha finalizado'"
+   ]
 }
