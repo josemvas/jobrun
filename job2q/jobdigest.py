@@ -6,11 +6,11 @@ from argparse import ArgumentParser
 from . import dialogs
 from . import tkboxes
 from . import messages
+from .details import mpilibs
 from .classes import Bunch, AbsPath
-from .exceptions import NotAbsolutePath
-from .utils import pathjoin, natsort, p, q, sq
+from .utils import pathjoin, natsort, p, q, sq, boolstrings
 from .jobparse import cluster, jobspecs, options, files
-from .strings import mpilibs, booldict
+from .exceptions import NotAbsolutePath
 from .chemistry import readxyz
 
 def digest():
@@ -25,7 +25,7 @@ def digest():
     
     if options.sort:
         files.sort(key=natsort)
-    elif options.sortreverse:
+    elif options.sortrev:
         files.sort(key=natsort, reverse=True)
     
     if options.wait is None:
@@ -61,7 +61,7 @@ def digest():
         messages.cfgerror('<title> No se especificó la clave del programa')
     
     if 'mpilauncher' in jobspecs:
-        try: jobspecs.mpilauncher = booldict[jobspecs.mpilauncher]
+        try: jobspecs.mpilauncher = boolstrings[jobspecs.mpilauncher]
         except KeyError:
             messages.cfgerror('<mpilauncher> El texto de este tag debe ser "True" o "False"')
     

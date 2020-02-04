@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from os import path, listdir
+import os
 from .utils import pathjoin
 from .exceptions import NotAbsolutePath
 
@@ -17,25 +17,25 @@ class Bunch(dict):
 
 class AbsPath(str):
     def __new__(cls, *args, expand=False):
-        filepath = path.normpath(pathjoin(*args))
+        path = os.path.normpath(pathjoin(*args))
         if expand:
-            filepath = path.expanduser(path.expandvars(filepath))
-        if not path.isabs(filepath):
-            raise NotAbsolutePath(filepath, 'is not an absolute path')
-        obj = str.__new__(cls, filepath)
-        obj.name = path.basename(filepath)
-        obj.stem, obj.suffix = path.splitext(obj.name)
+            path = os.path.expanduser(os.path.expandvars(path))
+        if not os.path.isabs(path):
+            raise NotAbsolutePath(path, 'is not an absolute path')
+        obj = str.__new__(cls, path)
+        obj.name = os.path.basename(path)
+        obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
     def parent(self):
-        return AbsPath(path.dirname(self))
+        return AbsPath(os.path.dirname(self))
     def hasext(self, suffix):
         return self.suffix == suffix
     def exists(self):
-        return path.exists(self)
+        return os.path.exists(self)
     def isfile(self):
-        return path.isfile(self)
+        return os.path.isfile(self)
     def isdir(self):
-        return path.isdir(self)
+        return os.path.isdir(self)
     def listdir(self):
-        return listdir(self)
+        return os.listdir(self)
 

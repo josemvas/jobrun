@@ -8,13 +8,11 @@ from getpass import getuser
 from . import dialogs
 from . import messages
 from .boolparse import BoolParser
-from .decorators import catch_keyboard_interrupt
 from .exceptions import NotAbsolutePath, InputFileError
+from .utils import pathjoin, remove, makedirs, alnum, p, q, sq, catch_keyboard_interrupt
 from .jobdigest import keywords, jobcomments, environment, commandline, parameters, remotefiles
-from .utils import pathjoin, remove, makedirs, alnum, p, q, sq
-from .jobparse import cluster, jobspecs, options, files
+from .jobparse import cluster, remote, jobspecs, options, files
 from .classes import Bunch, Identity, AbsPath
-from .strings import mpilibs
 
 def nextfile():
     
@@ -66,12 +64,12 @@ def upload():
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             jobfiles.append(pathjoin(cluster.homedir, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-R'] + jobfiles + [cluster.remotehost + ':' + cluster.remoteshare])
-    remotefiles.append(pathjoin(cluster.remoteshare, relparentdir, (inputname, inputext)))
+    call(['rsync', '-R'] + jobfiles + [remote.tohost + ':' + remote.usershare])
+    remotefiles.append(pathjoin(remote.usershare, relparentdir, (inputname, inputext)))
 
 @catch_keyboard_interrupt
 def remit():
-    execv('/usr/bin/ssh', [__file__, '-t', cluster.remotehost, cluster.program] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if Identity(val) not in (None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
+    execv('/usr/bin/ssh', [__file__, '-t', remote.tohost, cluster.program] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if Identity(val) not in (None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def submit():

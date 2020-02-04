@@ -4,8 +4,7 @@ import readline
 from os import path, getcwd
 from glob import glob
 from . import messages
-from .utils import wordseps
-from .decorators import override_dialogs, catch_keyboard_interrupt, join_positional_args
+from .utils import override_dialogs, catch_keyboard_interrupt, join_positional_args, wordseps
 from .exceptions import NotAbsolutePath
 from .classes import AbsPath
 

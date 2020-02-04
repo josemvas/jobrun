@@ -8,9 +8,8 @@ from argparse import ArgumentParser
 from . import messages
 from .classes import Bunch, AbsPath
 from .exceptions import NotAbsolutePath
-from .decorators import join_positional_args, pathseps
-from .strings import listags, dictags, textags
-from .utils import natsort, p
+from .utils import natsort, p, join_positional_args, pathseps
+from .details import dictags, listags
 
 class SpecList(list):
     def __init__(self, parentlist):
@@ -45,14 +44,12 @@ class SpecBunch(Bunch):
     def __setattr__(self, item, value):
             self.__setitem__(item, value)
     def __missing__(self, item):
-        if item in listags:
-            return SpecList([])
-        elif item in dictags:
+        if item in dictags:
             return SpecBunch({})
-        elif item in textags:
-            return None
+        elif item in listags:
+            return SpecList([])
         else:
-            raise AttributeError(item)
+            return None
     def merge(self, other):
         for i in other:
             if i in self:
@@ -111,7 +108,7 @@ def parse():
         messages.cfgerror('No se definió la propiedad "hostname" en la configuración')
 
     parser = ArgumentParser(prog=cluster.program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
-    parser.add_argument('-l', '--lsopt', action='store_true', help='Imprimir las versiones de los programas y parámetros disponibles.')
+    parser.add_argument('-l', '--list', action='store_true', help='Mostrar las versiones de los programas y parámetros disponibles.')
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
     parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
     parser.add_argument('-n', '--ncore', metavar='#CORES', type=int, default=1, help='Número de núcleos de cpu requeridos.')
@@ -121,27 +118,29 @@ def parse():
     parser.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
     parser.add_argument('-j', '--jobname', metavar='MOLNAME', type=str, help='Nombre del trabajo de interpolación.')
     parser.add_argument('-s', '--sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
-    parser.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
+    parser.add_argument('-S', '--sortrev', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
     parser.add_argument('-i', '--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
-    parser.add_argument('-X', '--xdialog', action='store_true', help='Usar Xdialog en vez de la terminal para interactuar con el usuario.')
+    parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     parser.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
     parser.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
-    parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
-    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Cambiar el directorio de salida.')
-    parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Cambiar el directorio de escritura.')
+    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
+    parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Usar SCRATCHDIR como directorio de escritura.')
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
+    parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
     
-    if len(jobspecs.parameters) == 1:
+    if len(jobspecs.parameters):
         parser.add_argument('-p', metavar='SETNAME', type=str, dest=list(jobspecs.parameters)[0], help='Nombre del conjunto de parámetros.')
+
     for key in jobspecs.parameters:
         parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+
     for key in jobspecs.keywords:
-        parser.add_argument('--' + key, metavar='VALUE', type=str, dest=key, help='Valor de la variable de interpolación.')
+        parser.add_argument('--' + key, metavar=key.upper(), type=str, dest=key, help='Valor de la variable {}'.format(key.upper()))
     
     parsed, remaining = parser.parse_known_args()
     options.update(vars(parsed))
     
-    if options.lsopt:
+    if options.list:
         if jobspecs.versions:
             messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
         for key in jobspecs.parameters:
@@ -149,7 +148,6 @@ def parse():
         if jobspecs.keywords:
             messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
         raise SystemExit()
-    
 
     parser.add_argument('-r', '--remote-to', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
     parser.add_argument('-R', '--remote-from', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo del host remoto HOSTNAME.')
@@ -167,12 +165,14 @@ def parse():
         messages.opterror('Se requiere especificar al menos un archivo de entrada')
 
     if parsed.remote_from:
-        if not 'REMOTESHARE' in environ:
+        if 'JOB2QSHARE' in environ:
+            remote.fromhost = parsed.remote_from
+        else:
             messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $REMOTESHARE')
 
     if parsed.remote_to:
-        cluster.remotehost = parsed.remote_to
-        cluster.remoteshare = '$REMOTESHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
+        remote.tohost = parsed.remote_to
+        remote.usershare = '$JOB2QSHARE/{user}@{host}'.format(user=cluster.user, host=cluster.master)
         return False
     else:
         return True
@@ -180,5 +180,6 @@ def parse():
 cluster = Bunch({})
 options = Bunch({})
 jobspecs = SpecBunch({})
+remote = Bunch({})
 files = []
 
