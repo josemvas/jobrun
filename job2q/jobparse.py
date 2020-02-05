@@ -160,8 +160,8 @@ def parse():
             messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
         raise SystemExit()
 
-    parser.add_argument('-r', '--remote-to', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
-    parser.add_argument('-R', '--remote-from', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo del host remoto HOSTNAME.')
+    parser.add_argument('-r', '--remote-from', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo del host remoto HOSTNAME.')
+    parser.add_argument('-R', '--remote-to', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
     parsed, remaining = parser.parse_known_args()
 
     parser.add_argument('files', nargs='*', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')

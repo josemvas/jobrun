@@ -7,7 +7,7 @@
          "executable": "g09",
          "profile": [
             "export g09root=/home/{user}/share/lib/G09E01",
-            "source /home/{user}/share/lib/G09E01/g09/bsd/g09.profile"
+            "source $g09root/g09/bsd/g09.profile"
          ]
       }
    }

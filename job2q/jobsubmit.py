@@ -113,8 +113,8 @@ def submit():
         jobname = inputname
 
     if options.jobname:
-        jobname = '.'.join(options.jobname, jobname)
-        actualname = '.'.join(options.jobname, inputname)
+        jobname = '.'.join((options.jobname, jobname))
+        actualname = '.'.join((options.jobname, inputname))
     else:
         actualname = inputname
 
@@ -127,7 +127,7 @@ def submit():
         outputdir = AbsPath(jobspecs.defaults.outputdir, inputdir=inputdir, jobname=jobname)
         
     hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
-    outputname = '.'.join([jobname, versionkey])
+    outputname = '.'.join((jobname, versionkey))
 
     inputfiles = []
 
@@ -214,7 +214,7 @@ def submit():
                         try:
                             f.write(t.read().format(**keywords))
                         except KeyError as e:
-                            messages.failure('Hay variables indefinidas en la plantilla', pathjoin((inputname, key)), p(e.args[0]))
+                            messages.failure('Debe definir la variable', q(e.args[0]), 'referida en la plantilla', pathjoin((inputname, key)))
                             return
     elif inputdir != outputdir:
         action = path.rename if options.move else copyfile

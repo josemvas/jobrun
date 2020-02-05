@@ -11,14 +11,14 @@
          "executable": "g09",
          "profile": [
             "export g09root=/opt/packages/Gaussian/G09/D01",
-            "source /opt/packages/Gaussian/G09/D01/g09/bsd/g09.profile"
+            "source $g09root/g09/bsd/g09.profile"
          ]
       },
       "09E": {
          "executable": "g09",
          "profile": [
             "export g09root=/opt/packages/Gaussian/G09/E01",
-            "source /opt/packages/Gaussian/G09/E01/g09/bsd/g09.profile"
+            "source $g09root/g09/bsd/g09.profile"
          ]
       }
    },
