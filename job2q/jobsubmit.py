@@ -2,17 +2,17 @@
 from time import sleep
 from shutil import copyfile
 from os import path, execv, getcwd
-from subprocess import call, DEVNULL
+from subprocess import call, DEVNULL, CalledProcessError
 from importlib import import_module
 from getpass import getuser 
 from . import dialogs
 from . import messages
-from .boolparse import BoolParser
 from .exceptions import NotAbsolutePath, InputFileError
 from .jobparse import cluster, remote, jobspecs, options, files
-from .utils import pathjoin, remove, makedirs, alnum, p, q, sq, catch_keyboard_interrupt
-from .jobdigest import keywords, jobcomments, environment, commandline, parameters, node
+from .utils import pathjoin, remove, makedirs, alnum, natsort, p, q, sq, catch_keyboard_interrupt
+from .jobdigest import keywords, jobcomments, environment, commandline, parameters, head, node
 from .classes import Bunch, AbsPath, IdentityList
+from .boolparse import BoolParser
 
 def nextfile():
     
@@ -86,6 +86,7 @@ def submit():
     versionkey = jobspecs.progkey + alnum(options.version)
     scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
     jobformat = Bunch(scheduler.jobformat)
+    jobenvars = Bunch(scheduler.jobenvars)
     queuejob = scheduler.queuejob
     checkjob = scheduler.checkjob
 
@@ -112,8 +113,8 @@ def submit():
         jobname = inputname
 
     if options.jobname:
-        jobname = pathjoin((options.jobname, jobname))
-        actualname = pathjoin((options.jobname, inputname))
+        jobname = '.'.join(options.jobname, jobname)
+        actualname = '.'.join(options.jobname, inputname)
     else:
         actualname = inputname
 
@@ -123,7 +124,7 @@ def submit():
         except NotAbsolutePath:
             outputdir = AbsPath(inputdir, options.outdir)
     else:
-        outputdir = AbsPath(jobspecs.defaults.outputdir.format(jobname=jobname, inputdir=inputdir, **{'/':path.sep}))
+        outputdir = AbsPath(jobspecs.defaults.outputdir, inputdir=inputdir, jobname=jobname)
         
     hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
     outputname = '.'.join([jobname, versionkey])
@@ -132,24 +133,46 @@ def submit():
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            inputfiles.append(node.copyfromhead(pathjoin(outputdir, (actualname, key)), pathjoin('$workdir', jobspecs.filekeys[key])))
+            inputfiles.append((pathjoin(outputdir, (actualname, key)), pathjoin(node.workdir, jobspecs.filekeys[key])))
     
     outputfiles = []
 
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
-            outputfiles.append(node.copytohead(pathjoin('$workdir', jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append((pathjoin(node.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+    
+    for key in jobspecs.parameters:
+        try:
+            parameterdir = AbsPath(jobspecs.parameters[key], inputdir=inputdir, **cluster)
+        except NotAbsolutePath:
+            messages.cfgerror('La ruta al conjunto de parámetros', key, 'debe ser absoluta')
+        try:
+            items = parameterdir.listdir()
+        except FileNotFoundError:
+            messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
+        except NotADirectoryError:
+            messages.cfgerror('El directorio de parámetros', parameterdir, 'no es un directorio')
+        if not items:
+            messages.cfgerror('El directorio de parámetros', parameterdir, 'está vacío')
+        if options[key]:
+            parameterset = options[key]
+        else:
+            if key in jobspecs.defaults.parameters:
+                parameterset = jobspecs.defaults.parameters[key]
+            else:
+                parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
+        if path.exists(path.join(parameterdir, parameterset)):
+            parameters.append(AbsPath(parameterdir, parameterset))
+        else:
+            messages.opterror('La ruta de parámetros', path.join(parameterdir, parameterset), 'no existe')
     
     for parameter in parameters:
-        try:
-            parameter = AbsPath(parameter, expand=True)
-        except NotAbsolutePath:
-            parameter = AbsPath(inputdir, parameter, expand=True)
         if parameter.isfile():
-            inputfiles.append(node.copyfromhead(parameter, '$workdir'))
+            inputfiles.append((parameter, pathjoin(node.workdir, parameter)))
         elif parameter.isdir():
-            inputfiles.append(node.copyallfromhead(parameter, '$workdir'))
-    
+            for item in parameter.listdir():
+                inputfiles.append((pathjoin(parameter, item), pathjoin(node.workdir, item)))
+
     if outputdir.isdir():
         if hiddendir.isdir():
             try:
@@ -200,8 +223,7 @@ def submit():
                 if path.isfile(pathjoin(inputdir, (inputname, key))):
                     action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (inputname, key)))
     
-    jobcomments.append(jobformat.jobname(jobname))
-    environment.append("jobname=" + sq(jobname))
+    jobcomments.append(jobformat.name(jobname))
 
     offscript = []
 
@@ -211,28 +233,32 @@ def submit():
         except KeyError:
            pass
 
-    with open(pathjoin(hiddendir, 'jobscript'), 'w') as t:
-        t.write('#!/bin/bash' + '\n')
-        t.write(''.join(i + '\n' for i in jobcomments))
-        t.write(''.join(i + '\n' for i in environment))
-        t.write(node.makeworkdir() + '\n')
-        t.write(''.join(i + '\n' for i in inputfiles))
-        t.write('cd "$workdir"' + '\n')
-        t.write(''.join(i + '\n' for i in jobspecs.prescript))
-        t.write(' '.join(commandline) + '\n')
-        t.write(''.join(i + '\n' for i in jobspecs.postscript))
-        t.write(''.join(i + '\n' for i in outputfiles))
-        t.write(node.removeworkdir() + '\n')
-        t.write(''.join(node.runathead(i) + '\n' for i in offscript))
+    jobscript = pathjoin(hiddendir, 'jobscript')
+
+    with open(jobscript, 'w') as f:
+        f.write('#!/bin/bash' + '\n')
+        f.write(''.join(i + '\n' for i in jobcomments))
+        f.write(''.join(i + '\n' for i in environment))
+        f.write(node.mkdir(node.workdir) + '\n')
+        f.write(''.join(node.fetch(i, j) + '\n' for i, j in inputfiles))
+        f.write(node.chdir(node.workdir) + '\n')
+        f.write(''.join(i + '\n' for i in jobspecs.prescript))
+        f.write(' '.join(commandline) + '\n')
+        f.write(''.join(i + '\n' for i in jobspecs.postscript))
+        f.write(''.join(head.fetch(i, j) + '\n' for i, j in outputfiles))
+        f.write(node.deletedir(node.workdir) + '\n')
+        f.write(''.join(head.run(i) + '\n' for i in offscript))
     
-    jobid = queuejob(t.name)
-
-    if jobid is None:
+    try:
+        jobid = queuejob(jobscript)
+    except CalledProcessError as error:
+        messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error:')
+        messages.failure(error)
         return
-
-    messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) de CPU con el jobid', jobid)
-    with open(pathjoin(hiddendir, 'jobid'), 'w') as t:
-        t.write(jobid)
+    else:
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) de CPU con el jobid', jobid)
+        with open(pathjoin(hiddendir, 'jobid'), 'w') as f:
+            f.write(jobid)
     
 remotefiles = []
 remoteinputfiles = []

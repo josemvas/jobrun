@@ -2,17 +2,17 @@
 import sys
 import os
 from re import search
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, CalledProcessError
 
 jobformat = {
-    'jobname' : '#SBATCH -J "{}"'.format,
+    'name' : '#SBATCH -J "{}"'.format,
     'label' : '#SBATCH --comment="{}"'.format,
     'hosts' : '#SBATCH -w "{}"'.format,
     'ncore' : '#SBATCH -n "{}"'.format,
     'nhost' : '#SBATCH -N "{}"'.format,
     'queue' : '#SBATCH -p "{}"'.format,
-    'stdoutput' : '#SBATCH -o "{}/%A.out"'.format,
-    'stderr' : '#SBATCH -e "{}/%A.err"'.format,
+    'output' : '#SBATCH -o "{}/%A.out"'.format,
+    'error' : '#SBATCH -e "{}/%A.err"'.format,
 }
 
 jobenvars = {
@@ -61,7 +61,7 @@ def queuejob(jobscript):
     if p.returncode == 0:
         return search(r' ([0-9]+)$', output).group(1)
     else:
-        print('El sistema de colas no envió el trabajo porque ocurrió un error:\n' + error)
+        raise CalledProcessError(error)
         
 def checkjob(jobid):
     p = Popen(['squeue', '--noheader', '-o%T', '-j', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)

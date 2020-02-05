@@ -3,6 +3,7 @@
    "headname": "{hostname}",
    "scheduler": "platformlsf",
    "hostcopy": "remote",
+   "logdir": "/home/{group}/{user}/.jobs",
    "onscript": [
       "module purge"
    ],

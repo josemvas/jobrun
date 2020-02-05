@@ -5,7 +5,7 @@
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
    "defaults" : {
-      "outputdir": "{inputdir}{/}{jobname}"
+      "outputdir": "{inputdir}/{jobname}"
    },
    "filekeys": {
       "com": "job.com",
@@ -37,7 +37,7 @@
       "gjf|com"
    ],
    "profile": [
-      "export GAUSS_SCRDIR=$workdir"
+      "export GAUSS_SCRDIR=$PWD"
    ],
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",

@@ -3,6 +3,7 @@
    "headname": "{hostname}",
    "scheduler": "",
    "hostcopy": "remote",
+   "logdir": "/home/{user}/.jobs",
    "onscript": [
       "module purge"
    ],

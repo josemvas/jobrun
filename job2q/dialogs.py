@@ -4,9 +4,16 @@ import readline
 from os import path, getcwd
 from glob import glob
 from . import messages
-from .utils import override_dialogs, catch_keyboard_interrupt, join_positional_args, wordseps
+from .utils import override_function, catch_keyboard_interrupt, join_positional_args, wordseps
 from .exceptions import NotAbsolutePath
 from .classes import AbsPath
+
+try:
+    import bulletin
+except ImportError:
+    dialogs = None
+else:
+    dialogs = bulletin.Dialogs()
 
 readline.set_completer_delims(' \t\n')
 readline.parse_and_bind('tab: complete')
@@ -59,7 +66,7 @@ def yesno(prompt='', default=None):
 
 @join_positional_args(wordseps)
 @catch_keyboard_interrupt
-@override_dialogs
+@override_function(dialogs)
 def chooseone(prompt='', choices=[], default=None):
     readline.set_completer(tabCompleter(choices).tclist)
     print(prompt)
@@ -74,7 +81,7 @@ def chooseone(prompt='', choices=[], default=None):
 
 @join_positional_args(wordseps)
 @catch_keyboard_interrupt
-@override_dialogs
+@override_function(dialogs)
 def choosemany(prompt='', choices=[], default=[]):
     readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)
     print(prompt)

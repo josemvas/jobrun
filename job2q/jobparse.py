@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 import json
+from pwd import getpwnam
+from grp import getgrgid
 from getpass import getuser 
 from socket import gethostname, gethostbyname
 from os import path, listdir, environ, getcwd
@@ -79,6 +81,7 @@ def parse():
 
     cluster.homedir = path.expanduser('~')
     cluster.program = path.basename(sys.argv[0])
+    cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
     cluster.user = getuser()
     
     try:
@@ -136,7 +139,7 @@ def parse():
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
     
     if len(jobspecs.parameters) == 1:
-        key = jobspecs.parameters.keys()[0]
+        key = next(iter(jobspecs.parameters))
         parser.add_argument('-p', '--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
     elif len(jobspecs.parameters) > 1:
         for key in jobspecs.parameters:

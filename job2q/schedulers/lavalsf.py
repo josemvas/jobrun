@@ -2,23 +2,23 @@
 import sys
 import os
 from re import search
-from subprocess import Popen, PIPE, STDOUT 
+from subprocess import Popen, PIPE, CalledProcessError
 
 jobformat = {
-    'jobname' : '#BSUB -J "{}"'.format,
+    'name' : '#BSUB -J "{}"'.format,
     'label' : '#BSUB -P "{}"'.format,
     'hosts' : '#BSUB -m "{}"'.format,
     'ncore' : '#BSUB -n "{}"'.format,
     'nhost' : '#BSUB -R "span[hosts={}]"'.format,
     'queue' : '#BSUB -q "{}"'.format,
-    'stdoutput' : '#BSUB -o "{}/%J.out"'.format,
-    'stderr' : '#BSUB -e "{}/%J.err"'.format,
+    'output' : '#BSUB -o "{}/%J.out"'.format,
+    'error' : '#BSUB -e "{}/%J.err"'.format,
 }
 
 jobenvars = {
     'jobid' : '$LSB_JOBID',
     'ncore' : '$(echo $LSB_HOSTS | wc -w)',
-    'hosts' : '$(getent hosts $LSB_HOSTS | cut -d\  -f1 | uniq)',
+    'hosts' : '$(printf "%s\\n" $LSB_HOSTS | uniq | grep -v $HOSTNAME)',
 }
 
 mpilauncher = {
@@ -49,7 +49,7 @@ def queuejob(jobscript):
     if p.returncode == 0:
         return search(r'<([0-9]+)>', output).group(1)
     else:
-        print('El sistema de colas no envió el trabajo porque ocurrió un error: ' + error)
+        raise CalledProcessError()
         
 def checkjob(jobid):
     p = Popen(['bjobs', '-ostat', '-noheader', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)

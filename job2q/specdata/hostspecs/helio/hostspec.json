@@ -3,6 +3,7 @@
    "headname": "{hostname}",
    "scheduler": "lavalsf",
    "hostcopy": "remote",
+   "logdir": "/home/{user}/.jobs",
    "defaults": {
       "queue": "auto",
       "scrdir": "/scratch",

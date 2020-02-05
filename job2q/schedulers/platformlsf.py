@@ -5,14 +5,14 @@ from re import search
 from subprocess import Popen, PIPE, STDOUT 
 
 jobformat = {
-    'jobname' : '#BSUB -J "{}"'.format,
+    'name' : '#BSUB -J "{}"'.format,
     'label' : '#BSUB -P "{}"'.format,
     'hosts' : '#BSUB -m "{}"'.format,
     'ncore' : '#BSUB -n "{}"'.format,
     'nhost' : '#BSUB -R "span[hosts={}]"'.format,
     'queue' : '#BSUB -q "{}"'.format,
-    'stdoutput' : '#BSUB -o "{}/%J.out"'.format,
-    'stderr' : '#BSUB -e "{}/%J.err"'.format,
+    'output' : '#BSUB -o "{}/%J.out"'.format,
+    'error' : '#BSUB -e "{}/%J.err"'.format,
 }
 
 jobenvars = {

@@ -68,12 +68,13 @@ def catch_keyboard_interrupt(f):
             raise SystemExit(colors.red + 'Cancelado por el usuario' + colors.default)
     return wrapper
 
-def override_dialogs(f):
-    def wrapper(*args, **kwargs):
-        try:
-            from bulletin import Dialogs
-            return getattr(Dialogs(), f.__name__)(*args, **kwargs)
-        except (ImportError, AttributeError):
-            return f(*args, **kwargs)
-    return wrapper
+def override_function(cls):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            try:
+                return getattr(cls, f.__name__)(*args, **kwargs)
+            except AttributeError:
+                return f(*args, **kwargs)
+        return wrapper
+    return decorator
 

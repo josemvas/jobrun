@@ -18,10 +18,8 @@ class Bunch(dict):
             self.__setitem__(item, value)
 
 class AbsPath(str):
-    def __new__(cls, *args, expand=False):
-        path = os.path.normpath(pathjoin(*args))
-        if expand:
-            path = os.path.expanduser(os.path.expandvars(path))
+    def __new__(cls, *args, **kwargs):
+        path = os.path.normpath(pathjoin(*args)).format(**kwargs)
         if not os.path.isabs(path):
             raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
