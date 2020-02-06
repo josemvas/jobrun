@@ -7,7 +7,8 @@ mpilibs = (
 )
 
 listags = (
-    'profile',
+    'load',
+    'source',
     'inputfiles',
     'outputfiles',
     'positionargs',
@@ -19,6 +20,7 @@ listags = (
 )
 
 dictags = (
+    'export',
     'defaults',
     'versions',
     'optionargs',

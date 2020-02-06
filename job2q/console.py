@@ -4,6 +4,7 @@ import sys
 from shutil import copyfile
 from subprocess import check_output, DEVNULL
 from os import path, listdir, chmod, pathsep
+from argparse import ArgumentParser
 from os.path import isfile, isdir
 from . import dialogs
 from . import messages
@@ -33,7 +34,17 @@ else:
     remit()
 '''
 
-def setup(*, relpath=False):
+def main():
+
+    commands = {
+        'setup' : setup,
+    }
+    
+    parser = ArgumentParser()
+    parser.add_argument('cmd', choices=commands.keys())
+    commands[parser.parse_args().cmd]()
+
+def setup(relpath=False):
 
     libpath = []
     pyldpath = []
@@ -44,13 +55,13 @@ def setup(*, relpath=False):
     configured = []
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
-    etcdir = path.join(bindir, 'job2q')
-    makedirs(etcdir)
+    datadir = path.join(bindir, 'job2q.d')
+    makedirs(datadir)
     
     sourcedir = AbsPath(__file__).parent()
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
-    specdir = path.join(etcdir, 'jobspecs')
+    specdir = path.join(datadir, 'jobspecs')
     
     for dirname in listdir(hostspecdir):
         if not path.isfile(path.join(hostspecdir, dirname, 'hostspec.json')):
@@ -62,15 +73,15 @@ def setup(*, relpath=False):
         messages.warning('No hay hosts configurados')
         return
 
-    if path.isfile(path.join(etcdir, 'hostspec.json')):
-        defaulthost = readspec(path.join(etcdir, 'hostspec.json')).clustername
+    if path.isfile(path.join(datadir, 'hostspec.json')):
+        defaulthost = readspec(path.join(datadir, 'hostspec.json')).clustername
     else:
         defaulthost = None
 
     selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(clusternames.values(), key=natsort), default=defaulthost)]
     
-    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(etcdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
-        copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
+    if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
+        copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(datadir, 'hostspec.json'))
          
     for dirname in listdir(path.join(hostspecdir, selhostdir, 'pathspecs')):
         prognames[dirname] = readspec(path.join(corespecdir, dirname, 'corespec.json')).progname
@@ -92,7 +103,7 @@ def setup(*, relpath=False):
 
     for progdir in selprogdirs:
         makedirs(path.join(specdir, progdir))
-        hardlink(path.join(etcdir, 'hostspec.json'), path.join(specdir, progdir, 'hostspec.json'))
+        hardlink(path.join(datadir, 'hostspec.json'), path.join(specdir, progdir, 'hostspec.json'))
         copyfile(path.join(corespecdir, progdir, 'corespec.json'), path.join(specdir, progdir, 'corespec.json'))
         copypathspec = True
         if progdir not in configured or not path.isfile(path.join(specdir, progdir, 'pathspec.json')) or readspec(hostspecdir, selhostdir, 'pathspecs', progdir, 'pathspec.json') == readspec(specdir, progdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progdir]), 'difiere de la configuración por defecto, ¿desea reestablecerla?', default=False):

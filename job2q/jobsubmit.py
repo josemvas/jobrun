@@ -72,8 +72,8 @@ def remit():
         relmolpath = path.relpath(options.molfile, cluster.homedir)
         options.molfile = pathjoin(remote.share, remote.user, relmolpath)
         remoteinputfiles.append(pathjoin(cluster.homedir, '.', relmolpath))
-    call(['rsync', '-R'] + remoteinputfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
-    execv('/usr/bin/ssh', [__file__, '-t', remote.tohost, 'TELEGRAM_BOT_URL=' + cluster.telegram, 'TELEGRAM_CHAT_ID=' + cluster.chatid, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
+    call(['rsync', '-R', '-t', '-z', '-e', 'ssh -q', '-q'] + remoteinputfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
+    execv('/usr/bin/ssh', [__file__, '-q', '-t', remote.tohost, 'TELEGRAM_BOT_URL=' + cluster.telegram, 'TELEGRAM_CHAT_ID=' + cluster.chatid, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def submit():

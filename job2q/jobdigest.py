@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import sys
 from importlib import import_module
-from os import path, listdir, getcwd
+from os import listdir, getcwd
 from argparse import ArgumentParser
 from . import dialogs
 from . import messages
 from .details import mpilibs
 from .classes import Bunch, AbsPath
-from .utils import pathjoin, natsort, p, q, sq, boolstrings, join_positional_args, wordseps
+from .utils import natsort, p, q, sq, boolstrings, join_positional_args, wordseps
 from .jobparse import cluster, jobspecs, options, files
 from .exceptions import NotAbsolutePath
 from .chemistry import readxyz
@@ -17,6 +17,8 @@ def digest():
     if not jobspecs.scheduler:
         messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
     
+    environment.extend(jobspecs.onscript)
+
     scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
     jobformat = Bunch(scheduler.jobformat)
     jobenvars = Bunch(scheduler.jobenvars)
@@ -94,36 +96,6 @@ def digest():
     else:
         messages.cfgerror('<outputfiles> La lista de archivos de salida no existe o está vacía')
     
-    if jobspecs.versions:
-        if not options.version:
-            if 'version' in jobspecs.defaults:
-                if jobspecs.defaults.version in jobspecs.versions:
-                    options.version = jobspecs.defaults.version
-                else:
-                    messages.opterror('La versión establecida por default es inválida')
-            else:
-                options.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobspecs.versions), key=natsort))
-                if not options.version in jobspecs.versions:
-                    messages.opterror('La versión seleccionada es inválida')
-    else:
-        messages.cfgerror('<versions> La lista de versiones no existe o está vacía')
-    
-    if not jobspecs.versions[options.version].executable:
-        messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
-    
-    executable = jobspecs.versions[options.version].executable
-    profile = jobspecs.versions[options.version].profile
-    
-    jobspecs.logdir = jobspecs.logdir.format(**cluster)
-
-    jobcomments.append(jobformat.label(jobspecs.progname))
-    jobcomments.append(jobformat.queue(options.queue))
-    jobcomments.append(jobformat.output(jobspecs.logdir))
-    jobcomments.append(jobformat.error(jobspecs.logdir))
-    
-    if options.node:
-        jobcomments.append(jobformat.hosts(options.node))
-    
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
@@ -144,25 +116,61 @@ def digest():
     else:
         messages.cfgerror('<parallelib> No se especificó el tipo de paralelización del programa')
     
-    environment.append("head=" + cluster.head)
-    environment.extend('='.join(i) for i in jobenvars.items())
-    environment.extend(jobspecs.onscript)
+    if jobspecs.versions:
+        if not options.version:
+            if 'version' in jobspecs.defaults:
+                if jobspecs.defaults.version in jobspecs.versions:
+                    options.version = jobspecs.defaults.version
+                else:
+                    messages.opterror('La versión establecida por default es inválida')
+            else:
+                options.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobspecs.versions), key=natsort))
+                if not options.version in jobspecs.versions:
+                    messages.opterror('La versión seleccionada es inválida')
+    else:
+        messages.cfgerror('<versions> La lista de versiones no existe o está vacía')
+
+    versionspec = jobspecs.versions[options.version]
     
-    for profile in jobspecs.profile + profile:
-        environment.append(profile)
+    if not versionspec.executable:
+        messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
     
-    for var in jobspecs.filevars:
-        environment.append(var + '=' + sq(jobspecs.filekeys[jobspecs.filevars[var]]))
+    for key, value in jobspecs.export.items():
+        environment.append('export {}={}'.format(key, value.format(**cluster)))
+    
+    for key, value in versionspec.export.items():
+        environment.append('export {}={}'.format(key, value.format(**cluster)))
+    
+    for srcfile in jobspecs.source + versionspec.source:
+        environment.append('source {}'.format(AbsPath(srcfile, **cluster)))
+    
+    for module in jobspecs.load + versionspec.load:
+        environment.append('module load {}'.format(module))
+    
+    try:
+        commandline.append(AbsPath(versionspec.executable, **cluster))
+    except NotAbsolutePath:
+        commandline.append(versionspec.executable)
+    
+    jobspecs.logdir = jobspecs.logdir.format(**cluster)
+
+    jobcomments.append(jobformat.label(jobspecs.progname))
+    jobcomments.append(jobformat.queue(options.queue))
+    jobcomments.append(jobformat.output(jobspecs.logdir))
+    jobcomments.append(jobformat.error(jobspecs.logdir))
+    
+    if options.node:
+        jobcomments.append(jobformat.hosts(options.node))
     
     environment.append("shopt -s nullglob extglob")
+    environment.append("head=" + cluster.head)
+    environment.extend('='.join(i) for i in jobenvars.items())
     environment.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     environment.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     environment.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
     
-    try:
-        commandline.append(AbsPath(executable, **cluster))
-    except NotAbsolutePath:
-        commandline.append(executable)
+    for var in jobspecs.filevars:
+        environment.append(var + '=' + sq(jobspecs.filekeys[jobspecs.filevars[var]]))
     
     for key in jobspecs.optionargs:
         if not jobspecs.optionargs[key] in jobspecs.filekeys:
@@ -214,8 +222,7 @@ def digest():
     elif options.molfile and not options.template:
         messages.warning('Se especificó un archivo de coordenadas pero no se solicitó interpolar el archivo de entrada')
         
-#    environment.append("workdir=" + q(path.join(options.scrdir, jobenvars.jobid)))
-    node.workdir = path.join(options.scrdir, jobenvars.jobid)
+    node.workdir = AbsPath(options.scrdir, jobenvars.jobid)
 
     node.chdir = 'cd "{}"'.format
     head.run = 'ssh $head "{}"'.format
@@ -225,14 +232,14 @@ def digest():
         node.fetch = 'cp "{}" "{}"'.format
         head.fetch = 'cp "{}" "{}"'.format
     elif jobspecs.hostcopy == 'remote':
-        node.mkdir = 'mkdir -p -m 700 "{0}"; for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
-        node.deletedir = 'rm -rf "{0}"; for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
-        node.fetch = 'scp $head:"\'{0}\'" "{1}"; for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        node.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
+        node.deletedir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
+        node.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
         head.fetch = 'scp "{}" $head:"\'{}\'"'.format
     elif jobspecs.hostcopy == 'jump':
-        node.mkdir = 'mkdir -p -m 700 "{0}"; for host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -pm 700 "\'{0}\'"; done'.format
-        node.deletedir = 'rm -rf "{0}"; for host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'{0}\'"; done'.format
-        node.fetch = 'scp $head:"\'{0}\'" "{1}"; for host in ${{hosts[*]}}; do ssh $head scp "\'{0}\'" $host:"\'{1}\'"; done'.format
+        node.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -pm 700 "\'{0}\'"; done'.format
+        node.deletedir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'{0}\'"; done'.format
+        node.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do ssh $head scp "\'{0}\'" $host:"\'{1}\'"; done'.format
         head.fetch = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')

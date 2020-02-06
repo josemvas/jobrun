@@ -36,9 +36,9 @@
    "positionargs": [
       "gjf|com"
    ],
-   "profile": [
-      "export GAUSS_SCRDIR=$PWD"
-   ],
+   "export": {
+      "GAUSS_SCRDIR": "$PWD"
+   },
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",
       "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
