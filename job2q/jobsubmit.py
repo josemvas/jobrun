@@ -239,6 +239,7 @@ def submit():
         f.write('#!/bin/bash' + '\n')
         f.write(''.join(i + '\n' for i in jobcomments))
         f.write(''.join(i + '\n' for i in environment))
+        f.write('for host in ${hosts[*]}; do echo "<host>$host</host>"; done' + '\n')
         f.write(node.mkdir(node.workdir) + '\n')
         f.write(''.join(node.fetch(i, j) + '\n' for i, j in inputfiles))
         f.write(node.chdir(node.workdir) + '\n')
