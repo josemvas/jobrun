@@ -37,7 +37,7 @@
       "gjf|com"
    ],
    "export": {
-      "GAUSS_SCRDIR": "$PWD"
+      "GAUSS_SCRDIR": "{workdir}"
    },
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",

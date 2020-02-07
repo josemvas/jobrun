@@ -2,7 +2,7 @@
 import sys
 import os
 from re import search
-from subprocess import Popen, PIPE, CalledProcessError
+from subprocess import Popen, PIPE
 
 jobformat = {
     'name' : '#BSUB -J "{}"'.format,
@@ -49,7 +49,7 @@ def queuejob(jobscript):
     if p.returncode == 0:
         return search(r'<([0-9]+)>', output).group(1)
     else:
-        raise CalledProcessError()
+        raise RuntimeError(error)
         
 def checkjob(jobid):
     p = Popen(['bjobs', '-ostat', '-noheader', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)

@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from os.path import isfile, isdir
 from . import dialogs
 from . import messages
-from .jobparse import readspec, parse
+from .jobparse import readspec
 from .utils import rmdir, makedirs, hardlink, natsort, q
 from .exceptions import NotAbsolutePath
 from .classes import AbsPath
@@ -22,16 +22,20 @@ loader_script = r'''
 '{python}' "$0" "$@"
 
 from job2q import *
-if parse():
-    digest()
-    submit()
-    while files:
-        wait()
-        submit()
+jobparse()
+if run.dry:
+    while run.files:
+        dryrun()
+elif run.remote:
+    while run.files:
+        remoterun()
+    offload()
 else:
-    while files:
-        upload()
-    remit()
+    jobsetup()
+    localrun()
+    while run.files:
+        wait()
+        localrun()
 '''
 
 def main():

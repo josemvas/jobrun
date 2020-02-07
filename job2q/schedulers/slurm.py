@@ -2,7 +2,7 @@
 import sys
 import os
 from re import search
-from subprocess import Popen, PIPE, CalledProcessError
+from subprocess import Popen, PIPE
 
 jobformat = {
     'name' : '#SBATCH -J "{}"'.format,
@@ -61,7 +61,7 @@ def queuejob(jobscript):
     if p.returncode == 0:
         return search(r' ([0-9]+)$', output).group(1)
     else:
-        raise CalledProcessError(error)
+        raise RuntimeError(error)
         
 def checkjob(jobid):
     p = Popen(['squeue', '--noheader', '-o%T', '-j', jobid], stdout=PIPE, stderr=PIPE, close_fds=True)

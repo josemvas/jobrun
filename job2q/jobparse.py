@@ -12,6 +12,7 @@ from .classes import Bunch, AbsPath
 from .exceptions import NotAbsolutePath
 from .utils import natsort, p, join_positional_args, pathseps
 from .details import dictags, listags
+from .chemistry import readxyz
 
 class SpecList(list):
     def __init__(self, parentlist):
@@ -77,30 +78,38 @@ def readspec(jsonfile):
         except ValueError as e:
             messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 
-def parse():
+def listchoices():
+    if jobspecs.versions:
+        messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
+    for key in jobspecs.parameters:
+        messages.listing('Conjuntos de parámetros disponibles', p(key), items=sorted(listdir(jobspecs.parameters[key]), key=natsort), default=jobspecs.defaults.parameters[key])
+    if jobspecs.keywords:
+        messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
 
-    cluster.homedir = path.expanduser('~')
-    cluster.program = path.basename(sys.argv[0])
-    cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-    cluster.user = getuser()
-    
+def jobparse():
+
     try:
-        cluster.specdir = AbsPath(environ['SPECPATH'])
+        specdir = AbsPath(environ['SPECPATH'])
     except KeyError:
         messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
     except NotAbsolutePath:
-        cluster.specdir = AbsPath(getcwd(), environ['SPECPATH'])
+        specdir = AbsPath(getcwd(), environ['SPECPATH'])
+    
+    user.user = getuser()
+    user.home = path.expanduser('~')
+    user.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+    run.program = path.basename(sys.argv[0])
     
     try:
-        cluster.telegram = environ['TELEGRAM_BOT_URL']
-        cluster.chatid = environ['TELEGRAM_CHAT_ID']
+        envars.TELEGRAM_BOT_URL = environ['TELEGRAM_BOT_URL']
+        envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
 
-    hostspec = path.join(cluster.specdir, 'hostspec.json')
-    corespec = path.join(cluster.specdir, 'corespec.json')
-    pathspec = path.join(cluster.specdir, 'pathspec.json')
-    userspec = path.join(cluster.homedir, '.jobspec.json')
+    hostspec = path.join(specdir, 'hostspec.json')
+    corespec = path.join(specdir, 'corespec.json')
+    pathspec = path.join(specdir, 'pathspec.json')
+    userspec = path.join(user.home, '.jobspec.json')
     
     jobspecs.merge(readspec(hostspec))
     jobspecs.merge(readspec(corespec))
@@ -117,81 +126,102 @@ def parse():
     except AttributeError:
         messages.cfgerror('No se definió la propiedad "headname" en la configuración')
 
-    parser = ArgumentParser(prog=cluster.program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
-    parser.add_argument('-l', '--list', action='store_true', help='Mostrar las versiones de los programas y parámetros disponibles.')
+    parser = ArgumentParser(prog=run.program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
+
+    parser.add_argument('-l', '--list', action='store_true', help='Mostrar las opciones disponibles y salir.')
+    parsed, remaining = parser.parse_known_args()
+
+    if parsed.list:
+        listchoices()
+        raise SystemExit()
+
     parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
     parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
     parser.add_argument('-n', '--ncore', metavar='#CORES', type=int, default=1, help='Número de núcleos de cpu requeridos.')
     parser.add_argument('-N', '--nhost', metavar='#HOSTS', type=int, default=1, help='Número de nodos de ejecución requeridos.')
     parser.add_argument('-w', '--wait', metavar='TIME', type=float, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    parser.add_argument('-t', '--template', action='store_true', help='Interpolar los archivos de entrada.')
-    parser.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
-    parser.add_argument('-j', '--jobname', metavar='MOLNAME', type=str, help='Nombre del trabajo de interpolación.')
-    parser.add_argument('-s', '--sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
-    parser.add_argument('-S', '--sortrev', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
-    parser.add_argument('-i', '--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
+    parser.add_argument('-j', '--jobname', metavar='JOBNAME', type=str, help='Cambiar el nombre del trabajo por JOBNAME.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
+    sgroup = parser.add_mutually_exclusive_group()
+    sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
+    sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
+    parser.add_argument('--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
     parser.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
     parser.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
     parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
     parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Usar SCRATCHDIR como directorio de escritura.')
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
-    
+
     if len(jobspecs.parameters) == 1:
         key = next(iter(jobspecs.parameters))
-        parser.add_argument('-p', '--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+        parser.add_argument('-p', '--p' + key, metavar='PARAMETERSET', type=str, dest=key, help='Nombre del conjunto de parámetros.')
     elif len(jobspecs.parameters) > 1:
         for key in jobspecs.parameters:
-            parser.add_argument('--' + key, metavar='SETNAME', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+            parser.add_argument('--p' + key, metavar='PARAMETERSET', type=str, dest=key, help='Nombre del conjunto de parámetros.')
 
     for key in jobspecs.keywords:
         parser.add_argument('--' + key, metavar=key.upper(), type=str, dest=key, help='Valor de la variable {}'.format(key.upper()))
     
     parsed, remaining = parser.parse_known_args()
     options.update(vars(parsed))
-    
-    if options.list:
-        if jobspecs.versions:
-            messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
-        for key in jobspecs.parameters:
-            messages.listing('Conjuntos de parámetros disponibles', p(key), items=sorted(listdir(jobspecs.parameters[key]), key=natsort), default=jobspecs.defaults.parameters[key])
-        if jobspecs.keywords:
-            messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
-        raise SystemExit()
 
-    parser.add_argument('-r', '--remote-to', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
-    parser.add_argument('-R', '--remote-from', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo del host remoto HOSTNAME.')
-    parsed, remaining = parser.parse_known_args()
+    rgroup = parser.add_mutually_exclusive_group()
+    rgroup.add_argument('-d', '--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    rgroup.add_argument('-r', '--remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
 
-    parser.add_argument('files', nargs='*', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
-    parsed, remaining = parser.parse_known_args()
+    mgroup = parser.add_mutually_exclusive_group()
+    mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
+    mgroup.add_argument('-M', '--molname', metavar='MOLNAME', type=str, help='Nombre de los archivos de interpolación.')
 
-    files[:] = parsed.files
-
+    parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
     parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir')
-    parser.parse_args(remaining)
+    parser.add_argument('files', nargs='*', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
 
-    if not files:
+    run.update(vars(parser.parse_args(remaining)))
+
+    if not run.files:
         messages.opterror('Debe especificar al menos un archivo de entrada')
 
-    if parsed.remote_from:
-        if 'JOBSHARE' in environ:
-            remote.fromhost = parsed.remote_from
-        else:
-            messages.cfgerror('No se pueden aceptar trabajos remotos porque no se definió la variable de entorno $JOBSHARE')
+    if run.remote:
+        run.userathost = '{user}@{host}'.format(user=user.user, host=cluster.name.lower())
+        run.jobshare = '$JOBSHARE'
 
-    if parsed.remote_to:
-        remote.tohost = parsed.remote_to
-        remote.share = '$JOBSHARE'
-        remote.user = '{user}@{host}'.format(user=cluster.user, host=cluster.head)
-        return False
-    else:
-        return True
+    for key in jobspecs.keywords:
+        if options[key] is not None:
+            keywords[key] = options[key]
 
+    if run.interpolate:
+        if run.molfile:
+            try:
+                molfile = AbsPath(run.molfile)
+            except NotAbsolutePath:
+                molfile = AbsPath(getcwd(), run.molfile)
+            if molfile.isfile():
+                if molfile.hasext('.xyz'):
+                    keywords['mol0'] = molfile
+                    for i, step in enumerate(readxyz(molfile), 1):
+                        keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                else:
+                    messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+            elif molfile.isdir():
+                messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
+            elif molfile.exists():
+                messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
+            else:
+                messages.opterror('El archivo de coordenadas', molfile, 'no existe')
+            run.molname = molfile.stem
+        elif not run.molname:
+            messages.opterror('Se debe especificar el archivo de coordenadas o el nombre del trabajo para interpolar el archivo de entrada')
+    elif run.molfile or run.molname:
+        messages.warning('Se especificó un archivo de coordenadas o un nombre pero no se solicitó interpolar el archivo de entrada')
+        
+
+run = Bunch({})
+user = Bunch({})
 cluster = Bunch({})
 options = Bunch({})
+envars = Bunch({})
 jobspecs = SpecBunch({})
-remote = Bunch({})
-files = []
+keywords = {}
 

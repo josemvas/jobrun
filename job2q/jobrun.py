@@ -2,21 +2,21 @@
 from time import sleep
 from shutil import copyfile
 from os import path, execv, getcwd
-from subprocess import call, DEVNULL, CalledProcessError
+from subprocess import call, DEVNULL
 from importlib import import_module
 from getpass import getuser 
 from . import dialogs
 from . import messages
-from .exceptions import NotAbsolutePath, InputFileError
-from .jobparse import cluster, remote, jobspecs, options, files
-from .utils import pathjoin, remove, makedirs, alnum, natsort, p, q, sq, catch_keyboard_interrupt
-from .jobdigest import keywords, jobcomments, environment, commandline, parameters, head, node
-from .classes import Bunch, AbsPath, IdentityList
 from .boolparse import BoolParser
+from .exceptions import NotAbsolutePath, InputFileError
+from .utils import pathjoin, remove, makedirs, alnum, natsort, p, q, sq, catch_keyboard_interrupt
+from .jobparse import run, user, cluster, envars, jobspecs, options, keywords
+from .classes import Bunch, AbsPath, IdentityList
+from .jobsetup import parameters, script
 
 def nextfile():
-    
-    file = files.pop(0)
+
+    file = run.files.pop(0)
 
     try:
         filepath = AbsPath(file)
@@ -45,6 +45,19 @@ def nextfile():
         messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
         raise InputFileError()
 
+    if run.interpolate:
+        templatename = inputname
+        inputname = '.'.join((run.molname, inputname))
+        for item in jobspecs.inputfiles:
+            for key in item.split('|'):
+                if path.isfile(pathjoin(inputdir, (templatename, key))):
+                    with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
+                        try:
+                            fw.write(fr.read().format(**keywords))
+                        except KeyError as e:
+                            messages.failure('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
+                            raise InputFileError()
+
     return inputdir, inputname, inputext
 
 @catch_keyboard_interrupt
@@ -52,41 +65,41 @@ def wait():
     sleep(options.wait)
 
 @catch_keyboard_interrupt
-def upload():
+def offload():
+    if remotefiles:
+        call(['rsync', '-Rtzqe', 'ssh -q'] + remoteinputfiles + [run.remote + ':' + pathjoin(run.jobshare, run.userathost)])
+        execv('/usr/bin/ssh', [__file__, '-Xqt', run.remote] + ['{envar}={value}'.format(envar=envar, value=value) for envar, value in envars.items()] + [run.program] + ['--{option}={value}'.format(option=option, value=value) for option, value in options.items() if value not in IdentityList(None, True, False)] + ['--{option}'.format(option=option) for option in options if options[option] is True] + remotefiles)
+
+@catch_keyboard_interrupt
+def dryrun():
 
     try:
         inputdir, inputname, inputext = nextfile()
     except InputFileError:
         return
 
-    relparentdir = path.relpath(inputdir, cluster.homedir)
-    remotefiles.append(pathjoin(remote.share, remote.user, relparentdir, (inputname, inputext)))
+def remoterun():
 
+    try:
+        inputdir, inputname, inputext = nextfile()
+    except InputFileError:
+        return
+
+    relparentdir = path.relpath(inputdir, user.home)
+    remotefiles.append(pathjoin(run.jobshare, run.userathost, relparentdir, (inputname, inputext)))
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
-            remoteinputfiles.append(pathjoin(cluster.homedir, '.', relparentdir, (inputname, key)))
+            remoteinputfiles.append(pathjoin(user.home, '.', relparentdir, (inputname, key)))
 
-@catch_keyboard_interrupt
-def remit():
-    if options.molfile:
-        relmolpath = path.relpath(options.molfile, cluster.homedir)
-        options.molfile = pathjoin(remote.share, remote.user, relmolpath)
-        remoteinputfiles.append(pathjoin(cluster.homedir, '.', relmolpath))
-    call(['rsync', '-R', '-t', '-z', '-e', 'ssh -q', '-q'] + remoteinputfiles + [remote.tohost + ':' + pathjoin(remote.share, remote.user)])
-    execv('/usr/bin/ssh', [__file__, '-q', '-t', remote.tohost, 'TELEGRAM_BOT_URL=' + cluster.telegram, 'TELEGRAM_CHAT_ID=' + cluster.chatid, cluster.program, '--remote-from={user}'.format(user=remote.user)] + ['--{opt}={val}'.format(opt=opt, val=val) for opt, val in options.items() if val not in IdentityList(None, True, False)] + ['--{opt}'.format(opt=opt) for opt in options if options[opt] is True] + remotefiles)
-
-@catch_keyboard_interrupt
-def submit():
+def localrun():
 
     try:
         inputdir, inputname, inputext = nextfile()
     except InputFileError:
         return
 
-    versionkey = jobspecs.progkey + alnum(options.version)
     scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
     jobformat = Bunch(scheduler.jobformat)
-    jobenvars = Bunch(scheduler.jobenvars)
     queuejob = scheduler.queuejob
     checkjob = scheduler.checkjob
 
@@ -105,18 +118,20 @@ def submit():
             messages.failure('Hay un conflicto entre los archivos de entrada')
             return
     
-    if inputname.endswith('.' + versionkey):
-        jobname = inputname[:-len(versionkey)-1]
+    progkey = jobspecs.progkey + alnum(options.version)
+
+    if inputname.endswith('.' + progkey):
+        bareinputname = inputname[:-len(progkey)-1]
     elif inputname.endswith('.' + jobspecs.progkey):
-        jobname = inputname[:-len(jobspecs.progkey)-1]
+        bareinputname = inputname[:-len(jobspecs.progkey)-1]
     else:
-        jobname = inputname
+        bareinputname = inputname
 
     if options.jobname:
-        jobname = '.'.join((options.jobname, jobname))
-        actualname = '.'.join((options.jobname, inputname))
+        jobname = options.jobname
+#        jobname = '.'.join((run.molname, bareinputname))
     else:
-        actualname = inputname
+        jobname = bareinputname
 
     if options.outdir:
         try:
@@ -126,24 +141,24 @@ def submit():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, inputdir=inputdir, jobname=jobname)
         
-    hiddendir = AbsPath(outputdir, ('.' + jobname, versionkey))
-    outputname = '.'.join((jobname, versionkey))
+    hiddendir = AbsPath(outputdir, ('.' + jobname, progkey))
+    outputname = '.'.join((jobname, progkey))
 
     inputfiles = []
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            inputfiles.append((pathjoin(outputdir, (actualname, key)), pathjoin(node.workdir, jobspecs.filekeys[key])))
+            inputfiles.append((pathjoin(outputdir, (jobname, key)), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
     outputfiles = []
 
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
-            outputfiles.append((pathjoin(node.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
     for key in jobspecs.parameters:
         try:
-            parameterdir = AbsPath(jobspecs.parameters[key], inputdir=inputdir, **cluster)
+            parameterdir = AbsPath(jobspecs.parameters[key], inputdir=inputdir, **user)
         except NotAbsolutePath:
             messages.cfgerror('La ruta al conjunto de parámetros', key, 'debe ser absoluta')
         try:
@@ -168,10 +183,10 @@ def submit():
     
     for parameter in parameters:
         if parameter.isfile():
-            inputfiles.append((parameter, pathjoin(node.workdir, parameter)))
+            inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
         elif parameter.isdir():
             for item in parameter.listdir():
-                inputfiles.append((pathjoin(parameter, item), pathjoin(node.workdir, item)))
+                inputfiles.append((pathjoin(parameter, item), pathjoin(script.workdir, item)))
 
     if outputdir.isdir():
         if hiddendir.isdir():
@@ -198,7 +213,7 @@ def submit():
         if inputdir != outputdir:
             for item in jobspecs.inputfiles:
                 for key in item.split('|'):
-                    remove(pathjoin(outputdir, (actualname, key)))
+                    remove(pathjoin(outputdir, (jobname, key)))
     elif outputdir.exists():
         messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -206,30 +221,20 @@ def submit():
         makedirs(outputdir)
         makedirs(hiddendir)
     
-    if options.template:
-        for item in jobspecs.inputfiles:
-            for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (inputname, key))):
-                    with open(pathjoin(inputdir, (inputname, key)), 'r') as t, open(pathjoin(outputdir, (actualname, key)), 'w') as f:
-                        try:
-                            f.write(t.read().format(**keywords))
-                        except KeyError as e:
-                            messages.failure('Debe definir la variable', q(e.args[0]), 'referida en la plantilla', pathjoin((inputname, key)))
-                            return
-    elif inputdir != outputdir:
+    if inputdir != outputdir:
         action = path.rename if options.move else copyfile
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (inputname, key))):
-                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (inputname, key)))
+                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (jobname, key)))
     
-    jobcomments.append(jobformat.name(jobname))
+    script.comments.append(jobformat.name(jobname))
 
     offscript = []
 
     for line in jobspecs.offscript:
         try:
-           offscript.append(line.format(jobname=jobname, **cluster))
+           offscript.append(line.format(jobname=jobname, clustername=cluster.name, **envars))
         except KeyError:
            pass
 
@@ -237,24 +242,23 @@ def submit():
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
-        f.write(''.join(i + '\n' for i in jobcomments))
-        f.write(''.join(i + '\n' for i in environment))
+        f.write(''.join(i + '\n' for i in script.comments))
+        f.write(''.join(i + '\n' for i in script.environ))
         f.write('for host in ${hosts[*]}; do echo "<host>$host</host>"; done' + '\n')
-        f.write(node.mkdir(node.workdir) + '\n')
-        f.write(''.join(node.fetch(i, j) + '\n' for i, j in inputfiles))
-        f.write(node.chdir(node.workdir) + '\n')
+        f.write(script.mkdir(script.workdir) + '\n')
+        f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
+        f.write(script.chdir(script.workdir) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.prescript))
-        f.write(' '.join(commandline) + '\n')
+        f.write(' '.join(script.command) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.postscript))
-        f.write(''.join(head.fetch(i, j) + '\n' for i, j in outputfiles))
-        f.write(node.deletedir(node.workdir) + '\n')
-        f.write(''.join(head.run(i) + '\n' for i in offscript))
+        f.write(''.join(script.put(i, j) + '\n' for i, j in outputfiles))
+        f.write(script.rmdir(script.workdir) + '\n')
+        f.write(''.join(script.runathead(i) + '\n' for i in offscript))
     
     try:
         jobid = queuejob(jobscript)
-    except CalledProcessError as error:
-        messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error:')
-        messages.failure(error)
+    except RuntimeError as error:
+        messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
         return
     else:
         messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) de CPU con el jobid', jobid)

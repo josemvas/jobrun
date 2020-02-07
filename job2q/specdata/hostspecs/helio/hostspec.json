@@ -10,6 +10,6 @@
       "waitime": "1"
    },
    "offscript": [
-      "curl -s -X POST '{telegram}' -d chat_id={chatid} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {name} ha finalizado'"
+      "curl -s -X POST '{TELEGRAM_BOT_URL}' -d chat_id={TELEGRAM_CHAT_ID} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {clustername} ha finalizado'"
    ]
 }
