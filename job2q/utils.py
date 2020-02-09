@@ -1,40 +1,21 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import sys
 from . import colors
 
-wordseps = (' ', '')
+class IdentityList(list):
+    def __init__(self, *args):
+        list.__init__(self, args)
+    def __contains__(self, other):
+        return any(o is other for o in self)
 
-pathseps = (os.path.sep, '.')
-
-boolstrings = {'True' : True, 'False' : False}
-
-def makedirs(path):
-    try: os.makedirs(path)
-    except FileExistsError as e:
-        pass
-
-def remove(path):
-    try: os.remove(path)
-    except FileNotFoundError as e:
-        pass
-
-def rmdir(path):
-    try: os.rmdir(path)
-    except FileNotFoundError as e:
-        pass
-
-def hardlink(source, dest):
-    try: os.link(source, dest)
-    except FileExistsError as e:
-        os.remove(dest)
-        os.link(source, dest)
-    except FileNotFoundError as e:
-        pass
-
-def pathjoin(*args):
-    return deepjoin(args, iter(pathseps))
+class Bunch(dict):
+    def __getattr__(self, item):
+        try: return self.__getitem__(item)
+        except KeyError:
+            raise AttributeError(item)
+    def __setattr__(self, item, value):
+            self.__setitem__(item, value)
 
 def p(string):
     return '({0})'.format(string)
@@ -54,7 +35,7 @@ def alnum(string):
 def deepjoin(a, i):
     return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)
 
-def join_positional_args(seq):
+def join_arguments(seq):
     def decorator(f):
         def wrapper(*args, **kwargs):
             return f(deepjoin(args, iter(seq)), **kwargs)
@@ -77,4 +58,8 @@ def override_function(cls):
                 return f(*args, **kwargs)
         return wrapper
     return decorator
+
+wordseps = (' ', '')
+pathseps = (os.path.sep, '.')
+boolstrs = {'True' : True, 'False' : False}
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
 import sys
-from shutil import copyfile
 from subprocess import check_output, DEVNULL
 from os import path, listdir, chmod, pathsep
 from argparse import ArgumentParser
@@ -9,9 +8,8 @@ from os.path import isfile, isdir
 from . import dialogs
 from . import messages
 from .jobparse import readspec
-from .utils import rmdir, makedirs, hardlink, natsort, q
-from .exceptions import NotAbsolutePath
-from .classes import AbsPath
+from .fileutils import AbsPath, NotAbsolutePath, rmdir, makedirs, copyfile, hardlink
+from .utils import natsort, q
 
 loader_script = r'''
 #!/bin/sh

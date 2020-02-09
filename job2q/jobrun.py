@@ -1,64 +1,16 @@
 # -*- coding: utf-8 -*-
 from time import sleep
-from shutil import copyfile
 from os import path, execv, getcwd
 from subprocess import call, DEVNULL
 from importlib import import_module
-from getpass import getuser 
 from . import dialogs
 from . import messages
-from .boolparse import BoolParser
-from .exceptions import NotAbsolutePath, InputFileError
-from .utils import pathjoin, remove, makedirs, alnum, natsort, p, q, sq, catch_keyboard_interrupt
-from .jobparse import run, user, cluster, envars, jobspecs, options, keywords
-from .classes import Bunch, AbsPath, IdentityList
 from .jobsetup import parameters, script
-
-def nextfile():
-
-    file = run.files.pop(0)
-
-    try:
-        filepath = AbsPath(file)
-    except NotAbsolutePath:
-        filepath = AbsPath(getcwd(), file)
-
-    inputdir = filepath.parent()
-    basename = filepath.name
-    
-    if filepath.isfile():
-        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
-            if basename.endswith('.' + key):
-                inputname = basename[:-len(key)-1]
-                inputext = key
-                break
-        else:
-            messages.failure('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
-            raise InputFileError()
-    elif filepath.isdir():
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
-        raise InputFileError()
-    elif filepath.exists():
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
-        raise InputFileError()
-    else:
-        messages.failure('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
-        raise InputFileError()
-
-    if run.interpolate:
-        templatename = inputname
-        inputname = '.'.join((run.molname, inputname))
-        for item in jobspecs.inputfiles:
-            for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (templatename, key))):
-                    with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
-                        try:
-                            fw.write(fr.read().format(**keywords))
-                        except KeyError as e:
-                            messages.failure('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
-                            raise InputFileError()
-
-    return inputdir, inputname, inputext
+from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
+from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt
+from .jobparse import run, user, cluster, envars, jobspecs, options, keywords
+from .jobutils import nextfile, InputFileError
+from .boolparse import BoolParser
 
 @catch_keyboard_interrupt
 def wait():
@@ -75,14 +27,17 @@ def dryrun():
 
     try:
         inputdir, inputname, inputext = nextfile()
-    except InputFileError:
+    except InputFileError as e:
+        messages.failure(e)
         return
 
+@catch_keyboard_interrupt
 def remoterun():
 
     try:
         inputdir, inputname, inputext = nextfile()
-    except InputFileError:
+    except InputFileError as e:
+        messages.failure(e)
         return
 
     relparentdir = path.relpath(inputdir, user.home)
@@ -91,11 +46,13 @@ def remoterun():
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             remoteinputfiles.append(pathjoin(user.home, '.', relparentdir, (inputname, key)))
 
+@catch_keyboard_interrupt
 def localrun():
 
     try:
         inputdir, inputname, inputext = nextfile()
-    except InputFileError:
+    except InputFileError as e:
+        messages.failure(e)
         return
 
     scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
@@ -267,7 +224,4 @@ def localrun():
     
 remotefiles = []
 remoteinputfiles = []
-
-if __name__ == '__main__':
-    submit()
 

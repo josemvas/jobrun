@@ -5,11 +5,10 @@ from os import listdir, getcwd
 from argparse import ArgumentParser
 from . import dialogs
 from . import messages
-from .details import mpilibs
-from .classes import Bunch, AbsPath
-from .utils import natsort, p, q, sq, boolstrings, join_positional_args, wordseps
+from .fileutils import AbsPath, NotAbsolutePath
 from .jobparse import run, user, cluster, jobspecs, options
-from .exceptions import NotAbsolutePath
+from .utils import Bunch, natsort, p, q, sq, join_arguments, wordseps, boolstrs
+from .details import mpilibs
 
 def jobsetup():
 
@@ -20,6 +19,9 @@ def jobsetup():
     jobformat = Bunch(scheduler.jobformat)
     jobenvars = Bunch(scheduler.jobenvars)
     mpilauncher = scheduler.mpilauncher
+    
+    if options['ignore-defaults']:
+        jobspecs.defaults = []
     
     if options.sort:
         run.files.sort(key=natsort)
@@ -36,9 +38,9 @@ def jobsetup():
         except ImportError:
             raise SystemExit()
         else:
-            dialogs.yesno = join_positional_args(wordseps)(TkDialogs().yesno)
-            messages.failure = join_positional_args(wordseps)(TkDialogs().message)
-            messages.success = join_positional_args(wordseps)(TkDialogs().message)
+            dialogs.yesno = join_arguments(wordseps)(TkDialogs().yesno)
+            messages.failure = join_arguments(wordseps)(TkDialogs().message)
+            messages.success = join_arguments(wordseps)(TkDialogs().message)
 
     if not options.outdir and not jobspecs.defaults.outputdir:
         messages.cfgerror('Debe especificar la carpeta de salida por el programa no establece una por defecto')
@@ -72,12 +74,9 @@ def jobsetup():
         messages.cfgerror('<title> No se especificó la clave del programa')
     
     if 'mpilauncher' in jobspecs:
-        try: jobspecs.mpilauncher = boolstrings[jobspecs.mpilauncher]
+        try: jobspecs.mpilauncher = boolstrs[jobspecs.mpilauncher]
         except KeyError:
             messages.cfgerror('<mpilauncher> El texto de este tag debe ser "True" o "False"')
-    
-    if options.interactive:
-        jobspecs.defaults = []
     
     if not jobspecs.filekeys:
         messages.cfgerror('<filekeys> La lista de archivos del programa no existe o está vacía')
@@ -212,6 +211,6 @@ def jobsetup():
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
-script = Bunch({})
+script = Bunch()
 parameters = []
 

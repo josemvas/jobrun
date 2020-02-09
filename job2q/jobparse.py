@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-import json
 from pwd import getpwnam
 from grp import getgrgid
 from getpass import getuser 
@@ -8,77 +7,39 @@ from socket import gethostname, gethostbyname
 from os import path, listdir, environ, getcwd
 from argparse import ArgumentParser
 from . import messages
-from .classes import Bunch, AbsPath
-from .exceptions import NotAbsolutePath
-from .utils import natsort, p, join_positional_args, pathseps
-from .details import dictags, listags
+from .specparse import SpecBunch, readspec
+from .fileutils import AbsPath, NotAbsolutePath
+from .utils import Bunch, natsort, p
 from .chemistry import readxyz
 
-class SpecList(list):
-    def __init__(self, parentlist):
-        for item in parentlist:
-            if isinstance(item, dict):
-                self.append(SpecBunch(item))
-            elif isinstance(item, list):
-                self.append(SpecList(item))
-            else:
-                self.append(item)
-    def merge(self, other):
-        for i in other:
-            if i in self:
-                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
-                    self[i].merge(other[i])
-                elif other[i] == self[i]:
-                    pass # same leaf value
-                else:
-                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
-            else:
-                self.append(other[i])
+def readmol():
 
-class SpecBunch(Bunch):
-    def __init__(self, parentdict):
-        for key, value in parentdict.items():
-            if isinstance(value, dict):
-                self[key] = SpecBunch(value)
-            elif isinstance(value, list):
-                self[key] = SpecList(value)
+    if run.molfile:
+        try:
+            molfile = AbsPath(run.molfile)
+        except NotAbsolutePath:
+            molfile = AbsPath(getcwd(), run.molfile)
+        if molfile.isfile():
+            if molfile.hasext('.xyz'):
+                for i, step in enumerate(readxyz(molfile), 1):
+                    keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
             else:
-                self[key] = value
-    def __missing__(self, item):
-        if item in dictags:
-            return SpecBunch({})
-        elif item in listags:
-            return SpecList([])
+                messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+        elif molfile.isdir():
+            messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
+        elif molfile.exists():
+            messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
         else:
-            return None
-    def merge(self, other):
-        for i in other:
-            if i in self:
-                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
-                    self[i].merge(other[i])
-                elif other[i] == self[i]:
-                    pass # same leaf value
-                else:
-                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
-            else:
-                self[i] = other[i]
-
-def ordered(obj):
-    if isinstance(obj, dict):
-        return obj
-    if isinstance(obj, list):
-        return sorted(ordered(x) for x in obj)
+            messages.opterror('El archivo de coordenadas', molfile, 'no existe')
+        keywords['molfile'] = molfile
+        run.molname = molfile.stem
+    elif run.molname:
+        keywords['molname'] = run.molname
     else:
-        return obj
-
-@join_positional_args(pathseps)
-def readspec(jsonfile):
-    with open(jsonfile, 'r') as fh:
-        try: return SpecBunch(ordered(json.load(fh)))
-        except ValueError as e:
-            messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
+        messages.opterror('Debe especificar el archivo de coordenadas o un nombre para interpolar el archivo de entrada')
 
 def listchoices():
+
     if jobspecs.versions:
         messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
     for key in jobspecs.parameters:
@@ -142,16 +103,19 @@ def jobparse():
     parser.add_argument('-w', '--wait', metavar='TIME', type=float, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     parser.add_argument('-j', '--jobname', metavar='JOBNAME', type=str, help='Cambiar el nombre del trabajo por JOBNAME.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-    sgroup = parser.add_mutually_exclusive_group()
-    sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar la lista de argumentos en orden numérico')
-    sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar la lista de argumentos en orden numérico inverso')
-    parser.add_argument('--interactive', action='store_true', help='Seleccionar interactivamente las versiones y parámetros.')
-    parser.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
-    parser.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
-    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
-    parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Usar SCRATCHDIR como directorio de escritura.')
+    parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
+    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
+    parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Usar SCRATCHDIR como directorio de escritura.')
+
+    sgroup = parser.add_mutually_exclusive_group()
+    sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor')
+    sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
+
+    yngroup = parser.add_mutually_exclusive_group()
+    yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
+    yngroup.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
 
     if len(jobspecs.parameters) == 1:
         key = next(iter(jobspecs.parameters))
@@ -167,8 +131,8 @@ def jobparse():
     options.update(vars(parsed))
 
     rgroup = parser.add_mutually_exclusive_group()
-    rgroup.add_argument('-d', '--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-    rgroup.add_argument('-r', '--remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
+    rgroup.add_argument('-d', '--dry-run', dest='dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    rgroup.add_argument('-r', '--remote-run', dest='remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
 
     mgroup = parser.add_mutually_exclusive_group()
     mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
@@ -192,36 +156,16 @@ def jobparse():
             keywords[key] = options[key]
 
     if run.interpolate:
-        if run.molfile:
-            try:
-                molfile = AbsPath(run.molfile)
-            except NotAbsolutePath:
-                molfile = AbsPath(getcwd(), run.molfile)
-            if molfile.isfile():
-                if molfile.hasext('.xyz'):
-                    keywords['mol0'] = molfile
-                    for i, step in enumerate(readxyz(molfile), 1):
-                        keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
-                else:
-                    messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
-            elif molfile.isdir():
-                messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
-            elif molfile.exists():
-                messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
-            else:
-                messages.opterror('El archivo de coordenadas', molfile, 'no existe')
-            run.molname = molfile.stem
-        elif not run.molname:
-            messages.opterror('Se debe especificar el archivo de coordenadas o el nombre del trabajo para interpolar el archivo de entrada')
+        readmol()
     elif run.molfile or run.molname:
-        messages.warning('Se especificó un archivo de coordenadas o un nombre pero no se solicitó interpolar el archivo de entrada')
+        messages.opterror('Se especificó un nombre o archivo de coordenadas sin interpolar los archivos de entrada')
         
 
-run = Bunch({})
-user = Bunch({})
-cluster = Bunch({})
-options = Bunch({})
-envars = Bunch({})
-jobspecs = SpecBunch({})
+run = Bunch()
+user = Bunch()
+cluster = Bunch()
+options = Bunch()
+envars = Bunch()
+jobspecs = SpecBunch()
 keywords = {}
 
