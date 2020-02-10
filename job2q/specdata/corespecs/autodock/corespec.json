@@ -19,5 +19,9 @@
    "optionargs": {
       "p": "dpf",
       "l": "dlg"
-   }
+   },
+   "parameters": [
+      "ligand",
+      "receptor"
+   ]
 }

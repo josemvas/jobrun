@@ -7,10 +7,6 @@
    "defaults": {
       "version": "4.2.6"
    },
-   "parameters": {
-      "ligand": "{inputdir}",
-      "receptor": "{inputdir}"
-   },
    "defaults": {
       "parameters": {
          "ligand": "ligands",

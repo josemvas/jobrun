@@ -219,7 +219,10 @@ def jobsetup():
                 optionparts = []
             value = jobspecs.defaults.parameters[key]
             parts = value.format(choose='\0').split('\0')
-            parpath = AbsPath(parts.pop(0), **user)
+            try:
+                parpath = AbsPath(parts.pop(0), **user)
+            except NotAbsolutePath:
+                parpath = AbsPath(getcwd(), parts.pop(0), **user)
             for part in parts:
                 if optionparts:
                     choice = optionparts.pop(0)
