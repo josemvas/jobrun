@@ -8,13 +8,10 @@
          ]
       }
    },
-   "parameters": {
-      "basis": "/tmpu/{group}/{user}/share/parameters/deMon2k"
-   },
    "defaults": {
       "version": "6.0.1",
       "parameters": {
-         "basis": "default"
+         "basis": "/tmpu/{group}/{user}/share/parameters/deMon2k"
       }
    }
 }

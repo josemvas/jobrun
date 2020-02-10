@@ -103,7 +103,7 @@ def jobparse():
     parser.add_argument('-w', '--wait', metavar='TIME', type=float, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     parser.add_argument('-j', '--jobname', metavar='JOBNAME', type=str, help='Cambiar el nombre del trabajo por JOBNAME.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-    parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
+    parser.add_argument('-I', '--ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
     parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
     parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
@@ -111,7 +111,7 @@ def jobparse():
 
     sgroup = parser.add_mutually_exclusive_group()
     sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor')
-    sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
+    sgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
 
     yngroup = parser.add_mutually_exclusive_group()
     yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
@@ -119,10 +119,10 @@ def jobparse():
 
     if len(jobspecs.parameters) == 1:
         key = next(iter(jobspecs.parameters))
-        parser.add_argument('-p', '--p' + key, metavar='PARAMETERSET', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+        parser.add_argument('-p', '--{}-set'.format(key), metavar='PARAMETERSET', type=str, help='Nombre del conjunto de parámetros.')
     elif len(jobspecs.parameters) > 1:
         for key in jobspecs.parameters:
-            parser.add_argument('--p' + key, metavar='PARAMETERSET', type=str, dest=key, help='Nombre del conjunto de parámetros.')
+            parser.add_argument('--{}-set'.format(key), metavar='PARAMETERSET', type=str, help='Nombre del conjunto de parámetros.')
 
     for key in jobspecs.keywords:
         parser.add_argument('--' + key, metavar=key.upper(), type=str, dest=key, help='Valor de la variable {}'.format(key.upper()))

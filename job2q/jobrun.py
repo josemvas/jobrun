@@ -20,7 +20,7 @@ def wait():
 def offload():
     if remotefiles:
         call(['rsync', '-Rtzqe', 'ssh -q'] + remoteinputfiles + [run.remote + ':' + pathjoin(run.jobshare, run.userathost)])
-        execv('/usr/bin/ssh', [__file__, '-Xqt', run.remote] + ['{envar}={value}'.format(envar=envar, value=value) for envar, value in envars.items()] + [run.program] + ['--{option}={value}'.format(option=option, value=value) for option, value in options.items() if value not in IdentityList(None, True, False)] + ['--{option}'.format(option=option) for option in options if options[option] is True] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-Xqt', run.remote] + ['{envar}={value}'.format(envar=envar, value=value) for envar, value in envars.items()] + [run.program] + ['--{option}={value}'.format(option=option.replace('_', '-'), value=value) for option, value in options.items() if value not in IdentityList(None, True, False)] + ['--{option}'.format(option=option.replace('_', '-')) for option in options if options[option] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -98,8 +98,8 @@ def localrun():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, inputdir=inputdir, jobname=jobname)
         
-    hiddendir = AbsPath(outputdir, ('.' + jobname, progkey))
-    outputname = '.'.join((jobname, progkey))
+    hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
+    outputname = jobname + '.' + progkey
 
     inputfiles = []
 
@@ -112,31 +112,6 @@ def localrun():
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
             outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
-    
-    for key in jobspecs.parameters:
-        try:
-            parameterdir = AbsPath(jobspecs.parameters[key], inputdir=inputdir, **user)
-        except NotAbsolutePath:
-            messages.cfgerror('La ruta al conjunto de parámetros', key, 'debe ser absoluta')
-        try:
-            items = parameterdir.listdir()
-        except FileNotFoundError:
-            messages.cfgerror('El directorio de parámetros', parameterdir, 'no existe')
-        except NotADirectoryError:
-            messages.cfgerror('El directorio de parámetros', parameterdir, 'no es un directorio')
-        if not items:
-            messages.cfgerror('El directorio de parámetros', parameterdir, 'está vacío')
-        if options[key]:
-            parameterset = options[key]
-        else:
-            if key in jobspecs.defaults.parameters:
-                parameterset = jobspecs.defaults.parameters[key]
-            else:
-                parameterset = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
-        if path.exists(path.join(parameterdir, parameterset)):
-            parameters.append(AbsPath(parameterdir, parameterset))
-        else:
-            messages.opterror('La ruta de parámetros', path.join(parameterdir, parameterset), 'no existe')
     
     for parameter in parameters:
         if parameter.isfile():

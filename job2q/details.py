@@ -29,3 +29,6 @@ dictags = (
     'filevars',
 )
 
+inputkeys = (
+    'inputdir',
+)

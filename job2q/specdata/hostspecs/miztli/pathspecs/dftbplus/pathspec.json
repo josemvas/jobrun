@@ -13,7 +13,9 @@
          "executable": "/tmpu/{group}/{user}/share/dftbplus-17.1-ic17/dftb+"
       }
    },
-   "parameters": {
-      "slako": "/tmpu/{group}/{user}/share/parameters/DFTB+/slako"
+   "defaults": {
+      "parameters": {
+         "slako": "/opt/parameters/DFTB+/slako/{choose}"
+      }
    }
 }

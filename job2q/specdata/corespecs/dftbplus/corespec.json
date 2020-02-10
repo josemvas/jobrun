@@ -64,6 +64,9 @@
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
    ],
+   "parameters": [
+      "slako"
+   ],
    "prescript": [
       "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
    ]

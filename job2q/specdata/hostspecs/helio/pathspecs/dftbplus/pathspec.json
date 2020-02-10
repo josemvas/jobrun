@@ -13,7 +13,9 @@
          "executable": "/opt/packages/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+"
       }
    },
-   "parameters": {
-      "slako": "/opt/parameters/DFTB+/slako"
+   "defaults": {
+      "parameters": {
+         "slako": "/opt/parameters/DFTB+/slako/{choose}"
+      }
    }
 }

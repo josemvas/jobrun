@@ -41,4 +41,7 @@
       "charge",
       "spin"
    ]
+   "parameters": [
+      "basis"
+   ]
 }

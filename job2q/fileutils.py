@@ -9,7 +9,9 @@ class NotAbsolutePath(Exception):
 
 class AbsPath(str):
     def __new__(cls, *args, **kwargs):
-        path = os.path.normpath(pathjoin(*args)).format(**kwargs)
+        path = os.path.join(*args)
+        path = path.format(**kwargs)
+        path = os.path.normpath(path)
         if not os.path.isabs(path):
             raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
@@ -18,6 +20,8 @@ class AbsPath(str):
         return obj
     def parent(self):
         return AbsPath(os.path.dirname(self))
+    def joinpath(self, *args, **kwargs):
+        return AbsPath(self, *args, **kwargs)
     def hasext(self, suffix):
         return self.suffix == suffix
     def exists(self):
