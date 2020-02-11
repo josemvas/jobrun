@@ -39,13 +39,36 @@ def readmol():
         messages.opterror('Debe especificar el archivo de coordenadas o un nombre para interpolar el archivo de entrada')
 
 def listchoices():
-
     if jobspecs.versions:
         messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
-    for key in jobspecs.parameters:
-        messages.listing('Conjuntos de parámetros disponibles', p(key), items=sorted(listdir(jobspecs.parameters[key]), key=natsort), default=jobspecs.defaults.parameters[key])
     if jobspecs.keywords:
         messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
+#    for key in jobspecs.parameters:
+#        print('Conjuntos de parámetros disponibles', p(key) + ':')
+#        if key in jobspecs.defaults.parameters:
+#            value = jobspecs.defaults.parameters[key]
+#            parts = value.format(choice='\0').split('\0')
+#            depth = len(parts)
+#            try:
+#                rootpath = AbsPath(parts[0], **user)
+#            except NotAbsolutePath:
+#                rootpath = AbsPath(getcwd(), parts.pop[0], **user)
+#            listdir(rootpath, parts[1:], depth)
+
+def listdir(rootpath, parts, depth):
+    try:
+        items = sorted(rootpath.listdir(), key=natsort)
+    except FileNotFoundError:
+        messages.failure('El directorio de parámetros', rootpath, 'no existe')
+    except NotADirectoryError:
+        messages.failure('El directorio de parámetros', rootpath, 'no es un directorio')
+    if items:
+        for item in items:
+            print(' '*2*(depth - len(parts)) + item)
+            if parts[1:]:
+                listdir(rootpath.joinpath(item, parts[0], **user), parts[1:], depth)
+    else:
+        messages.failure('El directorio de parámetros', rootpath, 'está vacío')
 
 def jobparse():
 

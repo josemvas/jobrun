@@ -52,7 +52,7 @@ def jobsetup():
             messages.cfgerror('No se especificó el directorio temporal de escritura "scrdir"')
     
     try:
-        options.scrdir = AbsPath(options.scrdir, **user)
+        options.scrdir = AbsPath(options.scrdir).setkeys(**user)
     except NotAbsolutePath:
         messages.cfgerror('La opción "scrdir" debe ser una ruta absoluta')
     
@@ -139,23 +139,23 @@ def jobsetup():
     script.environ.extend(jobspecs.onscript)
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
-        script.environ.append('export {envar}={path}'.format(envar=envar, path=AbsPath(path, workdir=script.workdir, **user)))
+        script.environ.append('export {envar}={path}'.format(envar=envar, path=AbsPath(path).setkeys(workdir=script.workdir, **user)))
     
     for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path, **user)))
+        script.environ.append('source {}'.format(AbsPath(path).setkeys(**user)))
     
     for module in jobspecs.load + versionspec.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable, **user))
+        script.command.append(AbsPath(versionspec.executable).setkeys(**user))
     except NotAbsolutePath:
         script.command.append(versionspec.executable)
     
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir, **user)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir, **user)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).setkeys(**user)))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).setkeys(**user)))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -214,43 +214,47 @@ def jobsetup():
     for key in jobspecs.parameters:
         if key in jobspecs.defaults.parameters:
             if options['{}_set'.format(key)]:
-                optionparts = options['{}_set'.format(key)].split('/')
+                optparts = options['{}_set'.format(key)].split('/')
             else:
-                optionparts = []
-            value = jobspecs.defaults.parameters[key]
-            parts = value.format(choose='\0').split('\0')
+                optparts = []
             try:
-                parpath = AbsPath(parts.pop(0), **user)
+                abspath = AbsPath(jobspecs.defaults.parameters[key])
             except NotAbsolutePath:
-                parpath = AbsPath(getcwd(), parts.pop(0), **user)
-            for part in parts:
-                if optionparts:
-                    choice = optionparts.pop(0)
+                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[key])
+            keyparts = abspath.setkeys('choice', **user).keysplit()
+            rootpath = AbsPath(keyparts.pop(0))
+            for part in keyparts:
+                if optparts:
+                    choice = optparts.pop(0)
                 else:
                     try:
-                        items = parpath.listdir()
-                    except FileNotFoundError:
-                        messages.cfgerror('El directorio de parámetros', parpath, 'no existe')
-                    except NotADirectoryError:
-                        messages.cfgerror('El directorio de parámetros', parpath, 'no es un directorio')
-                    if not items:
-                        messages.cfgerror('El directorio de parámetros', parpath, 'está vacío')
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
-                parpath = parpath.joinpath(choice, part, **user)
+                        choice = rootpath.name.setkeys()
+                    except KeyError:
+                        try:
+                            items = rootpath.parent().listdir()
+                        except KeyError:
+                            messages.cfgerror('La ruta de parámetros', rootpath, 'contiene variables indefinidas')
+                        except NotADirectoryError:
+                            messages.cfgerror('La ruta de parámetros', rootpath, 'no es un directorio')
+                        except FileNotFoundError:
+                            messages.cfgerror('El directorio de parámetros', rootpath, 'no existe')
+                        if not items:
+                            messages.cfgerror('El directorio de parámetros', rootpath, 'está vacío')
+                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
+                rootpath = rootpath.setkeys(choice=choice).joinpath(part)
         else:
             if options['{}_set'.format(key)]:
                 try:
-                    parpath = AbsPath(options['{}_set'.format(key)])
+                    rootpath = AbsPath(options['{}_set'.format(key)])
                 except NotAbsolutePath:
                     messages.cfgerror('La ruta al conjunto de parámetros', key, 'debe ser absoluta')
             else:
                 messages.cfgerror('Debe definir la ruta del conjunto de parámetros', p(key))
-        if parpath.exists():
-            parameters.append(parpath)
+        if rootpath.exists():
+            parameters.append(rootpath)
         else:
-            messages.opterror('La ruta', parpath, 'al conjunto de parámetros', key, 'no existe')
+            messages.opterror('La ruta', rootpath, 'al conjunto de parámetros', key, 'no existe')
     
-
 script = Bunch()
 parameters = []
 
