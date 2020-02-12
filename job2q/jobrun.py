@@ -96,10 +96,10 @@ def localrun():
         except NotAbsolutePath:
             outputdir = AbsPath(inputdir, options.outdir)
     else:
-        outputdir = AbsPath('/', jobspecs.defaults.outputdir).setkeys(inputdir=inputdir, jobname=jobname)
-        
-    print(inputdir)
-    print(outputdir)
+        try:
+            outputdir = AbsPath(jobspecs.defaults.outputdir).expandkeys(jobname=jobname)
+        except NotAbsolutePath:
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).expandkeys(jobname=jobname)
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
