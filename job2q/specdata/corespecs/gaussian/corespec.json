@@ -5,7 +5,7 @@
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
    "defaults" : {
-      "outputdir": "{inputdir}/{jobname}"
+      "outputdir": "{jobname}"
    },
    "filekeys": {
       "com": "job.com",

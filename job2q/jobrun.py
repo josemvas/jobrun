@@ -97,9 +97,9 @@ def localrun():
             outputdir = AbsPath(inputdir, options.outdir)
     else:
         try:
-            outputdir = AbsPath(jobspecs.defaults.outputdir).expandkeys(jobname=jobname)
+            outputdir = AbsPath(jobspecs.defaults.outputdir).resolvekeys(jobname=jobname)
         except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).expandkeys(jobname=jobname)
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).resolvekeys(jobname=jobname)
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
@@ -110,19 +110,22 @@ def localrun():
         for key in item.split('|'):
             inputfiles.append((pathjoin(outputdir, (jobname, key)), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
+    inputdirs = []
+
+    for parameter in parameters:
+        if parameter.isfile():
+            inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
+        elif parameter.isdir():
+            inputdirs.append((parameter, pathjoin(script.workdir, parameter)))
+#            for item in parameter.listdir():
+#                inputfiles.append((pathjoin(parameter, item), pathjoin(script.workdir, item)))
+
     outputfiles = []
 
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
             outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
     
-    for parameter in parameters:
-        if parameter.isfile():
-            inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
-        elif parameter.isdir():
-            for item in parameter.listdir():
-                inputfiles.append((pathjoin(parameter, item), pathjoin(script.workdir, item)))
-
     if outputdir.isdir():
         if hiddendir.isdir():
             try:
@@ -182,11 +185,12 @@ def localrun():
         f.write('for host in ${hosts[*]}; do echo "<host>$host</host>"; done' + '\n')
         f.write(script.mkdir(script.workdir) + '\n')
         f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
+        f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
         f.write(script.chdir(script.workdir) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.prescript))
         f.write(' '.join(script.command) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.postscript))
-        f.write(''.join(script.put(i, j) + '\n' for i, j in outputfiles))
+        f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
         f.write(script.rmdir(script.workdir) + '\n')
         f.write(''.join(script.runathead(i) + '\n' for i in offscript))
     

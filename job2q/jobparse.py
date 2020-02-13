@@ -5,7 +5,7 @@ from grp import getgrgid
 from getpass import getuser 
 from socket import gethostname, gethostbyname
 from os import path, listdir, environ, getcwd
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from . import messages
 from .specparse import SpecBunch, readspec
 from .fileutils import AbsPath, NotAbsolutePath
@@ -40,11 +40,11 @@ def readmol():
 
 def listchoices():
     if jobspecs.versions:
-        messages.listing('Versiones del ejecutable disponibles:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
+        messages.listing('Versiones disponibles del ejecutable:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
     if jobspecs.keywords:
-        messages.listing('Variables de interpolación disponibles:', items=sorted(jobspecs.keywords, key=natsort))
+        messages.listing('Variables disponibles de interpolación:', items=sorted(jobspecs.keywords, key=natsort))
 #    for key in jobspecs.parameters:
-#        print('Conjuntos de parámetros disponibles', p(key) + ':')
+#        print('Conjuntos disponibles de parámetros', p(key) + ':')
 #        if key in jobspecs.defaults.parameters:
 #            value = jobspecs.defaults.parameters[key]
 #            parts = value.format(choice='\0').split('\0')
@@ -119,18 +119,18 @@ def jobparse():
         listchoices()
         raise SystemExit()
 
-    parser.add_argument('-v', '--version', metavar='PROGVERSION', type=str, help='Versión del ejecutable.')
-    parser.add_argument('-q', '--queue', metavar='QUEUENAME', type=str, help='Nombre de la cola requerida.')
-    parser.add_argument('-n', '--ncore', metavar='#CORES', type=int, default=1, help='Número de núcleos de cpu requeridos.')
-    parser.add_argument('-N', '--nhost', metavar='#HOSTS', type=int, default=1, help='Número de nodos de ejecución requeridos.')
-    parser.add_argument('-w', '--wait', metavar='TIME', type=float, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    parser.add_argument('-j', '--jobname', metavar='JOBNAME', type=str, help='Cambiar el nombre del trabajo por JOBNAME.')
+    parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del ejecutable.')
+    parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
+    parser.add_argument('-n', '--ncore', type=int, default=1, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
+    parser.add_argument('-N', '--nhost', type=int, default=1, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
+    parser.add_argument('-j', '--jobname', metavar='JOBNAME', help='Cambiar el nombre del trabajo por JOBNAME.')
+    parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
     parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     parser.add_argument('-I', '--ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
-    parser.add_argument('--node', metavar='NODENAME', type=str, help='Solicitar un nodo específico de ejecución.')
+    parser.add_argument('--node', metavar='NODENAME', help='Solicitar un nodo específico de ejecución.')
     parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
-    parser.add_argument('--outdir', metavar='OUTPUTDIR', type=str, help='Usar OUTPUTDIR com directorio de salida.')
-    parser.add_argument('--scrdir', metavar='SCRATCHDIR', type=str, help='Usar SCRATCHDIR como directorio de escritura.')
+    parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com directorio de salida.')
+    parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como directorio de escritura.')
 
     sgroup = parser.add_mutually_exclusive_group()
     sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor')
@@ -141,31 +141,37 @@ def jobparse():
     yngroup.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
 
     if len(jobspecs.parameters) == 1:
-        key = next(iter(jobspecs.parameters))
-        parser.add_argument('-p', '--{}-set'.format(key), metavar='PARAMETERSET', type=str, help='Nombre del conjunto de parámetros.')
-    elif len(jobspecs.parameters) > 1:
+        key = jobspecs.parameters[0]
+        parser.add_argument('-p', '--' + key + '-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
+        parser.add_argument('-P', '--' + key + '-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
+    else:
         for key in jobspecs.parameters:
-            parser.add_argument('--{}-set'.format(key), metavar='PARAMETERSET', type=str, help='Nombre del conjunto de parámetros.')
+            parser.add_argument('--' + key + '-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
+            parser.add_argument('--' + key + '-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
 
-    for key in jobspecs.keywords:
-        parser.add_argument('--' + key, metavar=key.upper(), type=str, dest=key, help='Valor de la variable {}'.format(key.upper()))
-    
-    parsed, remaining = parser.parse_known_args()
+    # Convert to dict and remove options with None value
+    parsed, remaining = parser.parse_known_args(remaining)
     options.update(vars(parsed))
 
     rgroup = parser.add_mutually_exclusive_group()
     rgroup.add_argument('-d', '--dry-run', dest='dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-    rgroup.add_argument('-r', '--remote-run', dest='remote', metavar='HOSTNAME', type=str, help='Ejecutar el trabajo en el host remoto HOSTNAME.')
+    rgroup.add_argument('-r', '--remote-run', dest='remote', metavar='HOSTNAME', help='Ejecutar el trabajo en el host remoto HOSTNAME.')
 
     mgroup = parser.add_mutually_exclusive_group()
-    mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', type=str, help='Ruta del archivo de coordenadas para la interpolación.')
-    mgroup.add_argument('-M', '--molname', metavar='MOLNAME', type=str, help='Nombre de los archivos de interpolación.')
+    mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+    mgroup.add_argument('-M', '--molname', metavar='MOLNAME', help='Nombre de los archivos de interpolación.')
 
     parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir')
-    parser.add_argument('files', nargs='*', metavar='FILE(S)', type=str, help='Rutas de los archivos de entrada.')
 
-    run.update(vars(parser.parse_args(remaining)))
+    for key in jobspecs.keywords:
+        parser.add_argument('--' + key, metavar=key.upper(), dest=key, help='Valor de la variable {}'.format(key.upper()))
+    
+    parser.add_argument('files', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
+    parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir')
+
+    # Convert to dict and remove options with None value
+    parsed = parser.parse_args(remaining)
+    run.update(vars(parsed))
 
     if not run.files:
         messages.opterror('Debe especificar al menos un archivo de entrada')
@@ -175,8 +181,8 @@ def jobparse():
         run.jobshare = '$JOBSHARE'
 
     for key in jobspecs.keywords:
-        if options[key] is not None:
-            keywords[key] = options[key]
+        if run.key:
+            keywords[key] = run[key]
 
     if run.interpolate:
         readmol()

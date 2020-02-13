@@ -52,7 +52,7 @@ def jobsetup():
             messages.cfgerror('No se especificó el directorio temporal de escritura "scrdir"')
     
     try:
-        options.scrdir = AbsPath(options.scrdir).expandkeys(**user)
+        options.scrdir = AbsPath(options.scrdir).resolvekeys(**user)
     except NotAbsolutePath:
         messages.cfgerror('La opción "scrdir" debe ser una ruta absoluta')
     
@@ -139,23 +139,23 @@ def jobsetup():
     script.environ.extend(jobspecs.onscript)
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
-        script.environ.append('export {envar}={path}'.format(envar=envar, path=AbsPath(path).expandkeys(workdir=script.workdir, **user)))
+        script.environ.append('export {envar}={path}'.format(envar=envar, path=AbsPath(path).resolvekeys(workdir=script.workdir, **user)))
     
     for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path).expandkeys(**user)))
+        script.environ.append('source {}'.format(AbsPath(path).resolvekeys(**user)))
     
     for module in jobspecs.load + versionspec.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable).expandkeys(**user))
+        script.command.append(AbsPath(versionspec.executable).resolvekeys(**user))
     except NotAbsolutePath:
         script.command.append(versionspec.executable)
     
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).expandkeys(**user)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).expandkeys(**user)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).resolvekeys(**user)))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).resolvekeys(**user)))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -197,22 +197,28 @@ def jobsetup():
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         script.rmdir = 'rm -rf "{}"'.format
         script.fetch = 'cp "{}" "{}"'.format
-        script.put = 'cp "{}" "{}"'.format
+        script.remit = 'cp "{}" "{}"'.format
     elif jobspecs.hostcopy == 'remote':
         script.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
         script.rmdir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
         script.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.put = 'scp "{}" $head:"\'{}\'"'.format
+        script.fetchdir = 'rsync $head:"\'{0}/\'" "{1}"\nfor host in ${{hosts[*]}}; do rsync $head:"\'{0}/\'" $host:"\'{1}\'"; done'.format
+        script.remit = 'scp "{}" $head:"\'{}\'"'.format
     elif jobspecs.hostcopy == 'jump':
         script.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -pm 700 "\'{0}\'"; done'.format
         script.rmdir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'{0}\'"; done'.format
         script.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do ssh $head scp "\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.put = 'scp "{}" $head:"\'{}\'"'.format
+        script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
     for parkey in jobspecs.parameters:
-        if parkey in jobspecs.defaults.parameters:
+        if options[parkey + '_path']:
+            try:
+                rootpath = AbsPath(options[parkey + '_path'])
+            except NotAbsolutePath:
+                rootpath = AbsPath(getcwd(), options[parkey + '_path'])
+        elif parkey in jobspecs.defaults.parameters:
             if options[parkey + '_set']:
                 optparts = options[parkey + '_set'].split(':')
             else:
@@ -225,32 +231,32 @@ def jobsetup():
             for key, default, part in abspath.splitkeys(**user):
                 if key == 'choice':
                     if optparts:
-                        choice = optparts.pop(0)
+                        rootpath = rootpath.joinpath(part, optparts.pop(0))
                     elif default:
-                        choice = default
+                        rootpath = rootpath.joinpath(part, default)
                     else:
-                        items = rootpath.joinpath(part).listdir()
-                        if items:
-                            choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=sorted(items, key=natsort))
-                        else:
-                            messages.cfgerror('El directorio de parámetros', key, 'está vacío')
-                    rootpath = rootpath.joinpath(part, choice)
+                        rootpath = rootpath.joinpath(part)
+                        try:
+                            diritems = rootpath.listdir()
+                        except FileNotFoundError:
+                            messages.cfgerror('El directorio', self, 'no existe')
+                        except NotADirectoryError:
+                            messages.cfgerror('La ruta', self, 'no es un directorio')
+                        if not diritems:
+                            messages.cfgerror('El directorio', self, 'está vacío')
+                        diritems.sort(key=natsort)
+                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=diritems)
+                        rootpath = rootpath.joinpath(choice)
                 elif key is None:
                     rootpath = rootpath.joinpath(part)
                 else:
-                    messages.cfgerror('La ruta al conjunto de parámetros', rootpath, 'contiene variables inválidas')
+                    messages.cfgerror('La ruta', rootpath, 'contiene variables inválidas')
         else:
-            if options[parkey + '_set']:
-                try:
-                    rootpath = AbsPath(options[parkey + '_set'])
-                except NotAbsolutePath:
-                    messages.cfgerror('La ruta al conjunto de parámetros', parkey, 'debe ser absoluta')
-            else:
-                messages.cfgerror('Debe definir la ruta del conjunto de parámetros', p(parkey))
+            messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():
             parameters.append(rootpath)
         else:
-            messages.opterror('La ruta', rootpath, 'al conjunto de parámetros', q(parkey), 'no existe')
+            messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
     
 script = Bunch()
 parameters = []

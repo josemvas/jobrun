@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import glob
 import shutil
 import string
 from .utils import deepjoin, pathseps
@@ -14,27 +13,30 @@ class AbsPath(str):
         path = os.path.join(*args)
         path = os.path.normpath(path)
         if not os.path.isabs(path):
-            raise NotAbsolutePath(path, 'is not an absolute path')
+            raise NotAbsolutePath(path + ' is not an absolute path')
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def expandkeys(self, **kwargs):
+    def resolvekeys(self, **kwargs):
         formatted = ''
         for literal, key, default, _ in string.Formatter.parse(None, self):
             formatted += literal
             if key:
-                if default:
-                    formatted += kwargs.get(key, default)
-                else:
-                    formatted += kwargs.get(key, '{' + key + '}')
+                try:
+                    formatted += kwargs[key]
+                except KeyError:
+                    if default:
+                         formatted += default
+                    else:
+                         raise ValueError(self + ' has unresolved keys')
         return AbsPath(formatted)
     def splitkeys(self, **kwargs):
         for literal, key, default, _ in string.Formatter.parse(None, self):
             if literal.startswith('/') and literal.endswith('/'):
                 literal = literal[1:]
             else:
-                messages.cfgerror('La ruta', self, 'contiene componentes parcialmente variables')
+                raise ValueError(self + ' has partial variable components')
             yield key, default, literal
     def parent(self):
         return AbsPath(os.path.dirname(self))
@@ -49,9 +51,7 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
     def listdir(self):
-        return os.listdir(self)
-    def glob(self):
-        return glob.glob(self)
+            return os.listdir(self)
 
 def pathjoin(*args):
     return deepjoin(args, iter(pathseps))
