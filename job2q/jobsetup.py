@@ -226,8 +226,10 @@ def jobsetup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for part, key, default in abspath.keyexpand(user, partial=True).keysplit():
-                if key == 'choice':
+            for part, key, default in abspath.setkeys(user).splitkeys():
+                if key is None:
+                    rootpath = rootpath.joinpath(part)
+                else:
                     if optparts:
                         rootpath = rootpath.joinpath(part, optparts.pop(0))
                     elif default:
@@ -245,10 +247,6 @@ def jobsetup():
                         diritems.sort(key=natsort)
                         choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=diritems)
                         rootpath = rootpath.joinpath(choice)
-                elif key is None:
-                    rootpath = rootpath.joinpath(part)
-                else:
-                    messages.cfgerror('La ruta', rootpath, 'contiene variables inválidas')
         else:
             messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():

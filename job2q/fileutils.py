@@ -6,26 +6,28 @@ from .utils import deepjoin, pathseps
 from . import messages
 
 class NotAbsolutePath(Exception):
-    pass
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
 
-class FormatError(Exception):
-    pass
+class PathFormatError(Exception):
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
 
 class AbsPath(str):
     def __new__(cls, *args):
         path = os.path.join(*args)
         path = os.path.normpath(path)
         if not os.path.isabs(path):
-            raise NotAbsolutePath(path + ' is not an absolute path')
+            raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def keyexpand(self, keydict, partial=False):
+    def keyexpand(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if not lit.startswith('/'):
-                raise ValueError(self + ' has partial variable components')
+                raise PathFormatError(self, 'has partial variable components')
             formatted += lit
             if key:
                 try:
@@ -33,15 +35,27 @@ class AbsPath(str):
                 except KeyError:
                     if spec:
                          formatted += spec
-                    elif partial:
-                         formatted += '{' + key + '}'
                     else:
-                         raise FormatError(self + ' has unresolved keys')
+                         raise PathFormatError(self, 'has unresolved keys')
         return AbsPath(formatted)
-    def keysplit(self, *splitkeys):
+    def setkeys(self, keydict):
+        formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if not lit.startswith('/'):
-                raise FormatError(self + ' has partial variable components')
+                raise PathFormatError(self, 'has partial variable components')
+            formatted += lit
+            if key is not None:
+                if spec:
+                    formatted += keydict.get(key, '{' + key + ':' + spec + '}')
+                else:
+                    formatted += keydict.get(key, '{' + key + '}')
+        return AbsPath(formatted)
+    def splitkeys(self):
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if not lit.startswith('/'):
+                raise PathFormatError(self, 'has partial variable components')
+            if key == '':
+                raise PathFormatError('Path', self, 'has unresolved keys')
             yield lit[1:], key, spec
     def parent(self):
         return AbsPath(os.path.dirname(self))

@@ -41,8 +41,6 @@ def readmol():
 def listchoices():
     if jobspecs.versions:
         messages.listing('Versiones disponibles del ejecutable:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
-    if jobspecs.keywords:
-        messages.listing('Variables disponibles de interpolación:', items=sorted(jobspecs.keywords, key=natsort))
     for parkey in jobspecs.parameters:
         if parkey in jobspecs.defaults.parameters:
             print('Conjuntos disponibles de parámetros', p(parkey) + ':')
@@ -50,12 +48,16 @@ def listchoices():
                 abspath = AbsPath(jobspecs.defaults.parameters[parkey])
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
-            choices = list(abspath.keysplit(user))
+            choices = list(abspath.setkeys(user).splitkeys())
             listdir(AbsPath('/'), choices, len(choices))
+    if jobspecs.keywords:
+        messages.listing('Variables disponibles de interpolación:', items=sorted(jobspecs.keywords, key=natsort))
 
 def listdir(rootpath, choices, depth):
     part, key, default = choices[0]
-    if key == 'choice':
+    if key is None:
+        rootpath = rootpath.joinpath(part)
+    else:
         rootpath = rootpath.joinpath(part)
         try:
             diritems = rootpath.listdir()
@@ -73,10 +75,6 @@ def listdir(rootpath, choices, depth):
                 print(' '*2*(depth - len(choices) + 1) + item)
             rootpath = rootpath.joinpath(item)
             if choices[1:]: listdir(rootpath, choices[1:], depth)
-    elif key is None:
-        rootpath = rootpath.joinpath(part)
-    else:
-        messages.cfgerror('La ruta', rootpath, 'contiene variables inválidas')
 
 def jobparse():
 

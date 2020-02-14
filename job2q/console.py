@@ -19,7 +19,10 @@ loader_script = r'''
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
-from job2q import *
+from job2q.jobparse import jobparse, run
+from job2q.jobsetup import jobsetup
+from job2q.jobrun import wait, offload, localrun, remoterun, dryrun
+
 jobparse()
 if run.dry:
     while run.files:
