@@ -97,9 +97,9 @@ def localrun():
             outputdir = AbsPath(inputdir, options.outdir)
     else:
         try:
-            outputdir = AbsPath(jobspecs.defaults.outputdir).resolvekeys(jobname=jobname)
+            outputdir = AbsPath(jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
         except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).resolvekeys(jobname=jobname)
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
@@ -108,7 +108,8 @@ def localrun():
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            inputfiles.append((pathjoin(outputdir, (jobname, key)), pathjoin(script.workdir, jobspecs.filekeys[key])))
+            if path.isfile(pathjoin(outputdir, (jobname, key))):
+                inputfiles.append(((pathjoin(outputdir, (jobname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
     inputdirs = []
 
@@ -116,9 +117,7 @@ def localrun():
         if parameter.isfile():
             inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
         elif parameter.isdir():
-            inputdirs.append((parameter, pathjoin(script.workdir, parameter)))
-#            for item in parameter.listdir():
-#                inputfiles.append((pathjoin(parameter, item), pathjoin(script.workdir, item)))
+            inputdirs.append((pathjoin(parameter), script.workdir))
 
     outputfiles = []
 
@@ -133,7 +132,7 @@ def localrun():
                     jobid = t.read()
                     jobstate = checkjob(jobid)
                     if callable(jobstate):
-                        messages.failure(jobstate(jobname=jobname, jobid=jobid))
+                        messages.failure(jobstate({'jobname':jobname}, jobid=jobid))
                         return
             except FileNotFoundError:
                 pass
@@ -172,7 +171,7 @@ def localrun():
 
     for line in jobspecs.offscript:
         try:
-           offscript.append(line.format(jobname=jobname, clustername=cluster.name, **envars))
+           offscript.append(line.format({'jobname':jobname}, clustername=cluster.name, **envars))
         except KeyError:
            pass
 

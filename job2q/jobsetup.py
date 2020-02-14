@@ -52,7 +52,7 @@ def jobsetup():
             messages.cfgerror('No se especificó el directorio temporal de escritura "scrdir"')
     
     try:
-        options.scrdir = AbsPath(options.scrdir).resolvekeys(**user)
+        options.scrdir = AbsPath(options.scrdir).keyexpand(user)
     except NotAbsolutePath:
         messages.cfgerror('La opción "scrdir" debe ser una ruta absoluta')
     
@@ -139,23 +139,23 @@ def jobsetup():
     script.environ.extend(jobspecs.onscript)
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
-        script.environ.append('export {envar}={path}'.format(envar=envar, path=AbsPath(path).resolvekeys(workdir=script.workdir, **user)))
+        script.environ.append('export {}={}'.format(envar, AbsPath(path.format(workdir=script.workdir)).keyexpand(user)))
     
     for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path).resolvekeys(**user)))
+        script.environ.append('source {}'.format(AbsPath(path).keyexpand(user)))
     
     for module in jobspecs.load + versionspec.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable).resolvekeys(**user))
+        script.command.append(AbsPath(versionspec.executable).keyexpand(user))
     except NotAbsolutePath:
         script.command.append(versionspec.executable)
     
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).resolvekeys(**user)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).resolvekeys(**user)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).keyexpand(user)))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).keyexpand(user)))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -197,17 +197,15 @@ def jobsetup():
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         script.rmdir = 'rm -rf "{}"'.format
         script.fetch = 'cp "{}" "{}"'.format
+        script.fetch = 'cp "{}" "{}"'.format
+        script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
     elif jobspecs.hostcopy == 'remote':
-        script.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
-        script.rmdir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
-        script.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.fetchdir = 'rsync $head:"\'{0}/\'" "{1}"\nfor host in ${{hosts[*]}}; do rsync $head:"\'{0}/\'" $host:"\'{1}\'"; done'.format
-        script.remit = 'scp "{}" $head:"\'{}\'"'.format
-    elif jobspecs.hostcopy == 'jump':
-        script.mkdir = 'mkdir -p -m 700 "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host mkdir -pm 700 "\'{0}\'"; done'.format
-        script.rmdir = 'rm -rf "{0}"\nfor host in ${{hosts[*]}}; do ssh $head ssh $host rm -rf "\'{0}\'"; done'.format
-        script.fetch = 'scp $head:"\'{0}\'" "{1}"\nfor host in ${{hosts[*]}}; do ssh $head scp "\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
+        script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
+        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        #script.fetchdir = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\/.'" . $host:"\'{1}/\'"; done'.format
+        script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}/\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
@@ -228,7 +226,7 @@ def jobsetup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for key, default, part in abspath.splitkeys(**user):
+            for part, key, default in abspath.keyexpand(user, partial=True).keysplit():
                 if key == 'choice':
                     if optparts:
                         rootpath = rootpath.joinpath(part, optparts.pop(0))

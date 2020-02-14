@@ -8,6 +8,9 @@ from . import messages
 class NotAbsolutePath(Exception):
     pass
 
+class FormatError(Exception):
+    pass
+
 class AbsPath(str):
     def __new__(cls, *args):
         path = os.path.join(*args)
@@ -18,26 +21,28 @@ class AbsPath(str):
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def resolvekeys(self, **kwargs):
+    def keyexpand(self, keydict, partial=False):
         formatted = ''
-        for literal, key, default, _ in string.Formatter.parse(None, self):
-            formatted += literal
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if not lit.startswith('/'):
+                raise ValueError(self + ' has partial variable components')
+            formatted += lit
             if key:
                 try:
-                    formatted += kwargs[key]
+                    formatted += keydict[key]
                 except KeyError:
-                    if default:
-                         formatted += default
+                    if spec:
+                         formatted += spec
+                    elif partial:
+                         formatted += '{' + key + '}'
                     else:
-                         raise ValueError(self + ' has unresolved keys')
+                         raise FormatError(self + ' has unresolved keys')
         return AbsPath(formatted)
-    def splitkeys(self, **kwargs):
-        for literal, key, default, _ in string.Formatter.parse(None, self):
-            if literal.startswith('/') and literal.endswith('/'):
-                literal = literal[1:]
-            else:
-                raise ValueError(self + ' has partial variable components')
-            yield key, default, literal
+    def keysplit(self, *splitkeys):
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if not lit.startswith('/'):
+                raise FormatError(self + ' has partial variable components')
+            yield lit[1:], key, spec
     def parent(self):
         return AbsPath(os.path.dirname(self))
     def joinpath(self, *args):

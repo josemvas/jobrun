@@ -18,7 +18,7 @@ jobformat = {
 jobenvars = {
     'jobid' : '$LSB_JOBID',
     'ncore' : '$(echo $LSB_HOSTS | wc -w)',
-    'hosts' : '$(printf "%s\\n" $LSB_HOSTS | uniq | grep -v $HOSTNAME)',
+    'hosts' : '$(printf "%s\\n" $LSB_HOSTS | uniq)',
 }
 
 mpilauncher = {

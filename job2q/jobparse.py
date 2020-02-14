@@ -43,32 +43,40 @@ def listchoices():
         messages.listing('Versiones disponibles del ejecutable:', items=sorted(jobspecs.versions, key=natsort), default=jobspecs.defaults.version)
     if jobspecs.keywords:
         messages.listing('Variables disponibles de interpolación:', items=sorted(jobspecs.keywords, key=natsort))
-#    for key in jobspecs.parameters:
-#        print('Conjuntos disponibles de parámetros', p(key) + ':')
-#        if key in jobspecs.defaults.parameters:
-#            value = jobspecs.defaults.parameters[key]
-#            parts = value.format(choice='\0').split('\0')
-#            depth = len(parts)
-#            try:
-#                rootpath = AbsPath(parts[0], **user)
-#            except NotAbsolutePath:
-#                rootpath = AbsPath(getcwd(), parts.pop[0], **user)
-#            listdir(rootpath, parts[1:], depth)
+    for parkey in jobspecs.parameters:
+        if parkey in jobspecs.defaults.parameters:
+            print('Conjuntos disponibles de parámetros', p(parkey) + ':')
+            try:
+                abspath = AbsPath(jobspecs.defaults.parameters[parkey])
+            except NotAbsolutePath:
+                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
+            choices = list(abspath.keysplit(user))
+            listdir(AbsPath('/'), choices, len(choices))
 
-def listdir(rootpath, parts, depth):
-    try:
-        items = sorted(rootpath.listdir(), key=natsort)
-    except FileNotFoundError:
-        messages.failure('El directorio de parámetros', rootpath, 'no existe')
-    except NotADirectoryError:
-        messages.failure('El directorio de parámetros', rootpath, 'no es un directorio')
-    if items:
-        for item in items:
-            print(' '*2*(depth - len(parts)) + item)
-            if parts[1:]:
-                listdir(rootpath.joinpath(item, parts[0], **user), parts[1:], depth)
+def listdir(rootpath, choices, depth):
+    part, key, default = choices[0]
+    if key == 'choice':
+        rootpath = rootpath.joinpath(part)
+        try:
+            diritems = rootpath.listdir()
+        except FileNotFoundError:
+            messages.cfgerror('El directorio', self, 'no existe')
+        except NotADirectoryError:
+            messages.cfgerror('La ruta', self, 'no es un directorio')
+        if not diritems:
+            messages.cfgerror('El directorio', self, 'está vacío')
+        diritems.sort(key=natsort)
+        for item in diritems:
+            if default and item == default:
+                print(' '*2*(depth - len(choices) + 1) + item + ' (default)')
+            else:
+                print(' '*2*(depth - len(choices) + 1) + item)
+            rootpath = rootpath.joinpath(item)
+            if choices[1:]: listdir(rootpath, choices[1:], depth)
+    elif key is None:
+        rootpath = rootpath.joinpath(part)
     else:
-        messages.failure('El directorio de parámetros', rootpath, 'está vacío')
+        messages.cfgerror('La ruta', rootpath, 'contiene variables inválidas')
 
 def jobparse():
 
@@ -181,7 +189,7 @@ def jobparse():
         run.jobshare = '$JOBSHARE'
 
     for key in jobspecs.keywords:
-        if run.key:
+        if run[key]:
             keywords[key] = run[key]
 
     if run.interpolate:
