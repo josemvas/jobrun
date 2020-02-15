@@ -9,8 +9,8 @@
    },
    "defaults": {
       "parameters": {
-         "ligand": "ligands",
-         "receptor": "maps"
+         "ligand": "{:ligands}",
+         "receptor": "{:maps}"
       }
    }
 }

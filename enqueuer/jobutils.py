@@ -3,6 +3,7 @@ from os import getcwd
 from . import messages
 from .utils import natsort
 from .fileutils import AbsPath, NotAbsolutePath
+from .chemistry import readxyz
 
 class InputFileError(Exception):
     def __init__(self, *message):
@@ -39,8 +40,9 @@ def readmol(molfile, molname, keywords):
             molfile = AbsPath(getcwd(), molfile)
         if molfile.isfile():
             if molfile.hasext('.xyz'):
+                molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
                 for i, step in enumerate(readxyz(molfile), 1):
-                    keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+                    keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
             else:
                 messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
         elif molfile.isdir():
@@ -49,10 +51,11 @@ def readmol(molfile, molname, keywords):
             messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
         else:
             messages.opterror('El archivo de coordenadas', molfile, 'no existe')
-        keywords['molfile'] = molfile
+        keywords['file'] = molfile
         molname = molfile.stem
     elif molname:
-        keywords['molname'] = molname
+        keywords['name'] = molname
     else:
         messages.opterror('Debe especificar el archivo de coordenadas o un nombre para interpolar el archivo de entrada')
+    return molname
 

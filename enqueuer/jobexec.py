@@ -6,7 +6,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import user, cluster, program, envars, jobspecs, options, files, keywords, interpolate, remote_run
+from .jobinit import user, cluster, program, envars, jobspecs, options, files, keywords, interpolate, molname, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
 from .jobutils import InputFileError
 from .boolparse import BoolParser
@@ -42,7 +42,7 @@ def nextfile():
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
                     with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
                         try:
-                            fw.write(fr.read().format(keywords))
+                            fw.write(fr.read().format(**keywords))
                         except KeyError as e:
                             raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
     return inputdir, inputname, inputext
@@ -364,7 +364,6 @@ def localrun():
 
     if options.jobname:
         jobname = options.jobname
-#        jobname = '.'.join((molname, bareinputname))
     else:
         jobname = bareinputname
 

@@ -111,7 +111,10 @@ options, remaining = parser.parse_known_args(remaining)
 for key in jobspecs.keywords:
     parser.add_argument('--' + key, metavar=key.upper(), dest=key, help='Valor de la variable {}'.format(key.upper()))
 
-keywords, remaining = parser.parse_known_args(remaining)
+parsed, remaining = parser.parse_known_args(remaining)
+
+for key, value in vars(parsed).items():
+    if value: keywords[key] = value
 
 rgroup = parser.add_mutually_exclusive_group()
 rgroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
@@ -133,7 +136,7 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    readmol(molfile, molname, keywords)
-elif molfile or molname:
+    molname = readmol(molfile, molname, keywords)
+elif molfile or molname or keywords:
     messages.opterror('Se especificó un nombre o archivo de coordenadas sin interpolar los archivos de entrada')
 
