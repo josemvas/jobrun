@@ -12,6 +12,8 @@ from .jobutils import InputFileError
 from .boolparse import BoolParser
 from .details import mpilibs
 
+scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
+
 def nextfile():
     file = files.pop(0)
     try:
@@ -85,12 +87,7 @@ def transfer():
 def setup():
 
     if not jobspecs.scheduler:
-        messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
-    
-    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
-    jobformat = Bunch(scheduler.jobformat)
-    jobenvars = Bunch(scheduler.jobenvars)
-    mpilauncher = scheduler.mpilauncher
+        messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
     
     if getattr(options, 'ignore-defaults'):
         jobspecs.defaults = []
@@ -143,37 +140,37 @@ def setup():
         if jobspecs.defaults.queue:
             options.queue = jobspecs.defaults.queue
         else:
-            messages.cfgerror('<default><queue> No se especificó la cola por defecto')
+            messages.cfgerror('No se especificó la cola por defecto (default:queue)')
     
     if not jobspecs.progname:
-        messages.cfgerror('<title> No se especificó el nombre del programa')
+        messages.cfgerror('No se especificó el nombre del programa (progname)')
     
     if not jobspecs.progkey:
-        messages.cfgerror('<title> No se especificó la clave del programa')
+        messages.cfgerror('No se especificó la clave del programa (progkey)')
     
     if 'mpilauncher' in jobspecs:
         try: jobspecs.mpilauncher = boolstrs[jobspecs.mpilauncher]
         except KeyError:
-            messages.cfgerror('<mpilauncher> El texto de este tag debe ser "True" o "False"')
+            messages.cfgerror('Este valor requiere ser "True" o "False" (mpilauncher)')
     
     if not jobspecs.filekeys:
-        messages.cfgerror('<filekeys> La lista de archivos del programa no existe o está vacía')
+        messages.cfgerror('La lista de archivos del programa no existe o está vacía (filekeys)')
     
     if jobspecs.inputfiles:
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if not key in jobspecs.filekeys:
-                    messages.cfgerror('<inputfiles><e>{0}</e> El nombre de este archivo de entrada no fue definido'.format(key))
+                    messages.cfgerror('El nombre del archivo de entrada "{0}" no fue definido'.format(key), '(inputfiles)')
     else:
-        messages.cfgerror('<inputfiles> La lista de archivos de entrada no existe o está vacía')
+        messages.cfgerror('La lista de archivos de entrada no existe o está vacía (inputfiles)')
     
     if jobspecs.outputfiles:
         for item in jobspecs.outputfiles:
             for key in item.split('|'):
                 if not key in jobspecs.filekeys:
-                    messages.cfgerror('<otputfiles><e>{0}</e> El nombre de este archivo de salida no fue definido'.format(key))
+                    messages.cfgerror('El nombre del archivo de salida "{0}" no fue definido'.format(key), 'outputfiles')
     else:
-        messages.cfgerror('<outputfiles> La lista de archivos de salida no existe o está vacía')
+        messages.cfgerror('La lista de archivos de salida no existe o está vacía (outputfiles)')
     
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
@@ -185,15 +182,15 @@ def setup():
             script.command.append('OMP_NUM_THREADS=' + str(options.ncore))
         elif jobspecs.parallelib.lower() in mpilibs:
             if not 'mpilauncher' in jobspecs:
-                messages.cfgerror('<mpilauncher> No se especificó si el programa es lanzado por mpirun')
+                messages.cfgerror('No se especificó si el programa es lanzado por mpirun (mpilauncher)')
             script.comments.append(jobformat.ncore(options.ncore))
             script.comments.append(jobformat.nhost(options.nhost))
             if jobspecs.mpilauncher:
-                script.command.append(mpilauncher[jobspecs.parallelib])
+                script.command.append(scheduler.mpilauncher[jobspecs.parallelib])
         else:
             messages.cfgerror('El tipo de paralelización ' + jobspecs.parallelib + ' no está soportado')
     else:
-        messages.cfgerror('<parallelib> No se especificó el tipo de paralelización del programa')
+        messages.cfgerror('No se especificó el tipo de paralelización del programa (parallelib)')
     
     if jobspecs.versions:
         if not options.version:
@@ -207,7 +204,7 @@ def setup():
                 if not options.version in jobspecs.versions:
                     messages.opterror('La versión seleccionada es inválida')
     else:
-        messages.cfgerror('<versions> La lista de versiones no existe o está vacía')
+        messages.cfgerror('La lista de versiones no existe o está vacía (versions)')
 
     if options.version in jobspecs.versions:
         versionspec = jobspecs.versions[options.version]
@@ -253,24 +250,24 @@ def setup():
     
     for key in jobspecs.optionargs:
         if not jobspecs.optionargs[key] in jobspecs.filekeys:
-            messages.cfgerror('<optionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+            messages.cfgerror('El nombre del archivo de entrada/salida "{0}" no fue definido'.format(key), '(optionargs)')
         script.command.append('-{key} {val}'.format(key=key, val=jobspecs.filekeys[jobspecs.optionargs[key]]))
     
     for item in jobspecs.positionargs:
         for key in item.split('|'):
             if not key in jobspecs.filekeys:
-                messages.cfgerror('<positionargs><e>{0}</e> El nombre de este archivo de entrada/salida no fue definido'.format(key))
+                messages.cfgerror('El nombre del archivo de entrada/salida "{0}" no fue definido'.format(key), '(positionargs)')
         script.command.append('@' + p('|'.join(jobspecs.filekeys[i] for i in item.split('|'))))
     
     if 'stdin' in jobspecs:
-        try: script.command.append('0<' + ' ' + jobspecs.filekeys[jobspecs.stdin])
-        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdin + '" en el tag <stdin> no fue definido.')
+        try: script.command.append('0<' + ' ' + jobspecs.filekeys[jobspecs.stdinput])
+        except KeyError: messages.cfgerror('El nombre de archivo', q(jobspecs.stdinput), 'no fue definido (stdinput)')
     if 'stdoutput' in jobspecs:
         try: script.command.append('1>' + ' ' + jobspecs.filekeys[jobspecs.stdoutput])
-        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stdoutput + '" en el tag <stdoutput> no fue definido.')
+        except KeyError: messages.cfgerror('El nombre de archivo', q(jobspecs.stdoutput), 'no fue definido (stdoutput)')
     if 'stderror' in jobspecs:
         try: script.command.append('2>' + ' ' + jobspecs.filekeys[jobspecs.stderror])
-        except KeyError: messages.cfgerror('El nombre de archivo "' + jobspecs.stderror + '" en el tag <error> no fue definido.')
+        except KeyError: messages.cfgerror('El nombre de archivo', q(jobspecs.stderror), 'no fue definido (stderror)')
     
     script.chdir = 'cd "{}"'.format
     script.runathead = 'ssh $head "{}"'.format
@@ -338,11 +335,6 @@ def localrun():
     except InputFileError as e:
         messages.failure(e)
         return
-
-    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
-    jobformat = Bunch(scheduler.jobformat)
-    queuejob = scheduler.queuejob
-    checkjob = scheduler.checkjob
 
     filebools = {}
 
@@ -413,7 +405,7 @@ def localrun():
             try:
                 with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
                     jobid = t.read()
-                    jobstate = checkjob(jobid)
+                    jobstate = scheduler.checkjob(jobid)
                     if callable(jobstate):
                         messages.failure(jobstate(jobname=jobname, jobid=jobid))
                         return
@@ -477,7 +469,7 @@ def localrun():
         f.write(''.join(script.runathead(i) + '\n' for i in offscript))
     
     try:
-        jobid = queuejob(jobscript)
+        jobid = scheduler.queuejob(jobscript)
     except RuntimeError as error:
         messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
         return
@@ -490,7 +482,8 @@ parameters = []
 transfiles = []
 remotefiles = []
 script = Bunch()
-
+jobformat = Bunch(scheduler.jobformat)
+jobenvars = Bunch(scheduler.jobenvars)
 userhost = '{user}@{host}'.format(user=user.user, host=cluster.name.lower())
 jobshare = '$JOBSHARE'
 
