@@ -40,14 +40,14 @@ else:
 def main():
 
     commands = {
-        'firstsetup' : firstsetup,
+        'setup' : setup,
     }
     
     parser = ArgumentParser()
     parser.add_argument('cmd', choices=commands.keys())
     commands[parser.parse_args().cmd]()
 
-def firstsetup(relpath=False):
+def setup(relpath=False):
 
     libpath = []
     pyldpath = []
