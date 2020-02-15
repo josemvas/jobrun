@@ -7,18 +7,16 @@ from socket import gethostname, gethostbyname
 from os import path, listdir, environ, getcwd
 from argparse import ArgumentParser, SUPPRESS
 from . import messages
-from .utils import Bunch, natsort, p
+from .utils import Bunch, p
 from .specparse import SpecBunch, readspec
 from .jobutils import printchoices, findparameters, readmol
 from .fileutils import AbsPath, NotAbsolutePath
 from .chemistry import readxyz
 
 user = Bunch()
-script = Bunch()
 envars = Bunch()
 cluster = Bunch()
 jobspecs = SpecBunch()
-parameters = []
 keywords = {}
 
 try:
@@ -66,19 +64,15 @@ parsed, remaining = parser.parse_known_args()
 
 if parsed.list:
     if jobspecs.versions:
-        print('Versiones disponibles del ejecutable')
+        print('Versiones del programa')
         printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
     for parkey in jobspecs.parameters:
         if parkey in jobspecs.defaults.parameters:
-            try:
-                abspath = AbsPath(jobspecs.defaults.parameters[parkey])
-            except NotAbsolutePath:
-                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
-            pathparts = list(abspath.setkeys(user).splitkeys())
-            print('Conjuntos de parámetros disponibles', p(parkey) + ':')
-            listparameters(AbsPath('/'), pathparts, len(pathparts))
+            print('Conjuntos de parámetros', p(parkey))
+            abspath = AbsPath(jobspecs.defaults.parameters[parkey], defaultroot=getcwd())
+            findparameters(AbsPath('/'), abspath.setkeys(user).splitkeys(), 1)
     if jobspecs.keywords:
-        print('Variables de interpolación disponibles')
+        print('Variables de interpolación')
         printchoices(choices=jobspecs.keywords)
     raise SystemExit()
 
@@ -97,7 +91,7 @@ parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como
 
 sgroup = parser.add_mutually_exclusive_group()
 sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor')
-sgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
+sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
 
 yngroup = parser.add_mutually_exclusive_group()
 yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
@@ -105,12 +99,12 @@ yngroup.add_argument('--no', dest='no', action='store_true', default=False, help
 
 if len(jobspecs.parameters) == 1:
     key = jobspecs.parameters[0]
-    parser.add_argument('-p', '--' + key + '-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
-    parser.add_argument('-P', '--' + key + '-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
+    parser.add_argument('-p', '--'+key+'-set', dest=key+'-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
+    parser.add_argument('-P', '--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
 else:
     for key in jobspecs.parameters:
-        parser.add_argument('--' + key + '-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
-        parser.add_argument('--' + key + '-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
+        parser.add_argument('--'+key+'-set', dest=key+'-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
+        parser.add_argument('--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
 
 options, remaining = parser.parse_known_args(remaining)
 
@@ -120,8 +114,8 @@ for key in jobspecs.keywords:
 keywords, remaining = parser.parse_known_args(remaining)
 
 rgroup = parser.add_mutually_exclusive_group()
-rgroup.add_argument('-d', '--dry-run', dest='dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-rgroup.add_argument('-r', '--remote-run', dest='remote', metavar='HOSTNAME', help='Ejecutar el trabajo en el host remoto HOSTNAME.')
+rgroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+rgroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Ejecutar el trabajo en el host remoto HOSTNAME.')
 
 mgroup = parser.add_mutually_exclusive_group()
 mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
@@ -137,10 +131,6 @@ globals().update(vars(parsed))
 
 if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
-
-if remote:
-    userhost = '{user}@{host}'.format(user=user.user, host=cluster.name.lower())
-    jobshare = '$JOBSHARE'
 
 if interpolate:
     readmol(molfile, molname, keywords)

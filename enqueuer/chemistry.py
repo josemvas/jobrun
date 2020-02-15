@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from job2q import messages
+from enqueuer import messages
 
 def readxyz(path):
     optrj = []

@@ -2,8 +2,8 @@
 import os
 import shutil
 import string
-from .utils import deepjoin, pathseps
 from . import messages
+from .utils import deepjoin, pathseps, natsort
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -14,11 +14,14 @@ class PathFormatError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, *args):
+    def __new__(cls, *args, defaultroot=None):
         path = os.path.join(*args)
         path = os.path.normpath(path)
         if not os.path.isabs(path):
-            raise NotAbsolutePath(path, 'is not an absolute path')
+            if isinstance(defaultroot, str) and os.path.isabs(defaultroot):
+                path = os.path.join(defaultroot, path)
+            else:
+                raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
@@ -26,34 +29,45 @@ class AbsPath(str):
     def keyexpand(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if not lit.startswith('/'):
-                raise PathFormatError('Path', self, 'has partial variable components')
-            if key is None:
-                formatted = lit
-            elif spec:
-                formatted = lit + keydict.get(key, spec)
+            if lit.startswith('/'):
+                if key is None:
+                    formatted = lit
+                elif spec:
+                    formatted = lit + keydict.get(key, spec)
+                else:
+                    formatted = lit + keydict[key]
             else:
-                formatted = lit + keydict[key]
+                raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)
     def setkeys(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if not lit.startswith('/'):
-                raise PathFormatError('Path', self, 'has partial variable components')
-            if key is None:
-                formatted = lit
-            elif spec:
-                formatted = lit + keydict.get(key, '{' + key + ':' + spec + '}')
+            if lit.startswith('/'):
+                if key is None:
+                    formatted = lit
+                elif spec:
+                    formatted = lit + keydict.get(key, '{' + key + ':' + spec + '}')
+                else:
+                    formatted = lit + keydict.get(key, '{' + key + '}')
             else:
-                formatted = lit + keydict.get(key, '{' + key + '}')
+                raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)
     def splitkeys(self):
+        parts = []
         for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if not lit.startswith('/'):
-                raise PathFormatError('Path', self, 'has partial variable components')
-            if key == '':
-                raise PathFormatError('Path', self, 'has unresolved keys')
-            yield lit[1:], key, spec
+            if lit.startswith('/'):
+                if key is None:
+                    if parts:
+                        parts[-1][1] = lit[1:]
+                    else:
+                        raise PathFormatError(self, 'does not have selectable components')
+                elif not key:
+                    parts.append((lit[1:], '', spec))
+                else:
+                    raise PathFormatError(self, 'has unresolved keys')
+            else:
+                raise PathFormatError(self, 'has partial variable components')
+        return parts
     def parent(self):
         return AbsPath(os.path.dirname(self))
     def joinpath(self, *args):
@@ -67,7 +81,7 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
     def listdir(self):
-            return os.listdir(self)
+            return sorted(os.listdir(self), key=natsort)
 
 def pathjoin(*args):
     return deepjoin(args, iter(pathseps))

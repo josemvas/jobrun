@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-from os import path, getcwd
+from os import getcwd
 from . import messages
-from .fileutils import AbsPath, NotAbsolutePath
 from .utils import natsort
+from .fileutils import AbsPath, NotAbsolutePath
+
+class InputFileError(Exception):
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
 
 def printchoices(choices, indent=1, default=None):
     for choice in sorted(choices, key=natsort):
@@ -11,12 +15,10 @@ def printchoices(choices, indent=1, default=None):
         else:
             print(' '*2*indent + choice)
 
-def findparameters(rootpath, pathparts, depth):
-    part, key, default = pathparts[0]
-    if key is None:
-        rootpath = rootpath.joinpath(part)
-    else:
-        rootpath = rootpath.joinpath(part)
+def findparameters(rootpath, pathparts, indent):
+    if pathparts:
+        prefix, suffix, default = pathparts.pop(0)
+        rootpath = rootpath.joinpath(prefix)
         try:
             diritems = rootpath.listdir()
         except FileNotFoundError:
@@ -25,11 +27,10 @@ def findparameters(rootpath, pathparts, depth):
             messages.cfgerror('La ruta', self, 'no es un directorio')
         if not diritems:
             messages.cfgerror('El directorio', self, 'está vacío')
-        printchoices(choices=diritems, default=default, indent=depth-len(pathparts)+1)
-        if pathparts[1:]:
-            for item in diritems:
-                listdir(rootpath.joinpath(item), pathparts[1:], depth)
-
+        printchoices(choices=diritems, default=default, indent=indent)
+        for item in diritems:
+            findparameters(rootpath.joinpath(item, suffix), pathparts, indent + 1)
+            
 def readmol(molfile, molname, keywords):
     if molfile:
         try:

@@ -19,19 +19,18 @@ loader_script = r'''
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
-from job2q.init import dry, remote, files
-from job2q.jobrun import wait, offload, localrun, remoterun, dryrun
-from job2q.jobsetup import jobsetup
+from enqueuer.jobinit import dry_run, remote_run, files
+from enqueuer.jobexec import wait, setup, transfer, dryrun, remoterun, localrun
 
-if dry:
+if dry_run:
     while files:
         dryrun()
-elif remote:
+elif remote_run:
     while files:
-        remoterun()
-    offload()
+        transfer()
+    remoterun()
 else:
-    jobsetup()
+    setup()
     localrun()
     while files:
         wait()
@@ -41,14 +40,14 @@ else:
 def main():
 
     commands = {
-        'setup' : setup,
+        'firstsetup' : firstsetup,
     }
     
     parser = ArgumentParser()
     parser.add_argument('cmd', choices=commands.keys())
     commands[parser.parse_args().cmd]()
 
-def setup(relpath=False):
+def firstsetup(relpath=False):
 
     libpath = []
     pyldpath = []
@@ -59,7 +58,7 @@ def setup(relpath=False):
     configured = []
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
-    datadir = path.join(bindir, 'job2q.d')
+    datadir = path.join(bindir, 'enqueuer.d')
     makedirs(datadir)
     
     sourcedir = AbsPath(__file__).parent()

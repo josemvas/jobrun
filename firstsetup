@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import sys
+assert sys.version_info >= (3, 4)
+from enqueuer.console import firstsetup
+firstsetup(relpath=True)
+

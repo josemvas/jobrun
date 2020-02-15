@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-import sys
-from os import listdir, getcwd
+from time import sleep
+from os import path, execv, getcwd
+from subprocess import call, DEVNULL
 from importlib import import_module
-from argparse import ArgumentParser
 from . import dialogs
 from . import messages
+from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
+from .jobinit import user, cluster, program, envars, jobspecs, options, files, keywords, interpolate, remote_run
+from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
+from .jobutils import InputFileError
+from .boolparse import BoolParser
 from .details import mpilibs
-from .init import user, cluster, jobspecs, options, parameters, script
-from .utils import Bunch, natsort, p, q, sq, join_arguments, wordseps, boolstrs
-from .fileutils import AbsPath, NotAbsolutePath
-
-class InputFileError(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
 
 def nextfile():
     file = files.pop(0)
@@ -49,12 +47,47 @@ def nextfile():
                             raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
     return inputdir, inputname, inputext
 
-def jobsetup():
+@catch_keyboard_interrupt
+def wait():
+    sleep(options.wait)
+
+@catch_keyboard_interrupt
+def remoterun():
+    if remotefiles:
+        call(['rsync', '-Rtzqe', 'ssh -q'] + transfiles + [remote_run + ':' + pathjoin(jobshare, userhost)])
+        execv('/usr/bin/ssh', [__file__, '-Xqt', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+
+@catch_keyboard_interrupt
+def dryrun():
+
+    try:
+        inputdir, inputname, inputext = nextfile()
+    except InputFileError as e:
+        messages.failure(e)
+        return
+
+@catch_keyboard_interrupt
+def transfer():
+
+    try:
+        inputdir, inputname, inputext = nextfile()
+    except InputFileError as e:
+        messages.failure(e)
+        return
+
+    relparentdir = path.relpath(inputdir, user.home)
+    remotefiles.append(pathjoin(jobshare, userhost, relparentdir, (inputname, inputext)))
+    for key in jobspecs.filekeys:
+        if path.isfile(pathjoin(inputdir, (inputname, key))):
+            transfiles.append(pathjoin(user.home, '.', relparentdir, (inputname, key)))
+
+@catch_keyboard_interrupt
+def setup():
 
     if not jobspecs.scheduler:
         messages.cfgerror('<scheduler> No se especificó el nombre del sistema de colas')
     
-    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='job2q')
+    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
     jobformat = Bunch(scheduler.jobformat)
     jobenvars = Bunch(scheduler.jobenvars)
     mpilauncher = scheduler.mpilauncher
@@ -64,7 +97,7 @@ def jobsetup():
     
     if options.sort:
         files.sort(key=natsort)
-    elif options.sort_reverse:
+    elif getattr(options, 'sort-reverse'):
         files.sort(key=natsort, reverse=True)
     
     if options.wait is None:
@@ -170,7 +203,10 @@ def jobsetup():
     else:
         messages.cfgerror('<versions> La lista de versiones no existe o está vacía')
 
-    versionspec = jobspecs.versions[options.version]
+    if options.version in jobspecs.versions:
+        versionspec = jobspecs.versions[options.version]
+    else:
+       messages.opterror('La versión seleccionada no es válida')
     
     if not versionspec.executable:
         messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
@@ -243,20 +279,20 @@ def jobsetup():
         script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
         script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
         script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}/\'"; done'.format
+        script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
     for parkey in jobspecs.parameters:
-        if getattr(options, parkey + '_path'):
+        if getattr(options, parkey + '-path'):
             try:
-                rootpath = AbsPath(getattr(options, parkey + '_path'))
+                rootpath = AbsPath(getattr(options, parkey + '-path'))
             except NotAbsolutePath:
-                rootpath = AbsPath(getcwd(), getattr(options, parkey + '_path'))
+                rootpath = AbsPath(getcwd(), getattr(options, parkey + '-path'))
         elif parkey in jobspecs.defaults.parameters:
-            if getattr(options, parkey + '_set'):
-                optparts = getattr(options, parkey + '_set').split(':')
+            if getattr(options, parkey + '-set'):
+                optparts = getattr(options, parkey + '-set').split(':')
             else:
                 optparts = []
             try:
@@ -264,27 +300,23 @@ def jobsetup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for part, key, default in abspath.setkeys(user).splitkeys():
-                if key is None:
-                    rootpath = rootpath.joinpath(part)
+            for prefix, suffix, default in abspath.setkeys(user).splitkeys():
+                if optparts:
+                    rootpath = rootpath.joinpath(prefix, optparts.pop(0), suffix)
+                elif default:
+                    rootpath = rootpath.joinpath(prefix, default, suffix)
                 else:
-                    if optparts:
-                        rootpath = rootpath.joinpath(part, optparts.pop(0))
-                    elif default:
-                        rootpath = rootpath.joinpath(part, default)
-                    else:
-                        rootpath = rootpath.joinpath(part)
-                        try:
-                            diritems = rootpath.listdir()
-                        except FileNotFoundError:
-                            messages.cfgerror('El directorio', self, 'no existe')
-                        except NotADirectoryError:
-                            messages.cfgerror('La ruta', self, 'no es un directorio')
-                        if not diritems:
-                            messages.cfgerror('El directorio', self, 'está vacío')
-                        diritems.sort(key=natsort)
-                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=diritems)
-                        rootpath = rootpath.joinpath(choice)
+                    rootpath = rootpath.joinpath(prefix)
+                    try:
+                        diritems = rootpath.listdir()
+                    except FileNotFoundError:
+                        messages.cfgerror('El directorio', self, 'no existe')
+                    except NotADirectoryError:
+                        messages.cfgerror('La ruta', self, 'no es un directorio')
+                    if not diritems:
+                        messages.cfgerror('El directorio', self, 'está vacío')
+                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=diritems)
+                    rootpath = rootpath.joinpath(choice, suffix)
         else:
             messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():
@@ -292,3 +324,168 @@ def jobsetup():
         else:
             messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
     
+@catch_keyboard_interrupt
+def localrun():
+
+    try:
+        inputdir, inputname, inputext = nextfile()
+    except InputFileError as e:
+        messages.failure(e)
+        return
+
+    scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
+    jobformat = Bunch(scheduler.jobformat)
+    queuejob = scheduler.queuejob
+    checkjob = scheduler.checkjob
+
+    filebools = {}
+
+    for key in jobspecs.filekeys:
+        filebools[key] = path.isfile(pathjoin(inputdir, (inputname, key)))
+
+    if 'filecheck' in jobspecs:
+        if not BoolParser(jobspecs.filecheck).ev(filebools):
+            messages.failure('No se encontraron todos los archivos de entrada requeridos')
+            return
+    
+    if 'fileclash' in jobspecs:
+        if BoolParser(jobspecs.fileclash).ev(filebools):
+            messages.failure('Hay un conflicto entre los archivos de entrada')
+            return
+    
+    progkey = jobspecs.progkey + alnum(options.version)
+
+    if inputname.endswith('.' + progkey):
+        bareinputname = inputname[:-len(progkey)-1]
+    elif inputname.endswith('.' + jobspecs.progkey):
+        bareinputname = inputname[:-len(jobspecs.progkey)-1]
+    else:
+        bareinputname = inputname
+
+    if options.jobname:
+        jobname = options.jobname
+#        jobname = '.'.join((molname, bareinputname))
+    else:
+        jobname = bareinputname
+
+    if options.outdir:
+        try:
+            outputdir = AbsPath(options.outdir)
+        except NotAbsolutePath:
+            outputdir = AbsPath(inputdir, options.outdir)
+    else:
+        try:
+            outputdir = AbsPath(jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
+        except NotAbsolutePath:
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
+
+    hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
+    outputname = jobname + '.' + progkey
+
+    inputfiles = []
+
+    for item in jobspecs.inputfiles:
+        for key in item.split('|'):
+            if path.isfile(pathjoin(outputdir, (jobname, key))):
+                inputfiles.append(((pathjoin(outputdir, (jobname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
+    
+    inputdirs = []
+
+    for parameter in parameters:
+        if parameter.isfile():
+            inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
+        elif parameter.isdir():
+            inputdirs.append((pathjoin(parameter), script.workdir))
+
+    outputfiles = []
+
+    for item in jobspecs.outputfiles:
+        for key in item.split('|'):
+            outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+    
+    if outputdir.isdir():
+        if hiddendir.isdir():
+            try:
+                with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
+                    jobid = t.read()
+                    jobstate = checkjob(jobid)
+                    if callable(jobstate):
+                        messages.failure(jobstate(jobname=jobname, jobid=jobid))
+                        return
+            except FileNotFoundError:
+                pass
+        elif hiddendir.exists():
+            messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
+            return
+        else:
+            makedirs(hiddendir)
+        if not set(outputdir.listdir()).isdisjoint(pathjoin((outputname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
+            if options.no is True or (options.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+                return
+        for item in jobspecs.outputfiles:
+            for key in item.split('|'):
+                remove(pathjoin(outputdir, (outputname, key)))
+        if inputdir != outputdir:
+            for item in jobspecs.inputfiles:
+                for key in item.split('|'):
+                    remove(pathjoin(outputdir, (jobname, key)))
+    elif outputdir.exists():
+        messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
+        return
+    else:
+        makedirs(outputdir)
+        makedirs(hiddendir)
+    
+    if inputdir != outputdir:
+        action = path.rename if options.move else copyfile
+        for item in jobspecs.inputfiles:
+            for key in item.split('|'):
+                if path.isfile(pathjoin(inputdir, (inputname, key))):
+                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (jobname, key)))
+    
+    script.comments.append(jobformat.name(jobname))
+
+    offscript = []
+
+    for line in jobspecs.offscript:
+        try:
+           offscript.append(line.format(jobname=jobname, clustername=cluster.name, **envars))
+        except KeyError:
+           pass
+
+    jobscript = pathjoin(hiddendir, 'jobscript')
+
+    with open(jobscript, 'w') as f:
+        f.write('#!/bin/bash' + '\n')
+        f.write(''.join(i + '\n' for i in script.comments))
+        f.write(''.join(i + '\n' for i in script.environ))
+        f.write('for host in ${hosts[*]}; do echo "<host>$host</host>"; done' + '\n')
+        f.write(script.mkdir(script.workdir) + '\n')
+        f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
+        f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
+        f.write(script.chdir(script.workdir) + '\n')
+        f.write(''.join(i + '\n' for i in jobspecs.prescript))
+        f.write(' '.join(script.command) + '\n')
+        f.write(''.join(i + '\n' for i in jobspecs.postscript))
+        f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
+        f.write(script.rmdir(script.workdir) + '\n')
+        f.write(''.join(script.runathead(i) + '\n' for i in offscript))
+    
+    try:
+        jobid = queuejob(jobscript)
+    except RuntimeError as error:
+        messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
+        return
+    else:
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) de CPU con el jobid', jobid)
+        with open(pathjoin(hiddendir, 'jobid'), 'w') as f:
+            f.write(jobid)
+    
+parameters = []
+transfiles = []
+remotefiles = []
+script = Bunch()
+
+userhost = '{user}@{host}'.format(user=user.user, host=cluster.name.lower())
+jobshare = '$JOBSHARE'
+
