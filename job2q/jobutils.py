@@ -1,52 +1,57 @@
 # -*- coding: utf-8 -*-
 from os import path, getcwd
 from . import messages
-from .jobparse import run, jobspecs, keywords
-from .fileutils import AbsPath, NotAbsolutePath, pathjoin
-from .utils import q
+from .fileutils import AbsPath, NotAbsolutePath
+from .utils import natsort
 
-class InputFileError(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
-
-def nextfile():
-
-    file = run.files.pop(0)
-
-    try:
-        filepath = AbsPath(file)
-    except NotAbsolutePath:
-        filepath = AbsPath(getcwd(), file)
-
-    inputdir = filepath.parent()
-    basename = filepath.name
-    
-    if filepath.isfile():
-        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
-            if basename.endswith('.' + key):
-                inputname = basename[:-len(key)-1]
-                inputext = key
-                break
+def printchoices(choices, indent=1, default=None):
+    for choice in sorted(choices, key=natsort):
+        if choice == default:
+            print(' '*2*indent + choice + ' ' + '(default)')
         else:
-            raise InputFileError('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
-    elif filepath.isdir():
-        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
-    elif filepath.exists():
-        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+            print(' '*2*indent + choice)
+
+def findparameters(rootpath, pathparts, depth):
+    part, key, default = pathparts[0]
+    if key is None:
+        rootpath = rootpath.joinpath(part)
     else:
-        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
+        rootpath = rootpath.joinpath(part)
+        try:
+            diritems = rootpath.listdir()
+        except FileNotFoundError:
+            messages.cfgerror('El directorio', self, 'no existe')
+        except NotADirectoryError:
+            messages.cfgerror('La ruta', self, 'no es un directorio')
+        if not diritems:
+            messages.cfgerror('El directorio', self, 'está vacío')
+        printchoices(choices=diritems, default=default, indent=depth-len(pathparts)+1)
+        if pathparts[1:]:
+            for item in diritems:
+                listdir(rootpath.joinpath(item), pathparts[1:], depth)
 
-    if run.interpolate:
-        templatename = inputname
-        inputname = '.'.join((run.molname, inputname))
-        for item in jobspecs.inputfiles:
-            for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (templatename, key))):
-                    with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
-                        try:
-                            fw.write(fr.read().format(**keywords))
-                        except KeyError as e:
-                            raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
-
-    return inputdir, inputname, inputext
+def readmol(molfile, molname, keywords):
+    if molfile:
+        try:
+            molfile = AbsPath(molfile)
+        except NotAbsolutePath:
+            molfile = AbsPath(getcwd(), molfile)
+        if molfile.isfile():
+            if molfile.hasext('.xyz'):
+                for i, step in enumerate(readxyz(molfile), 1):
+                    keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+            else:
+                messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+        elif molfile.isdir():
+            messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
+        elif molfile.exists():
+            messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
+        else:
+            messages.opterror('El archivo de coordenadas', molfile, 'no existe')
+        keywords['molfile'] = molfile
+        molname = molfile.stem
+    elif molname:
+        keywords['molname'] = molname
+    else:
+        messages.opterror('Debe especificar el archivo de coordenadas o un nombre para interpolar el archivo de entrada')
 

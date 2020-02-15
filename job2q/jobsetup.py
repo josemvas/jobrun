@@ -5,10 +5,49 @@ from importlib import import_module
 from argparse import ArgumentParser
 from . import dialogs
 from . import messages
-from .fileutils import AbsPath, NotAbsolutePath
-from .jobparse import run, user, cluster, jobspecs, options
-from .utils import Bunch, natsort, p, q, sq, join_arguments, wordseps, boolstrs
 from .details import mpilibs
+from .init import user, cluster, jobspecs, options, parameters, script
+from .utils import Bunch, natsort, p, q, sq, join_arguments, wordseps, boolstrs
+from .fileutils import AbsPath, NotAbsolutePath
+
+class InputFileError(Exception):
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
+
+def nextfile():
+    file = files.pop(0)
+    try:
+        filepath = AbsPath(file)
+    except NotAbsolutePath:
+        filepath = AbsPath(getcwd(), file)
+    inputdir = filepath.parent()
+    basename = filepath.name
+    if filepath.isfile():
+        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
+            if basename.endswith('.' + key):
+                inputname = basename[:-len(key)-1]
+                inputext = key
+                break
+        else:
+            raise InputFileError('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
+    elif filepath.isdir():
+        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'es un directorio')
+    elif filepath.exists():
+        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+    else:
+        raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
+    if interpolate:
+        templatename = inputname
+        inputname = '.'.join((molname, inputname))
+        for item in jobspecs.inputfiles:
+            for key in item.split('|'):
+                if path.isfile(pathjoin(inputdir, (templatename, key))):
+                    with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
+                        try:
+                            fw.write(fr.read().format(keywords))
+                        except KeyError as e:
+                            raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
+    return inputdir, inputname, inputext
 
 def jobsetup():
 
@@ -24,9 +63,9 @@ def jobsetup():
         jobspecs.defaults = []
     
     if options.sort:
-        run.files.sort(key=natsort)
+        files.sort(key=natsort)
     elif options.sort_reverse:
-        run.files.sort(key=natsort, reverse=True)
+        files.sort(key=natsort, reverse=True)
     
     if options.wait is None:
         try: options.wait = float(jobspecs.defaults.waitime)
@@ -204,21 +243,20 @@ def jobsetup():
         script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
         script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
         script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        #script.fetchdir = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\/.'" . $host:"\'{1}/\'"; done'.format
         script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}/\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
     for parkey in jobspecs.parameters:
-        if options[parkey + '_path']:
+        if getattr(options, parkey + '_path'):
             try:
-                rootpath = AbsPath(options[parkey + '_path'])
+                rootpath = AbsPath(getattr(options, parkey + '_path'))
             except NotAbsolutePath:
-                rootpath = AbsPath(getcwd(), options[parkey + '_path'])
+                rootpath = AbsPath(getcwd(), getattr(options, parkey + '_path'))
         elif parkey in jobspecs.defaults.parameters:
-            if options[parkey + '_set']:
-                optparts = options[parkey + '_set'].split(':')
+            if getattr(options, parkey + '_set'):
+                optparts = getattr(options, parkey + '_set').split(':')
             else:
                 optparts = []
             try:
@@ -245,7 +283,7 @@ def jobsetup():
                         if not diritems:
                             messages.cfgerror('El directorio', self, 'está vacío')
                         diritems.sort(key=natsort)
-                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=diritems)
+                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=diritems)
                         rootpath = rootpath.joinpath(choice)
         else:
             messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
@@ -254,6 +292,3 @@ def jobsetup():
         else:
             messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
     
-script = Bunch()
-parameters = []
-

@@ -36,14 +36,3 @@ def unknownerror(message):
     fcode = sys._getframe(1).f_code
     raise SystemExit(colors.red + '{0}:{1} {2}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 
-@join_arguments(wordseps)
-def listing(message, items=[], default=None):
-    if message:
-        print(message)
-    for item in items:
-        if item == default:
-            print(' '*2 + item + ' ' + '(default)')
-        else:
-            print(' '*2 + item)
-
-

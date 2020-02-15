@@ -27,33 +27,30 @@ class AbsPath(str):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if not lit.startswith('/'):
-                raise PathFormatError(self, 'has partial variable components')
-            formatted += lit
-            if key:
-                try:
-                    formatted += keydict[key]
-                except KeyError:
-                    if spec:
-                         formatted += spec
-                    else:
-                         raise PathFormatError(self, 'has unresolved keys')
+                raise PathFormatError('Path', self, 'has partial variable components')
+            if key is None:
+                formatted = lit
+            elif spec:
+                formatted = lit + keydict.get(key, spec)
+            else:
+                formatted = lit + keydict[key]
         return AbsPath(formatted)
     def setkeys(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if not lit.startswith('/'):
-                raise PathFormatError(self, 'has partial variable components')
-            formatted += lit
-            if key is not None:
-                if spec:
-                    formatted += keydict.get(key, '{' + key + ':' + spec + '}')
-                else:
-                    formatted += keydict.get(key, '{' + key + '}')
+                raise PathFormatError('Path', self, 'has partial variable components')
+            if key is None:
+                formatted = lit
+            elif spec:
+                formatted = lit + keydict.get(key, '{' + key + ':' + spec + '}')
+            else:
+                formatted = lit + keydict.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def splitkeys(self):
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if not lit.startswith('/'):
-                raise PathFormatError(self, 'has partial variable components')
+                raise PathFormatError('Path', self, 'has partial variable components')
             if key == '':
                 raise PathFormatError('Path', self, 'has unresolved keys')
             yield lit[1:], key, spec

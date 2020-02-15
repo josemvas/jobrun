@@ -7,9 +7,9 @@ from argparse import ArgumentParser
 from os.path import isfile, isdir
 from . import dialogs
 from . import messages
-from .jobparse import readspec
-from .fileutils import AbsPath, NotAbsolutePath, rmdir, makedirs, copyfile, hardlink
 from .utils import natsort, q
+from .specparse import readspec
+from .fileutils import AbsPath, NotAbsolutePath, rmdir, makedirs, copyfile, hardlink
 
 loader_script = r'''
 #!/bin/sh
@@ -19,22 +19,21 @@ loader_script = r'''
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
-from job2q.jobparse import jobparse, run
-from job2q.jobsetup import jobsetup
+from job2q.init import dry, remote, files
 from job2q.jobrun import wait, offload, localrun, remoterun, dryrun
+from job2q.jobsetup import jobsetup
 
-jobparse()
-if run.dry:
-    while run.files:
+if dry:
+    while files:
         dryrun()
-elif run.remote:
-    while run.files:
+elif remote:
+    while files:
         remoterun()
     offload()
 else:
     jobsetup()
     localrun()
-    while run.files:
+    while files:
         wait()
         localrun()
 '''

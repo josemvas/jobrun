@@ -5,10 +5,9 @@ from subprocess import call, DEVNULL
 from importlib import import_module
 from . import dialogs
 from . import messages
-from .jobsetup import parameters, script
 from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt
-from .jobparse import run, user, cluster, envars, jobspecs, options, keywords
+from .init import user, cluster, envars, jobspecs, options, keywords, parameters, script
 from .jobutils import nextfile, InputFileError
 from .boolparse import BoolParser
 
@@ -19,8 +18,8 @@ def wait():
 @catch_keyboard_interrupt
 def offload():
     if remotefiles:
-        call(['rsync', '-Rtzqe', 'ssh -q'] + remoteinputfiles + [run.remote + ':' + pathjoin(run.jobshare, run.userathost)])
-        execv('/usr/bin/ssh', [__file__, '-Xqt', run.remote] + ['{envar}={value}'.format(envar=envar, value=value) for envar, value in envars.items()] + [run.program] + ['--{option}={value}'.format(option=option.replace('_', '-'), value=value) for option, value in options.items() if value not in IdentityList(None, True, False)] + ['--{option}'.format(option=option.replace('_', '-')) for option in options if options[option] is True] + remotefiles)
+        call(['rsync', '-Rtzqe', 'ssh -q'] + remoteinputfiles + [remote + ':' + pathjoin(jobshare, userhost)])
+        execv('/usr/bin/ssh', [__file__, '-Xqt', remote] + ['{envar}={value}'.format(envar=envar, value=value) for envar, value in envars.items()] + [program] + ['--{option}={value}'.format(option=option.replace('_', '-'), value=value) for option, value in options.items() if value not in IdentityList(None, True, False)] + ['--{option}'.format(option=option.replace('_', '-')) for option in options if options[option] is True] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -41,7 +40,7 @@ def remoterun():
         return
 
     relparentdir = path.relpath(inputdir, user.home)
-    remotefiles.append(pathjoin(run.jobshare, run.userathost, relparentdir, (inputname, inputext)))
+    remotefiles.append(pathjoin(jobshare, userhost, relparentdir, (inputname, inputext)))
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             remoteinputfiles.append(pathjoin(user.home, '.', relparentdir, (inputname, key)))
@@ -86,7 +85,7 @@ def localrun():
 
     if options.jobname:
         jobname = options.jobname
-#        jobname = '.'.join((run.molname, bareinputname))
+#        jobname = '.'.join((molname, bareinputname))
     else:
         jobname = bareinputname
 
