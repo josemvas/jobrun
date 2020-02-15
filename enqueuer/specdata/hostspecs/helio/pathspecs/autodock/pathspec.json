@@ -5,9 +5,7 @@
       }
    },
    "defaults": {
-      "version": "4.2.6"
-   },
-   "defaults": {
+      "version": "4.2.6",
       "parameters": {
          "ligand": "{:ligands}",
          "receptor": "{:maps}"

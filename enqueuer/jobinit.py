@@ -78,12 +78,12 @@ if parsed.list:
 
 parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del ejecutable.')
 parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
-parser.add_argument('-n', '--ncore', type=int, default=1, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
-parser.add_argument('-N', '--nhost', type=int, default=1, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
+parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
+parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
 parser.add_argument('-j', '--jobname', metavar='JOBNAME', help='Cambiar el nombre del trabajo por JOBNAME.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-parser.add_argument('-I', '--ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
+parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
 parser.add_argument('--node', metavar='NODENAME', help='Solicitar un nodo específico de ejecución.')
 parser.add_argument('--move', action='store_true', help='Mover los archivos de entrada a la carpeta de salida en vez de copiarlos.')
 parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com directorio de salida.')
@@ -109,7 +109,7 @@ else:
 options, remaining = parser.parse_known_args(remaining)
 
 for key in jobspecs.keywords:
-    parser.add_argument('--' + key, metavar=key.upper(), dest=key, help='Valor de la variable {}'.format(key.upper()))
+    parser.add_argument('--'+key, metavar=key.upper(), help='Valor de la variable {}'.format(key.upper()))
 
 parsed, remaining = parser.parse_known_args(remaining)
 
@@ -138,5 +138,5 @@ if not files:
 if interpolate:
     molname = readmol(molfile, molname, keywords)
 elif molfile or molname or keywords:
-    messages.opterror('Se especificó un nombre o archivo de coordenadas sin interpolar los archivos de entrada')
+    messages.opterror('Se especificaron variables de interpolación pero no se van a interpolar los archivos de entrada')
 

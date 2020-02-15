@@ -92,7 +92,7 @@ def setup():
     jobenvars = Bunch(scheduler.jobenvars)
     mpilauncher = scheduler.mpilauncher
     
-    if options.ignore_defaults:
+    if getattr(options, 'ignore-defaults'):
         jobspecs.defaults = []
     
     if options.sort:
@@ -100,10 +100,16 @@ def setup():
     elif getattr(options, 'sort-reverse'):
         files.sort(key=natsort, reverse=True)
     
-    if options.wait is None:
+    if not options.wait:
         try: options.wait = float(jobspecs.defaults.waitime)
         except AttributeError: options.wait = 0
     
+    if not options.ncore:
+        options.ncore = 1
+    
+    if not options.nhost:
+        options.nhost = 1
+
     if options.xdialog:
         try:
             from bulletin import TkDialogs

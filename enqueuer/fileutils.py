@@ -32,10 +32,14 @@ class AbsPath(str):
             if lit.startswith('/'):
                 if key is None:
                     formatted = lit
-                elif spec:
-                    formatted = lit + keydict.get(key, spec)
                 else:
-                    formatted = lit + keydict[key]
+                    try:
+                        formatted = lit + keydict[key]
+                    except KeyError:
+                        if spec:
+                            formatted = lit + spec
+                        else:
+                            raise PathFormatError(self, 'has unresolved keys')
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)

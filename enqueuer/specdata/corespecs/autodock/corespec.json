@@ -4,7 +4,7 @@
    "parallelib": "None",
    "filecheck": "dpf",
    "defaults" : {
-      "outputdir": "{inputdir}"
+      "outputdir": "."
    },
    "filekeys": {
       "dpf": "job.dpf",
