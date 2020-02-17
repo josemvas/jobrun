@@ -28,7 +28,7 @@
    "defaults": {
       "version": "6.0.1",
       "parameters": {
-         "basis": "/opt/parameters/{:deMon}"
+         "basis": "/opt/parameters/deMon2k/{:deMon}"
       }
    }
 }

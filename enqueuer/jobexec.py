@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from time import sleep
 from os import path, execv, getcwd
-from subprocess import call, DEVNULL
+from subprocess import call, check_call, DEVNULL, CalledProcessError
 from importlib import import_module
 from . import dialogs
 from . import messages
@@ -56,8 +56,13 @@ def wait():
 @catch_keyboard_interrupt
 def remoterun():
     if remotefiles:
-        call(['rsync', '-Rtzqe', 'ssh -q'] + transfiles + [remote_run + ':' + pathjoin(jobshare, userhost)])
-        execv('/usr/bin/ssh', [__file__, '-Xqt', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        makedirs(pathjoin(user.home, '.ssh', 'enqueuer'))
+        try:
+            check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'check', remote_run], stderr=DEVNULL)
+        except CalledProcessError:
+            call(['ssh', '-qfNMS', '~/.ssh/enqueuer/%r@%h', remote_run])
+        call(['rsync', '-qRtze', 'ssh -qS ~/.ssh/enqueuer/%r@%h'] + transfiles + [remote_run + ':' + pathjoin(jobshare, userhost)])
+        execv('/usr/bin/ssh', [__file__, '-qtXS', '~/.ssh/enqueuer/%r@%h', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -219,7 +224,11 @@ def setup():
     script.environ.extend(jobspecs.onscript)
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
-        script.environ.append('export {}={}'.format(envar, AbsPath(path.format(workdir=script.workdir)).kexpand(user)))
+        try:
+            abspath = AbsPath(path).kexpand(user)
+        except NotAbsolutePath:
+            abspath = AbsPath(path.format(workdir=script.workdir))
+        script.environ.append('export {}={}'.format(envar, abspath))
     
     for path in jobspecs.source + versionspec.source:
         script.environ.append('source {}'.format(AbsPath(path).kexpand(user)))
@@ -374,9 +383,9 @@ def localrun():
             outputdir = AbsPath(inputdir, options.outdir)
     else:
         try:
-            outputdir = AbsPath(jobspecs.defaults.outputdir).kexpand({'jobname':jobname})
+            outputdir = AbsPath(jobspecs.defaults.outputdir).kexpand(dict(jobname=jobname))
         except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).kexpand({'jobname':jobname})
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).kexpand(dict(jobname=jobname))
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
