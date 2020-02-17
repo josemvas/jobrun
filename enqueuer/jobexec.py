@@ -13,6 +13,8 @@ from .boolparse import BoolParser
 from .details import mpilibs
 
 scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
+jobformat = Bunch(scheduler.jobformat)
+jobenvars = Bunch(scheduler.jobenvars)
 
 def nextfile():
     file = files.pop(0)
@@ -492,8 +494,6 @@ parameters = []
 transfiles = []
 remotefiles = []
 script = Bunch()
-jobformat = Bunch(scheduler.jobformat)
-jobenvars = Bunch(scheduler.jobenvars)
-userhost = '{user}@{host}'.format(user=user.user, host=cluster.name.lower())
 jobshare = '$JOBSHARE'
+userhost = user.user + '@' + cluster.name.lower()
 
