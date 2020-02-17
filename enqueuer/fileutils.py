@@ -48,11 +48,11 @@ class AbsPath(str):
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if lit.startswith('/'):
                 if key is None:
-                    formatted = lit
+                    formatted += lit
                 elif spec:
-                    formatted = lit + keydict.get(key, '{' + key + ':' + spec + '}')
+                    formatted += lit + keydict.get(key, '{' + key + ':' + spec + '}')
                 else:
-                    formatted = lit + keydict.get(key, '{' + key + '}')
+                    formatted += lit + keydict.get(key, '{' + key + '}')
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)

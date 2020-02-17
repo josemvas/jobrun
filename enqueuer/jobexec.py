@@ -91,8 +91,6 @@ def setup():
     
     if getattr(options, 'ignore-defaults'):
         jobspecs.defaults.pop('version')
-        for parkey in jobspecs.parameters:
-            jobspecs.defaults.pop('parkey')
     
     if options.sort:
         files.sort(key=natsort)
@@ -307,10 +305,11 @@ def setup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
+            print(abspath.setkeys(user))
             for prefix, suffix, default in abspath.setkeys(user).splitkeys():
                 if optparts:
                     rootpath = rootpath.joinpath(prefix, optparts.pop(0), suffix)
-                elif default:
+                elif default and not getattr(options, 'ignore-defaults'):
                     rootpath = rootpath.joinpath(prefix, default, suffix)
                 else:
                     rootpath = rootpath.joinpath(prefix)
