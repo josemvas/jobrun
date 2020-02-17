@@ -90,7 +90,9 @@ def setup():
         messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
     
     if getattr(options, 'ignore-defaults'):
-        jobspecs.defaults = []
+        jobspecs.defaults.pop('version')
+        for parkey in jobspecs.parameters:
+            jobspecs.defaults.pop('parkey')
     
     if options.sort:
         files.sort(key=natsort)
@@ -117,21 +119,23 @@ def setup():
             messages.failure = join_arguments(wordseps)(TkDialogs().message)
             messages.success = join_arguments(wordseps)(TkDialogs().message)
 
-    if not options.outdir and not jobspecs.defaults.outputdir:
-        messages.cfgerror('Debe especificar la carpeta de salida por el programa no establece una por defecto')
-            
-    if not options.scrdir:
-        if jobspecs.defaults.scrdir:
-            options.scrdir = jobspecs.defaults.scrdir
-        else:
-            messages.cfgerror('No se especificó el directorio temporal de escritura "scrdir"')
-    
-    try:
-        options.scrdir = AbsPath(options.scrdir).keyexpand(user)
-    except NotAbsolutePath:
-        messages.cfgerror('La opción "scrdir" debe ser una ruta absoluta')
-    
-    script.workdir = AbsPath(options.scrdir, jobenvars.jobid)
+    if not 'outputdir' in jobspecs.defaults:
+        messages.cfgerror('No se especificó el directorio de salida por defecto (outputdir)')
+
+    if not 'scratchdir' in jobspecs.defaults:
+        messages.cfgerror('No se especificó el directorio temporal de escritura por defecto (scratchdir)')
+
+    if options.scrdir:
+        try:
+            script.workdir = AbsPath(options.scrdir, jobenvars.jobid)
+        except NotAbsolutePath:
+            script.workdir = AbsPath(getcwd(), options.scrdir, jobenvars.jobid)
+    else:
+        try:
+            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobenvars.jobid)
+        except NotAbsolutePath:
+            messages.cfgerror(jobspecs.defaults.scratchdir, 'no es una ruta absoluta (scratchdir)')
+
     script.comments = []
     script.environ = []
     script.command = []
@@ -198,7 +202,7 @@ def setup():
                 if jobspecs.defaults.version in jobspecs.versions:
                     options.version = jobspecs.defaults.version
                 else:
-                    messages.opterror('La versión establecida por default es inválida')
+                    messages.opterror('La versión establecida por defecto es inválida')
             else:
                 options.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobspecs.versions), key=natsort))
                 if not options.version in jobspecs.versions:
@@ -217,23 +221,23 @@ def setup():
     script.environ.extend(jobspecs.onscript)
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
-        script.environ.append('export {}={}'.format(envar, AbsPath(path.format(workdir=script.workdir)).keyexpand(user)))
+        script.environ.append('export {}={}'.format(envar, AbsPath(path.format(workdir=script.workdir)).kexpand(user)))
     
     for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path).keyexpand(user)))
+        script.environ.append('source {}'.format(AbsPath(path).kexpand(user)))
     
     for module in jobspecs.load + versionspec.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable).keyexpand(user))
+        script.command.append(AbsPath(versionspec.executable).kexpand(user))
     except NotAbsolutePath:
         script.command.append(versionspec.executable)
-    
+
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).keyexpand(user)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).keyexpand(user)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).kexpand(user)))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).kexpand(user)))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -372,22 +376,21 @@ def localrun():
             outputdir = AbsPath(inputdir, options.outdir)
     else:
         try:
-            outputdir = AbsPath(jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
+            outputdir = AbsPath(jobspecs.defaults.outputdir).kexpand({'jobname':jobname})
         except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).keyexpand({'jobname':jobname})
+            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).kexpand({'jobname':jobname})
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
 
     inputfiles = []
+    inputdirs = []
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if path.isfile(pathjoin(outputdir, (jobname, key))):
+            if path.isfile(pathjoin(inputdir, (inputname, key))):
                 inputfiles.append(((pathjoin(outputdir, (jobname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
-    inputdirs = []
-
     for parameter in parameters:
         if parameter.isfile():
             inputfiles.append((parameter, pathjoin(script.workdir, parameter)))

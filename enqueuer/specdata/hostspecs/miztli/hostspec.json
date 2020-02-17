@@ -9,7 +9,7 @@
    ],
    "defaults": {
       "queue": "q_htc",
-      "scrdir": "/scratch",
+      "scratchdir": "/scratch",
       "waitime": "3"
    },
    "offscript": [

@@ -9,7 +9,7 @@
    ],
    "defaults": {
       "queue": "",
-      "scrdir": "/scratch",
+      "scratchdir": "/scratch",
       "waitime": "1"
    },
    "offscript": [

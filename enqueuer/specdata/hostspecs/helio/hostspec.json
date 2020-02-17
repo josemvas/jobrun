@@ -6,7 +6,7 @@
    "logdir": "/home/{user}/.jobs",
    "defaults": {
       "queue": "auto",
-      "scrdir": "/scratch",
+      "scratchdir": "/scratch",
       "waitime": "1"
    },
    "offscript": [

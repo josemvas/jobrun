@@ -26,18 +26,18 @@ class AbsPath(str):
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def keyexpand(self, keydict):
+    def kexpand(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if lit.startswith('/'):
                 if key is None:
-                    formatted = lit
+                    formatted += lit
                 else:
                     try:
-                        formatted = lit + keydict[key]
+                        formatted += lit + keydict[key]
                     except KeyError:
                         if spec:
-                            formatted = lit + spec
+                            formatted += lit + spec
                         else:
                             raise PathFormatError(self, 'has unresolved keys')
             else:
