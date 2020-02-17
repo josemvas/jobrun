@@ -305,7 +305,6 @@ def setup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            print(abspath.setkeys(user))
             for prefix, suffix, default in abspath.setkeys(user).splitkeys():
                 if optparts:
                     rootpath = rootpath.joinpath(prefix, optparts.pop(0), suffix)
