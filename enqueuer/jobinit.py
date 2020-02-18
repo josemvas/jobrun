@@ -13,7 +13,6 @@ from .jobutils import printchoices, findparameters, readmol
 from .fileutils import AbsPath, NotAbsolutePath
 from .chemistry import readxyz
 
-user = Bunch()
 envars = Bunch()
 cluster = Bunch()
 jobspecs = SpecBunch()
@@ -26,9 +25,9 @@ except KeyError:
 except NotAbsolutePath:
     specdir = AbsPath(getcwd(), environ['SPECPATH'])
 
-user.user = getuser()
-user.home = path.expanduser('~')
-user.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+cluster.user = getuser()
+cluster.home = path.expanduser('~')
+cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 program = path.basename(sys.argv[0])
 
 try:
@@ -40,7 +39,7 @@ except KeyError:
 hostspec = path.join(specdir, 'hostspec.json')
 corespec = path.join(specdir, 'corespec.json')
 pathspec = path.join(specdir, 'pathspec.json')
-userspec = path.join(user.home, '.jobspec.json')
+userspec = path.join(cluster.home, '.jobspec.json')
 
 jobspecs.merge(readspec(hostspec))
 jobspecs.merge(readspec(corespec))
@@ -70,7 +69,7 @@ if parsed.list:
         if parkey in jobspecs.defaults.parameters:
             print('Conjuntos de parámetros', p(parkey))
             abspath = AbsPath(jobspecs.defaults.parameters[parkey], defaultroot=getcwd())
-            findparameters(AbsPath('/'), abspath.setkeys(user).splitkeys(), 1)
+            findparameters(AbsPath('/'), abspath.setkeys(cluster).splitkeys(), 1)
     if jobspecs.keywords:
         print('Variables de interpolación')
         printchoices(choices=jobspecs.keywords)

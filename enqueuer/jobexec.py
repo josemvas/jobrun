@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+import sys
 from time import sleep
 from os import path, execv, getcwd
-from subprocess import call, check_call, DEVNULL, CalledProcessError
+from subprocess import call, check_call, check_output, CalledProcessError, DEVNULL
 from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import user, cluster, program, envars, jobspecs, options, files, keywords, interpolate, molname, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, molname, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
 from .jobutils import InputFileError
 from .boolparse import BoolParser
@@ -56,19 +57,25 @@ def wait():
     sleep(options.wait)
 
 @catch_keyboard_interrupt
+def connect():
+    makedirs(pathjoin(cluster.home, '.ssh', 'enqueuer'))
+    try:
+        check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'check', remote_run], stderr=DEVNULL)
+    except CalledProcessError:
+        call(['ssh', '-qfNMS', '~/.ssh/enqueuer/%r@%h', remote_run])
+    cluster.remoteshare = check_output(['ssh', '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
+    if not cluster.remoteshare:
+        check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'exit', remote_run], stderr=DEVNULL)
+        messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
+        
+
+@catch_keyboard_interrupt
 def remoterun():
     if remotefiles:
-        makedirs(pathjoin(user.home, '.ssh', 'enqueuer'))
-        try:
-            check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'check', remote_run], stderr=DEVNULL)
-        except CalledProcessError:
-            call(['ssh', '-qfNMS', '~/.ssh/enqueuer/%r@%h', remote_run])
-        call(['rsync', '-qRtze', 'ssh -qS ~/.ssh/enqueuer/%r@%h'] + transfiles + [remote_run + ':' + pathjoin(jobshare, userhost)])
-        execv('/usr/bin/ssh', [__file__, '-qtXS', '~/.ssh/enqueuer/%r@%h', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--' + option if value is True else '--' + option + '=' + value for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
-
     try:
         inputdir, inputname, inputext = nextfile()
     except InputFileError as e:
@@ -77,18 +84,19 @@ def dryrun():
 
 @catch_keyboard_interrupt
 def transfer():
-
     try:
         inputdir, inputname, inputext = nextfile()
     except InputFileError as e:
         messages.failure(e)
         return
-
-    relparentdir = path.relpath(inputdir, user.home)
-    remotefiles.append(pathjoin(jobshare, userhost, relparentdir, (inputname, inputext)))
+    transferlist = []
+    relparentdir = path.relpath(inputdir, cluster.home)
+    userhost = cluster.user + '@' + cluster.name.lower()
+    remotefiles.append(pathjoin(cluster.remoteshare, userhost, relparentdir, (inputname, inputext)))
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
-            transfiles.append(pathjoin(user.home, '.', relparentdir, (inputname, key)))
+            transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
+    call(['rsync', '-qRtze', 'ssh -qS ~/.ssh/enqueuer/%r@%h'] + transferlist + [remote_run + ':' + pathjoin(cluster.remoteshare, userhost)])
 
 @catch_keyboard_interrupt
 def setup():
@@ -227,26 +235,26 @@ def setup():
 
     for envar, path in jobspecs.export.items() | versionspec.export.items():
         try:
-            abspath = AbsPath(path).kexpand(user)
+            abspath = AbsPath(path).kexpand(cluster)
         except NotAbsolutePath:
             abspath = AbsPath(path.format(workdir=script.workdir))
         script.environ.append('export {}={}'.format(envar, abspath))
     
     for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path).kexpand(user)))
+        script.environ.append('source {}'.format(AbsPath(path).kexpand(cluster)))
     
     for module in jobspecs.load + versionspec.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable).kexpand(user))
+        script.command.append(AbsPath(versionspec.executable).kexpand(cluster))
     except NotAbsolutePath:
         script.command.append(versionspec.executable)
 
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).kexpand(user)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).kexpand(user)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).kexpand(cluster)))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).kexpand(cluster)))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -316,7 +324,7 @@ def setup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for prefix, suffix, default in abspath.setkeys(user).splitkeys():
+            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys():
                 if optparts:
                     rootpath = rootpath.joinpath(prefix, optparts.pop(0), suffix)
                 elif default and not getattr(options, 'ignore-defaults'):
@@ -491,9 +499,6 @@ def localrun():
             f.write(jobid)
     
 parameters = []
-transfiles = []
 remotefiles = []
 script = Bunch()
-jobshare = '$JOBSHARE'
-userhost = user.user + '@' + cluster.name.lower()
 
