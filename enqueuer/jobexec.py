@@ -83,7 +83,7 @@ def dryrun():
         return
 
 @catch_keyboard_interrupt
-def transfer():
+def upload():
     try:
         inputdir, inputname, inputext = nextfile()
     except InputFileError as e:
@@ -320,7 +320,8 @@ def setup():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(getattr(options, parkey + '-set', '').split(':')):
+            defaults = getattr(options, parkey + '-set').split(':') if parkey + '-set' in options else []
+            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(defaults):
                 if default and not getattr(options, 'ignore-defaults'):
                     rootpath = rootpath.joinpath(prefix, default, suffix)
                 else:

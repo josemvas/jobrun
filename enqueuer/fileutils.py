@@ -60,7 +60,7 @@ class AbsPath(str):
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)
-    def splitkeys(self, defaults):
+    def splitkeys(self, keylist=[]):
         parts = []
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if lit.startswith('/'):
@@ -71,7 +71,7 @@ class AbsPath(str):
                         raise PathFormatError(self, 'does not have selectable components')
                 else:
                     try:
-                        parts.append((lit[1:], '', defaults[int(key)]))
+                        parts.append((lit[1:], '', keylist[int(key)]))
                     except IndexError:
                         parts.append((lit[1:], '', spec))
                     except ValueError:

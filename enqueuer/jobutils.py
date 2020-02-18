@@ -2,7 +2,7 @@
 from os import getcwd
 from . import messages
 from .utils import natsort
-from .fileutils import AbsPath, NotAbsolutePath
+from .fileutils import AbsPath, NotAbsolutePath, diritems
 from .chemistry import readxyz
 
 class InputFileError(Exception):

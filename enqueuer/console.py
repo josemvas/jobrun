@@ -20,7 +20,7 @@ loader_script = r'''
 '{python}' "$0" "$@"
 
 from enqueuer.jobinit import dry_run, remote_run, files
-from enqueuer.jobexec import wait, setup, connect, transfer, dryrun, remoterun, localrun
+from enqueuer.jobexec import wait, setup, connect, upload, dryrun, localrun, remoterun
 
 if dry_run:
     while files:
@@ -28,7 +28,7 @@ if dry_run:
 elif remote_run:
     connect()
     while files:
-        transfer()
+        upload()
     remoterun()
 else:
     setup()
