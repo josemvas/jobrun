@@ -65,7 +65,7 @@ def connect():
         call(['ssh', '-qfNMS', '~/.ssh/enqueuer/%r@%h', remote_run])
     cluster.remoteshare = check_output(['ssh', '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
     if not cluster.remoteshare:
-        check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'exit', remote_run], stderr=DEVNULL)
+        call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'exit', remote_run], stderr=DEVNULL)
         messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
         
 
