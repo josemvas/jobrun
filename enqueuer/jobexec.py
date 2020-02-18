@@ -72,7 +72,7 @@ def connect():
 @catch_keyboard_interrupt
 def remoterun():
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--' + option if value is True else '--' + option + '=' + value for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
