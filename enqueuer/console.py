@@ -52,11 +52,12 @@ def setup(relpath=False):
 
     libpath = []
     pyldpath = []
+    configured = []
     clusternames = {}
     hostdirnames = {}
-    prognames = {}
     progdirnames = {}
-    configured = []
+    prognames = {}
+    defaults = {}
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
     datadir = path.join(bindir, 'enqueuer.d')
@@ -75,14 +76,14 @@ def setup(relpath=False):
 
     if not clusternames:
         messages.warning('No hay hosts configurados')
-        return
+        raise SystemExit()
 
     if path.isfile(path.join(datadir, 'hostspec.json')):
-        defaulthost = readspec(path.join(datadir, 'hostspec.json')).clustername
-    else:
-        defaulthost = None
+        clustername = readspec(path.join(datadir, 'hostspec.json')).clustername
+        if clustername in clusternames.values():
+            defaults['cluster'] = clustername
 
-    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaulthost)]
+    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Generic'))]
     
     if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
         copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(datadir, 'hostspec.json'))
@@ -93,7 +94,7 @@ def setup(relpath=False):
 
     if not prognames:
         messages.warning('No hay programas configurados para este host')
-        return
+        raise SystemExit()
 
     if path.isdir(specdir):
         for dirname in listdir(specdir):
