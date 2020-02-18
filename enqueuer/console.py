@@ -82,7 +82,7 @@ def setup(relpath=False):
     else:
         defaulthost = None
 
-    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=sorted(clusternames.values(), key=natsort), default=defaulthost)]
+    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaulthost)]
     
     if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
         copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(datadir, 'hostspec.json'))
@@ -103,7 +103,7 @@ def setup(relpath=False):
     else:
         makedirs(specdir)
 
-    selprogdirs = [progdirnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(prognames.values(), key=natsort), default=[prognames[i] for i in configured])]
+    selprogdirs = [progdirnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=natsort(prognames.values()), default=[prognames[i] for i in configured])]
 
     for progdir in selprogdirs:
         makedirs(path.join(specdir, progdir))

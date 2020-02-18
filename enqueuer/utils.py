@@ -26,8 +26,11 @@ def q(string):
 def sq(string):
     return "'{0}'".format(string)
 
-def natsort(text):
-    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', text)]
+def natkey(string):
+    return [ int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string) ]
+
+def natsort(stringlist):
+    return sorted(stringlist, key=natkey)
 
 def alnum(string): 
     return ''.join(c for c in string if c.isalnum())

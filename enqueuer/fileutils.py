@@ -13,6 +13,10 @@ class PathFormatError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
+class EmptyDirectoryError(Exception):
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
+
 class AbsPath(str):
     def __new__(cls, *args, defaultroot=None):
         path = os.path.join(*args)
@@ -56,7 +60,7 @@ class AbsPath(str):
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)
-    def splitkeys(self):
+    def splitkeys(self, defaults):
         parts = []
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if lit.startswith('/'):
@@ -65,13 +69,22 @@ class AbsPath(str):
                         parts[-1][1] = lit[1:]
                     else:
                         raise PathFormatError(self, 'does not have selectable components')
-                elif not key:
-                    parts.append((lit[1:], '', spec))
                 else:
-                    raise PathFormatError(self, 'has unresolved keys')
+                    try:
+                        parts.append((lit[1:], '', defaults[int(key)]))
+                    except IndexError:
+                        parts.append((lit[1:], '', spec))
+                    except ValueError:
+                        raise PathFormatError(self, 'has invalid or unresolved keys')
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return parts
+    def listdir(self):
+        diritems = os.listdir(self)
+        if diritems:
+            return diritems
+        else:
+            raise EmptyDirectoryError(self, 'is empty')
     def parent(self):
         return AbsPath(os.path.dirname(self))
     def joinpath(self, *args):
@@ -84,8 +97,16 @@ class AbsPath(str):
         return os.path.isfile(self)
     def isdir(self):
         return os.path.isdir(self)
-    def listdir(self):
-            return sorted(os.listdir(self), key=natsort)
+
+def diritems(abspath):
+    try:
+        return natsort(abspath.listdir())
+    except FileNotFoundError:
+        messages.cfgerror('El directorio', abspath, 'no existe')
+    except NotADirectoryError:
+        messages.cfgerror('La ruta', abspath, 'no es un directorio')
+    except EmptyDirectoryError:
+        messages.cfgerror('El directorio', abspath, 'está vacío')
 
 def pathjoin(*args):
     return deepjoin(args, iter(pathseps))

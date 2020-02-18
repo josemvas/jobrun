@@ -56,25 +56,26 @@ try: cluster.head = jobspecs.headname.format(hostname=gethostname())
 except AttributeError:
     messages.cfgerror('No se definió la propiedad "headname" en la configuración')
 
-parser = ArgumentParser(prog=program, add_help=False, description='Ejecuta trabajos de Gaussian, VASP, deMon2k, Orca y DFTB+ en sistemas PBS, LSF y Slurm.')
+parser = ArgumentParser(prog=program, add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
 
 parser.add_argument('-l', '--list', action='store_true', help='Mostrar las opciones disponibles y salir.')
 parsed, remaining = parser.parse_known_args()
 
 if parsed.list:
-    if jobspecs.versions:
-        print('Versiones del programa')
-        printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
-    for parkey in jobspecs.parameters:
-        if parkey in jobspecs.defaults.parameters:
-            print('Conjuntos de parámetros', p(parkey))
-            abspath = AbsPath(jobspecs.defaults.parameters[parkey], defaultroot=getcwd())
-            findparameters(AbsPath('/'), abspath.setkeys(cluster).splitkeys(), 1)
     if jobspecs.keywords:
         print('Variables de interpolación')
         printchoices(choices=jobspecs.keywords)
+    if jobspecs.versions:
+        print('\nVersiones del programa')
+        printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
+    for parkey in jobspecs.parameters:
+        if parkey in jobspecs.defaults.parameters:
+            print('\nConjuntos de parámetros', p(parkey))
+            abspath = AbsPath(jobspecs.defaults.parameters[parkey], defaultroot=getcwd())
+            findparameters(AbsPath('/'), abspath.setkeys(cluster).splitkeys(), 1)
     raise SystemExit()
 
+#TODO: Set default=SUPPRESS for all options
 parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del ejecutable.')
 parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
 parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
@@ -89,8 +90,8 @@ parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com di
 parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como directorio de escritura.')
 
 sgroup = parser.add_mutually_exclusive_group()
-sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor')
-sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor')
+sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor.')
+sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor.')
 
 yngroup = parser.add_mutually_exclusive_group()
 yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
@@ -98,17 +99,18 @@ yngroup.add_argument('--no', dest='no', action='store_true', default=False, help
 
 if len(jobspecs.parameters) == 1:
     key = jobspecs.parameters[0]
-    parser.add_argument('-p', '--'+key+'-set', dest=key+'-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
-    parser.add_argument('-P', '--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
+    parser.add_argument('-p', '--'+key+'-set', dest=key+'-set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+    parser.add_argument('-P', '--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
 else:
     for key in jobspecs.parameters:
-        parser.add_argument('--'+key+'-set', dest=key+'-set', metavar='PARAMSET', help='Nombre del conjunto de parámetros.')
-        parser.add_argument('--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', help='Ruta del directorio de parámetros.')
+        parser.add_argument('--'+key+'-set', dest=key+'-set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+        parser.add_argument('--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
 
 options, remaining = parser.parse_known_args(remaining)
+#print(options)
 
 for key in jobspecs.keywords:
-    parser.add_argument('--'+key, metavar=key.upper(), help='Valor de la variable {}'.format(key.upper()))
+    parser.add_argument('--'+key, metavar=key.upper(), help='Valor de la variable {}.'.format(key.upper()))
 
 parsed, remaining = parser.parse_known_args(remaining)
 
@@ -117,7 +119,7 @@ for key, value in vars(parsed).items():
 
 rgroup = parser.add_mutually_exclusive_group()
 rgroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-rgroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Ejecutar el trabajo en el host remoto HOSTNAME.')
+rgroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
 mgroup = parser.add_mutually_exclusive_group()
 mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
@@ -126,7 +128,7 @@ mgroup.add_argument('-M', '--molname', metavar='MOLNAME', help='Nombre de los ar
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
 parser.add_argument('files', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
-parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir')
+parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
 
 parsed = parser.parse_args(remaining)
 globals().update(vars(parsed))

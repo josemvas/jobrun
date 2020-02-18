@@ -6,9 +6,9 @@ from subprocess import call, check_call, check_output, CalledProcessError, DEVNU
 from importlib import import_module
 from . import dialogs
 from . import messages
-from .utils import Bunch, IdentityList, alnum, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
+from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
 from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, molname, remote_run
-from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove, makedirs, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import InputFileError
 from .boolparse import BoolParser
 from .details import mpilibs
@@ -108,9 +108,9 @@ def setup():
         jobspecs.defaults.pop('version')
     
     if options.sort:
-        files.sort(key=natsort)
+        files.sort(key=natkey)
     elif getattr(options, 'sort-reverse'):
-        files.sort(key=natsort, reverse=True)
+        files.sort(key=natkey, reverse=True)
     
     if not options.wait:
         try: options.wait = float(jobspecs.defaults.waitime)
@@ -217,7 +217,7 @@ def setup():
                 else:
                     messages.opterror('La versión establecida por defecto es inválida')
             else:
-                options.version = dialogs.chooseone('Seleccione una versión', choices=sorted(list(jobspecs.versions), key=natsort))
+                options.version = dialogs.chooseone('Seleccione una versión', choices=natsort(jobspecs.versions.keys()))
                 if not options.version in jobspecs.versions:
                     messages.opterror('La versión seleccionada es inválida')
     else:
@@ -309,38 +309,24 @@ def setup():
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
     for parkey in jobspecs.parameters:
-        if getattr(options, parkey + '-path'):
+        if parkey + '-path' in options:
             try:
                 rootpath = AbsPath(getattr(options, parkey + '-path'))
             except NotAbsolutePath:
                 rootpath = AbsPath(getcwd(), getattr(options, parkey + '-path'))
         elif parkey in jobspecs.defaults.parameters:
-            if getattr(options, parkey + '-set'):
-                optparts = getattr(options, parkey + '-set').split(':')
-            else:
-                optparts = []
             try:
                 abspath = AbsPath(jobspecs.defaults.parameters[parkey])
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys():
-                if optparts:
-                    rootpath = rootpath.joinpath(prefix, optparts.pop(0), suffix)
-                elif default and not getattr(options, 'ignore-defaults'):
+            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(getattr(options, parkey + '-set', '').split(':')):
+                if default and not getattr(options, 'ignore-defaults'):
                     rootpath = rootpath.joinpath(prefix, default, suffix)
                 else:
-                    rootpath = rootpath.joinpath(prefix)
-                    try:
-                        diritems = rootpath.listdir()
-                    except FileNotFoundError:
-                        messages.cfgerror('El directorio', self, 'no existe')
-                    except NotADirectoryError:
-                        messages.cfgerror('La ruta', self, 'no es un directorio')
-                    if not diritems:
-                        messages.cfgerror('El directorio', self, 'está vacío')
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=diritems)
-                    rootpath = rootpath.joinpath(choice, suffix)
+                    choices = diritems(rootpath.joinpath(prefix))
+                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=choices)
+                    rootpath = rootpath.joinpath(prefix, choice, suffix)
         else:
             messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():
@@ -476,7 +462,7 @@ def localrun():
         f.write('#!/bin/bash' + '\n')
         f.write(''.join(i + '\n' for i in script.comments))
         f.write(''.join(i + '\n' for i in script.environ))
-        f.write('for host in ${hosts[*]}; do echo "<host>$host</host>"; done' + '\n')
+        f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.mkdir(script.workdir) + '\n')
         f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
         f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
@@ -494,7 +480,7 @@ def localrun():
         messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
         return
     else:
-        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) de CPU con el jobid', jobid)
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.ncore), 'núcleo(s) en', cluster.name, 'con el jobid', jobid)
         with open(pathjoin(hiddendir, 'jobid'), 'w') as f:
             f.write(jobid)
     

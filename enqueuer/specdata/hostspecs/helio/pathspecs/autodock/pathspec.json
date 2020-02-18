@@ -7,8 +7,8 @@
    "defaults": {
       "version": "4.2.6",
       "parameters": {
-         "ligand": "{:ligands}",
-         "receptor": "{:maps}"
+         "ligand": "{0:ligands}",
+         "receptor": "{0:maps}"
       }
    }
 }

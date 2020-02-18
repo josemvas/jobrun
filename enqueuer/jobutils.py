@@ -10,27 +10,19 @@ class InputFileError(Exception):
         super().__init__(' '.join(message))
 
 def printchoices(choices, indent=1, default=None):
-    for choice in sorted(choices, key=natsort):
+    for choice in natsort(choices):
         if choice == default:
             print(' '*2*indent + choice + ' ' + '(default)')
         else:
             print(' '*2*indent + choice)
 
-def findparameters(rootpath, pathparts, indent):
-    if pathparts:
-        prefix, suffix, default = pathparts.pop(0)
-        rootpath = rootpath.joinpath(prefix)
-        try:
-            diritems = rootpath.listdir()
-        except FileNotFoundError:
-            messages.cfgerror('El directorio', self, 'no existe')
-        except NotADirectoryError:
-            messages.cfgerror('La ruta', self, 'no es un directorio')
-        if not diritems:
-            messages.cfgerror('El directorio', self, 'está vacío')
-        printchoices(choices=diritems, default=default, indent=indent)
-        for item in diritems:
-            findparameters(rootpath.joinpath(item, suffix), pathparts, indent + 1)
+def findparameters(rootpath, components, indent):
+    if components:
+        prefix, suffix, default = components.pop(0)
+        choices = diritems(rootpath.joinpath(prefix))
+        printchoices(choices=choices, default=default, indent=indent)
+        for choice in choices:
+            findparameters(rootpath.joinpath(prefix, choice, suffix), components, indent + 1)
             
 def readmol(molfile, molname, keywords):
     if molfile:
