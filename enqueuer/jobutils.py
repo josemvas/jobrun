@@ -24,30 +24,24 @@ def findparameters(rootpath, components, indent):
         for choice in choices:
             findparameters(rootpath.joinpath(prefix, choice, suffix), components, indent + 1)
             
-def readmol(molfile, molname, keywords):
-    if molfile:
-        try:
-            molfile = AbsPath(molfile)
-        except NotAbsolutePath:
-            molfile = AbsPath(getcwd(), molfile)
-        if molfile.isfile():
-            if molfile.hasext('.xyz'):
-                molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
-                for i, step in enumerate(readxyz(molfile), 1):
-                    keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
-            else:
-                messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
-        elif molfile.isdir():
-            messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
-        elif molfile.exists():
-            messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
+def readmol(molfile, keywords):
+    try:
+        molfile = AbsPath(molfile)
+    except NotAbsolutePath:
+        molfile = AbsPath(getcwd(), molfile)
+    if molfile.isfile():
+        if molfile.hasext('.xyz'):
+            molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
+            for i, step in enumerate(readxyz(molfile), 1):
+                keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
         else:
-            messages.opterror('El archivo de coordenadas', molfile, 'no existe')
-        keywords['file'] = molfile
-        molname = molfile.stem
-    elif molname:
-        keywords['name'] = molname
+            messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
+    elif molfile.isdir():
+        messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
+    elif molfile.exists():
+        messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
     else:
-        messages.opterror('Debe especificar el archivo de coordenadas o un nombre para interpolar el archivo de entrada')
-    return molname
+        messages.opterror('El archivo de coordenadas', molfile, 'no existe')
+    keywords['file'] = molfile
+    return molfile.stem
 

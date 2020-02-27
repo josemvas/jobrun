@@ -39,11 +39,12 @@ except KeyError:
 hostspec = path.join(specdir, 'hostspec.json')
 corespec = path.join(specdir, 'corespec.json')
 pathspec = path.join(specdir, 'pathspec.json')
-userspec = path.join(cluster.home, '.jobspec.json')
 
 jobspecs.merge(readspec(hostspec))
 jobspecs.merge(readspec(corespec))
 jobspecs.merge(readspec(pathspec))
+
+userspec = path.join(cluster.home, '.jobspecs', program + '.json')
 
 if path.isfile(userspec):
     jobspecs.merge(readspec(userspec))
@@ -80,7 +81,6 @@ parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del
 parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
 parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
-parser.add_argument('-j', '--jobname', metavar='JOBNAME', help='Cambiar el nombre del trabajo por JOBNAME.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
@@ -99,12 +99,12 @@ yngroup.add_argument('--no', dest='no', action='store_true', default=False, help
 
 if len(jobspecs.parameters) == 1:
     key = jobspecs.parameters[0]
-    parser.add_argument('-p', '--'+key+'-set', dest=key+'-set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-    parser.add_argument('-P', '--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
+    parser.add_argument('-p', '--' + key + 'set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+    parser.add_argument('-P', '--' + key + 'path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
 else:
     for key in jobspecs.parameters:
-        parser.add_argument('--'+key+'-set', dest=key+'-set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-        parser.add_argument('--'+key+'-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
+        parser.add_argument('--' + key + 'set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+        parser.add_argument('--' + key + 'path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
 
 options, remaining = parser.parse_known_args(remaining)
 #print(options)
@@ -121,9 +121,9 @@ rgroup = parser.add_mutually_exclusive_group()
 rgroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 rgroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
-mgroup = parser.add_mutually_exclusive_group()
-mgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
-mgroup.add_argument('-M', '--molname', metavar='MOLNAME', help='Nombre de los archivos de interpolación.')
+jgroup = parser.add_mutually_exclusive_group()
+jgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+jgroup.add_argument('-j', '--jobprefix', metavar='JOBPREFIX', help='Anteponer el prefijo JOBPREFIX al nombre del trabajo.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
@@ -137,7 +137,11 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    molname = readmol(molfile, molname, keywords)
-elif molfile or molname or keywords:
-    messages.opterror('Se especificaron variables de interpolación pero no se van a interpolar los archivos de entrada')
+    if not jobprefix:
+        if molfile:
+            jobprefix = readmol(molfile, keywords)
+        else:
+            messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
+elif molfile or keywords:
+    messages.opterror('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
 

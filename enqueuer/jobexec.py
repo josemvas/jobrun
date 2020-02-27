@@ -2,12 +2,12 @@
 import sys
 from time import sleep
 from os import path, execv, getcwd
-from subprocess import call, check_call, check_output, CalledProcessError, DEVNULL
+from subprocess import call, check_output
 from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, molname, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import InputFileError
 from .boolparse import BoolParser
@@ -41,7 +41,7 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if interpolate:
         templatename = inputname
-        inputname = '.'.join((molname, inputname))
+        inputname = '.'.join((jobprefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
@@ -58,21 +58,15 @@ def wait():
 
 @catch_keyboard_interrupt
 def connect():
-    makedirs(pathjoin(cluster.home, '.ssh', 'enqueuer'))
-    try:
-        check_call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'check', remote_run], stderr=DEVNULL)
-    except CalledProcessError:
-        call(['ssh', '-qfNMS', '~/.ssh/enqueuer/%r@%h', remote_run])
-    cluster.remoteshare = check_output(['ssh', '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
+    cluster.remoteshare = check_output(['ssh', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
     if not cluster.remoteshare:
-        call(['ssh', '-qS', '~/.ssh/enqueuer/%r@%h', '-O', 'exit', remote_run], stderr=DEVNULL)
         messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
         
 
 @catch_keyboard_interrupt
 def remoterun():
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-qtS', '~/.ssh/enqueuer/%r@%h', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-t', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -96,7 +90,7 @@ def upload():
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-qRtze', 'ssh -qS ~/.ssh/enqueuer/%r@%h'] + transferlist + [remote_run + ':' + pathjoin(cluster.remoteshare, userhost)])
+    call(['rsync', '-qRtz'] + transferlist + [remote_run + ':' + pathjoin(cluster.remoteshare, userhost)])
 
 @catch_keyboard_interrupt
 def setup():
@@ -308,33 +302,6 @@ def setup():
     else:
         messages.cfgerror('El método de copia', q(jobspecs.hostcopy), 'no es válido')
     
-    for parkey in jobspecs.parameters:
-        if parkey + '-path' in options:
-            try:
-                rootpath = AbsPath(getattr(options, parkey + '-path'))
-            except NotAbsolutePath:
-                rootpath = AbsPath(getcwd(), getattr(options, parkey + '-path'))
-        elif parkey in jobspecs.defaults.parameters:
-            try:
-                abspath = AbsPath(jobspecs.defaults.parameters[parkey])
-            except NotAbsolutePath:
-                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
-            rootpath = AbsPath('/')
-            defaults = getattr(options, parkey + '-set').split(':') if parkey + '-set' in options else []
-            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(defaults):
-                if default and not getattr(options, 'ignore-defaults'):
-                    rootpath = rootpath.joinpath(prefix, default, suffix)
-                else:
-                    choices = diritems(rootpath.joinpath(prefix))
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(parkey), choices=choices)
-                    rootpath = rootpath.joinpath(prefix, choice, suffix)
-        else:
-            messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
-        if rootpath.exists():
-            parameters.append(rootpath)
-        else:
-            messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
-    
 @catch_keyboard_interrupt
 def localrun():
 
@@ -362,17 +329,39 @@ def localrun():
     progkey = jobspecs.progkey + alnum(options.version)
 
     if inputname.endswith('.' + progkey):
-        bareinputname = inputname[:-len(progkey)-1]
+        jobname = inputname[:-len(progkey)-1]
     elif inputname.endswith('.' + jobspecs.progkey):
-        bareinputname = inputname[:-len(jobspecs.progkey)-1]
+        jobname = inputname[:-len(jobspecs.progkey)-1]
     else:
-        bareinputname = inputname
+        jobname = inputname
 
-    if options.jobname:
-        jobname = options.jobname
-    else:
-        jobname = bareinputname
-
+    for parkey in jobspecs.parameters:
+        if parkey + 'path' in options:
+            try:
+                rootpath = AbsPath(getattr(options, parkey + 'path'))
+            except NotAbsolutePath:
+                rootpath = AbsPath(getcwd(), getattr(options, parkey + 'path'))
+        elif parkey in jobspecs.defaults.parameters:
+            try:
+                abspath = AbsPath(jobspecs.defaults.parameters[parkey])
+            except NotAbsolutePath:
+                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
+            rootpath = AbsPath('/')
+            defaults = getattr(options, parkey + 'set').split(':') if parkey + 'set' in options else []
+            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(defaults):
+                if default and not getattr(options, 'ignore-defaults'):
+                    rootpath = rootpath.joinpath(prefix, default, suffix)
+                else:
+                    choices = diritems(rootpath.joinpath(prefix))
+                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
+                    rootpath = rootpath.joinpath(prefix, choice, suffix)
+        else:
+            messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
+        if rootpath.exists():
+            parameters.append(rootpath)
+        else:
+            messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
+    
     if options.outdir:
         try:
             outputdir = AbsPath(options.outdir)
