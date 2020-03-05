@@ -28,7 +28,7 @@ class AbsPath(str):
                 raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
-        obj.stem, obj.suffix = os.path.splitext(obj.name)
+        obj.stem, obj.extension = os.path.splitext(obj.name)
         return obj
     def kexpand(self, keydict):
         formatted = ''
@@ -89,8 +89,8 @@ class AbsPath(str):
         return AbsPath(os.path.dirname(self))
     def joinpath(self, *args):
         return AbsPath(self, *args)
-    def hasext(self, suffix):
-        return self.suffix == suffix
+    def hasext(self, extension):
+        return self.extension == extension
     def exists(self):
         return os.path.exists(self)
     def isfile(self):

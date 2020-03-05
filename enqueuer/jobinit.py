@@ -89,9 +89,9 @@ parser.add_argument('--move', action='store_true', help='Mover los archivos de e
 parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com directorio de salida.')
 parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como directorio de escritura.')
 
-sgroup = parser.add_mutually_exclusive_group()
-sgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor.')
-sgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor.')
+sortgroup = parser.add_mutually_exclusive_group()
+sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor.')
+sortgroup.add_argument('-S', '--sort-reverse', dest='sort-reverse', action='store_true', help='Ordenar los argumentos numéricamente de mayor a menor.')
 
 yngroup = parser.add_mutually_exclusive_group()
 yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
@@ -117,13 +117,13 @@ parsed, remaining = parser.parse_known_args(remaining)
 for key, value in vars(parsed).items():
     if value: keywords[key] = value
 
-rgroup = parser.add_mutually_exclusive_group()
-rgroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-rgroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
+rungroup = parser.add_mutually_exclusive_group()
+rungroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+rungroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
-jgroup = parser.add_mutually_exclusive_group()
-jgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
-jgroup.add_argument('-j', '--jobprefix', metavar='JOBPREFIX', help='Anteponer el prefijo JOBPREFIX al nombre del trabajo.')
+molgroup = parser.add_mutually_exclusive_group()
+molgroup.add_argument('-o', '--prefix', action='append', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
+molgroup.add_argument('-m', '--molfile', action='append', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
@@ -137,9 +137,9 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    if not jobprefix:
+    if not prefix:
         if molfile:
-            jobprefix = readmol(molfile, keywords)
+            prefix = readmol(molfile, keywords)
         else:
             messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
 elif molfile or keywords:

@@ -18,11 +18,11 @@ def printchoices(choices, indent=1, default=None):
 
 def findparameters(rootpath, components, indent):
     if components:
-        prefix, suffix, default = components.pop(0)
-        choices = diritems(rootpath.joinpath(prefix))
+        prepath, postpath, default = components.pop(0)
+        choices = diritems(rootpath.joinpath(prepath))
         printchoices(choices=choices, default=default, indent=indent)
         for choice in choices:
-            findparameters(rootpath.joinpath(prefix, choice, suffix), components, indent + 1)
+            findparameters(rootpath.joinpath(prepath, choice, postpath), components, indent + 1)
             
 def readmol(molfile, keywords):
     try:

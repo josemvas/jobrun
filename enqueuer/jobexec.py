@@ -7,7 +7,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, prefix, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import InputFileError
 from .boolparse import BoolParser
@@ -41,7 +41,7 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if interpolate:
         templatename = inputname
-        inputname = '.'.join((jobprefix, inputname))
+        inputname = '.'.join((prefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
@@ -348,13 +348,13 @@ def localrun():
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
             defaults = getattr(options, parkey + 'set').split(':') if parkey + 'set' in options else []
-            for prefix, suffix, default in abspath.setkeys(cluster).splitkeys(defaults):
+            for prepath, postpath, default in abspath.setkeys(cluster).splitkeys(defaults):
                 if default and not getattr(options, 'ignore-defaults'):
-                    rootpath = rootpath.joinpath(prefix, default, suffix)
+                    rootpath = rootpath.joinpath(prepath, default, postpath)
                 else:
-                    choices = diritems(rootpath.joinpath(prefix))
+                    choices = diritems(rootpath.joinpath(prepath))
                     choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
-                    rootpath = rootpath.joinpath(prefix, choice, suffix)
+                    rootpath = rootpath.joinpath(prepath, choice, postpath)
         else:
             messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():
