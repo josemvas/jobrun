@@ -5,6 +5,9 @@ from .utils import natsort
 from .fileutils import AbsPath, NotAbsolutePath, diritems
 from .chemistry import readxyz
 
+class NonMatchingFile(Exception):
+    pass
+
 class InputFileError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))

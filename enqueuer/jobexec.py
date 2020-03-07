@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+from re import match
 from time import sleep
 from os import path, execv, getcwd
 from subprocess import call, check_output
@@ -7,9 +8,9 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, prefix, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, molprefix, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
-from .jobutils import InputFileError
+from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
 from .details import mpilibs
 
@@ -25,6 +26,19 @@ def nextfile():
         filepath = AbsPath(getcwd(), file)
     inputdir = filepath.parent()
     basename = filepath.name
+    if options.filter:
+        matched = match(options.filter + '$', basename)
+        if matched:
+            for parkey in jobspecs.parameters:
+                if parkey + 'set' in options:
+                    try:
+                        parvalue = getattr(options, parkey + 'set').format(matched.groups())
+                    except IndexError:
+                        messages.opterror('El conjunto de parámetros', parkey, 'contiene variables indefinidas')
+                    else:
+                        setattr(options, parkey + 'set', parvalue)
+        else:
+            raise NonMatchingFile()
     if filepath.isfile():
         for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
             if basename.endswith('.' + key):
@@ -41,7 +55,7 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if interpolate:
         templatename = inputname
-        inputname = '.'.join((prefix, inputname))
+        inputname = '.'.join((molprefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
@@ -72,6 +86,8 @@ def remoterun():
 def dryrun():
     try:
         inputdir, inputname, inputext = nextfile()
+    except NonMatchingFile:
+        pass
     except InputFileError as e:
         messages.failure(e)
         return
@@ -80,6 +96,8 @@ def dryrun():
 def upload():
     try:
         inputdir, inputname, inputext = nextfile()
+    except NonMatchingFile:
+        pass
     except InputFileError as e:
         messages.failure(e)
         return
@@ -94,6 +112,10 @@ def upload():
 
 @catch_keyboard_interrupt
 def setup():
+
+    script.environ = []
+    script.command = []
+    script.comments = []
 
     if not jobspecs.scheduler:
         messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
@@ -143,10 +165,6 @@ def setup():
         except NotAbsolutePath:
             messages.cfgerror(jobspecs.defaults.scratchdir, 'no es una ruta absoluta (scratchdir)')
 
-    script.comments = []
-    script.environ = []
-    script.command = []
-
     if not options.queue:
         if jobspecs.defaults.queue:
             options.queue = jobspecs.defaults.queue
@@ -159,6 +177,11 @@ def setup():
     if not jobspecs.progkey:
         messages.cfgerror('No se especificó la clave del programa (progkey)')
     
+    for parkey in jobspecs.parameters:
+        if parkey + 'set' in options:
+            if getattr(options, parkey + 'set').startswith('/') or getattr(options, parkey + 'set').endswith('/'):
+                messages.opterror('El nombre del conjunto de parámetros no puede empezar ni terminar con una diagonal')
+
     if 'mpilauncher' in jobspecs:
         try: jobspecs.mpilauncher = boolstrs[jobspecs.mpilauncher]
         except KeyError:
@@ -307,6 +330,8 @@ def localrun():
 
     try:
         inputdir, inputname, inputext = nextfile()
+    except NonMatchingFile:
+        pass
     except InputFileError as e:
         messages.failure(e)
         return
@@ -347,7 +372,7 @@ def localrun():
             except NotAbsolutePath:
                 abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
-            defaults = getattr(options, parkey + 'set').split(':') if parkey + 'set' in options else []
+            defaults = getattr(options, parkey + 'set').split('/') if parkey + 'set' in options else []
             for prepath, postpath, default in abspath.setkeys(cluster).splitkeys(defaults):
                 if default and not getattr(options, 'ignore-defaults'):
                     rootpath = rootpath.joinpath(prepath, default, postpath)

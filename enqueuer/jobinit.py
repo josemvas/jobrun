@@ -82,6 +82,7 @@ parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la col
 parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
+parser.add_argument('-f', '--filter', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
 parser.add_argument('--node', metavar='NODENAME', help='Solicitar un nodo específico de ejecución.')
@@ -122,8 +123,8 @@ rungroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los
 rungroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
 molgroup = parser.add_mutually_exclusive_group()
-molgroup.add_argument('-o', '--prefix', action='append', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
-molgroup.add_argument('-m', '--molfile', action='append', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+molgroup.add_argument('-M', '--molprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
+molgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
@@ -137,9 +138,9 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    if not prefix:
+    if not molprefix:
         if molfile:
-            prefix = readmol(molfile, keywords)
+            molprefix = readmol(molfile, keywords)
         else:
             messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
 elif molfile or keywords:
