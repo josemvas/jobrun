@@ -8,7 +8,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, molprefix, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, prefix, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
@@ -20,10 +20,7 @@ jobenvars = Bunch(scheduler.jobenvars)
 
 def nextfile():
     file = files.pop(0)
-    try:
-        filepath = AbsPath(file)
-    except NotAbsolutePath:
-        filepath = AbsPath(getcwd(), file)
+    filepath = AbsPath(file, cwdir=getcwd())
     inputdir = filepath.parent()
     basename = filepath.name
     if options.filter:
@@ -55,7 +52,7 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if interpolate:
         templatename = inputname
-        inputname = '.'.join((molprefix, inputname))
+        inputname = '.'.join((prefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
@@ -155,10 +152,7 @@ def setup():
         messages.cfgerror('No se especificó el directorio temporal de escritura por defecto (scratchdir)')
 
     if options.scrdir:
-        try:
-            script.workdir = AbsPath(options.scrdir, jobenvars.jobid)
-        except NotAbsolutePath:
-            script.workdir = AbsPath(getcwd(), options.scrdir, jobenvars.jobid)
+        script.workdir = AbsPath(options.scrdir, jobenvars.jobid, cwdir=getcwd())
     else:
         try:
             script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobenvars.jobid)
@@ -241,37 +235,34 @@ def setup():
         messages.cfgerror('La lista de versiones no existe o está vacía (versions)')
 
     if options.version in jobspecs.versions:
-        versionspec = jobspecs.versions[options.version]
+        versionspecs = jobspecs.versions[options.version]
     else:
        messages.opterror('La versión seleccionada no es válida')
     
-    if not versionspec.executable:
+    if not versionspecs.executable:
         messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
     
     script.environ.extend(jobspecs.onscript)
 
-    for envar, path in jobspecs.export.items() | versionspec.export.items():
-        try:
-            abspath = AbsPath(path).kexpand(cluster)
-        except NotAbsolutePath:
-            abspath = AbsPath(path.format(workdir=script.workdir))
+    for envar, path in jobspecs.export.items() | versionspecs.export.items():
+        abspath = AbsPath(path, cwdir=script.workdir).setkeys(cluster).validate()
         script.environ.append('export {}={}'.format(envar, abspath))
     
-    for path in jobspecs.source + versionspec.source:
-        script.environ.append('source {}'.format(AbsPath(path).kexpand(cluster)))
+    for path in jobspecs.source + versionspecs.source:
+        script.environ.append('source {}'.format(AbsPath(path).setkeys(cluster).validate()))
     
-    for module in jobspecs.load + versionspec.load:
+    for module in jobspecs.load + versionspecs.load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspec.executable).kexpand(cluster))
+        script.command.append(AbsPath(versionspecs.executable).setkeys(cluster).validate())
     except NotAbsolutePath:
-        script.command.append(versionspec.executable)
+        script.command.append(versionspecs.executable)
 
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).kexpand(cluster)))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).kexpand(cluster)))
+    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
+    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     
     if options.node:
         script.comments.append(jobformat.hosts(options.node))
@@ -362,18 +353,12 @@ def localrun():
 
     for parkey in jobspecs.parameters:
         if parkey + 'path' in options:
-            try:
-                rootpath = AbsPath(getattr(options, parkey + 'path'))
-            except NotAbsolutePath:
-                rootpath = AbsPath(getcwd(), getattr(options, parkey + 'path'))
+            rootpath = AbsPath(getattr(options, parkey + 'path'), cwdir=getcwd())
         elif parkey in jobspecs.defaults.parameters:
-            try:
-                abspath = AbsPath(jobspecs.defaults.parameters[parkey])
-            except NotAbsolutePath:
-                abspath = AbsPath(getcwd(), jobspecs.defaults.parameters[parkey])
             rootpath = AbsPath('/')
+            abspath = AbsPath(jobspecs.defaults.parameters[parkey], cwdir=getcwd())
             defaults = getattr(options, parkey + 'set').split('/') if parkey + 'set' in options else []
-            for prepath, postpath, default in abspath.setkeys(cluster).splitkeys(defaults):
+            for prepath, postpath, default in abspath.setkeys(cluster).tokenize(defaults):
                 if default and not getattr(options, 'ignore-defaults'):
                     rootpath = rootpath.joinpath(prepath, default, postpath)
                 else:
@@ -388,15 +373,9 @@ def localrun():
             messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
     
     if options.outdir:
-        try:
-            outputdir = AbsPath(options.outdir)
-        except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, options.outdir)
+        outputdir = AbsPath(options.outdir, cwdir=inputdir)
     else:
-        try:
-            outputdir = AbsPath(jobspecs.defaults.outputdir).kexpand(dict(jobname=jobname))
-        except NotAbsolutePath:
-            outputdir = AbsPath(inputdir, jobspecs.defaults.outputdir).kexpand(dict(jobname=jobname))
+        outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
 
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey

@@ -28,10 +28,7 @@ def findparameters(rootpath, components, indent):
             findparameters(rootpath.joinpath(prepath, choice, postpath), components, indent + 1)
             
 def readmol(molfile, keywords):
-    try:
-        molfile = AbsPath(molfile)
-    except NotAbsolutePath:
-        molfile = AbsPath(getcwd(), molfile)
+    molfile = AbsPath(molfile, cwdir=getcwd())
     if molfile.isfile():
         if molfile.hasext('.xyz'):
             molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format

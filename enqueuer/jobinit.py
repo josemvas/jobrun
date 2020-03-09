@@ -19,11 +19,9 @@ jobspecs = SpecBunch()
 keywords = {}
 
 try:
-    specdir = AbsPath(environ['SPECPATH'])
+    specdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
 except KeyError:
     messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
-except NotAbsolutePath:
-    specdir = AbsPath(getcwd(), environ['SPECPATH'])
 
 cluster.user = getuser()
 cluster.home = path.expanduser('~')
@@ -31,7 +29,6 @@ cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 program = path.basename(sys.argv[0])
 
 try:
-    envars.TELEGRAM_BOT_URL = environ['TELEGRAM_BOT_URL']
     envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
 except KeyError:
     pass
@@ -72,8 +69,8 @@ if parsed.list:
     for parkey in jobspecs.parameters:
         if parkey in jobspecs.defaults.parameters:
             print('\nConjuntos de parámetros', p(parkey))
-            abspath = AbsPath(jobspecs.defaults.parameters[parkey], defaultroot=getcwd())
-            findparameters(AbsPath('/'), abspath.setkeys(cluster).splitkeys(), 1)
+            abspath = AbsPath(jobspecs.defaults.parameters[parkey], cwdir=getcwd())
+            findparameters(AbsPath('/'), abspath.setkeys(cluster).tokenize(), 1)
     raise SystemExit()
 
 #TODO: Set default=SUPPRESS for all options
@@ -123,7 +120,7 @@ rungroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los
 rungroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
 molgroup = parser.add_mutually_exclusive_group()
-molgroup.add_argument('-M', '--molprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
+molgroup.add_argument('-o', '--prefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 molgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
@@ -138,9 +135,9 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    if not molprefix:
+    if not prefix:
         if molfile:
-            molprefix = readmol(molfile, keywords)
+            prefix = readmol(molfile, keywords)
         else:
             messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
 elif molfile or keywords:

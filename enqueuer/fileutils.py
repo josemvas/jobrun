@@ -18,35 +18,20 @@ class EmptyDirectoryError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, *args, defaultroot=None):
+    def __new__(cls, *args, cwdir=None):
         path = os.path.join(*args)
+        if pathsplit(path) != [j for i in args for j in pathsplit(i)]:
+            raise PathFormatError('Conflicting path components:', *args)
         path = os.path.normpath(path)
         if not os.path.isabs(path):
-            if isinstance(defaultroot, str) and os.path.isabs(defaultroot):
-                path = os.path.join(defaultroot, path)
+            if isinstance(cwdir, str) and os.path.isabs(cwdir):
+                path = os.path.join(cwdir, path)
             else:
                 raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
         obj.stem, obj.extension = os.path.splitext(obj.name)
         return obj
-    def kexpand(self, keydict):
-        formatted = ''
-        for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if lit.startswith('/'):
-                if key is None:
-                    formatted += lit
-                else:
-                    try:
-                        formatted += lit + keydict[key]
-                    except KeyError:
-                        if spec:
-                            formatted += lit + spec
-                        else:
-                            raise PathFormatError(self, 'has unresolved keys')
-            else:
-                raise PathFormatError(self, 'has partial variable components')
-        return AbsPath(formatted)
     def setkeys(self, keydict):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
@@ -60,7 +45,18 @@ class AbsPath(str):
             else:
                 raise PathFormatError(self, 'has partial variable components')
         return AbsPath(formatted)
-    def splitkeys(self, keylist=[]):
+    def validate(self):
+        formatted = ''
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if lit.startswith('/'):
+                if key is None:
+                    formatted += lit
+                else:
+                    raise PathFormatError(self, 'has undefined keys')
+            else:
+                raise PathFormatError(self, 'has partial variable components')
+        return AbsPath(formatted)
+    def tokenize(self, defaults=[]):
         parts = []
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if lit.startswith('/'):
@@ -71,7 +67,7 @@ class AbsPath(str):
                         raise PathFormatError(self, 'does not have selectable components')
                 else:
                     try:
-                        parts.append((lit[1:], '', keylist[int(key)]))
+                        parts.append((lit[1:], '', defaults[int(key)]))
                     except IndexError:
                         parts.append((lit[1:], '', spec))
                     except ValueError:
@@ -110,6 +106,18 @@ def diritems(abspath):
 
 def pathjoin(*args):
     return deepjoin(args, iter(pathseps))
+
+def pathsplit(path):
+    if not path:
+        return []
+    elif path == len(path) * os.path.sep:
+        return [os.path.sep]
+    else:
+        path = os.path.normpath(path)
+        if path.startswith(os.path.sep):
+            return [os.path.sep] + path[1:].split(os.path.sep)
+        else:
+            return path.split(os.path.sep)
 
 def makedirs(path):
     try: os.makedirs(path)

@@ -36,10 +36,7 @@ def inputpath(prompt='', check=lambda _:True):
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            try:
-                anspath = AbsPath(answer)
-            except NotAbsolutePath:
-                anspath = AbsPath(getcwd(), answer)
+            anspath = AbsPath(answer, cwdir=getcwd())
             if check(anspath):
                 return anspath
             else:
