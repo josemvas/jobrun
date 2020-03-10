@@ -6,7 +6,7 @@ from .details import dictags, listags
 
 class SpecList(list):
     def __init__(self, plainlist=[]):
-        for item in sorted(plainlist):
+        for item in plainlist:
             if isinstance(item, dict):
                 self.append(SpecBunch(item))
             elif isinstance(item, list):
@@ -31,7 +31,10 @@ class SpecBunch(Bunch):
             if isinstance(value, dict):
                 self[key] = SpecBunch(value)
             elif isinstance(value, list):
-                self[key] = SpecList(value)
+                if key.endswith('script'):
+                    self[key] = SpecList(value)
+                else:
+                    self[key] = SpecList(sorted(value))
             else:
                 self[key] = value
     def __missing__(self, item):

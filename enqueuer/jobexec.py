@@ -8,7 +8,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, prefix, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_run
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
@@ -23,24 +23,24 @@ def nextfile():
     filepath = AbsPath(file, cwdir=getcwd())
     inputdir = filepath.parent()
     basename = filepath.name
-    if options.filter:
-        matched = match(options.filter + '$', basename)
-        if matched:
-            for parkey in jobspecs.parameters:
-                if parkey + 'set' in options:
-                    try:
-                        parvalue = getattr(options, parkey + 'set').format(matched.groups())
-                    except IndexError:
-                        messages.opterror('El conjunto de parámetros', parkey, 'contiene variables indefinidas')
-                    else:
-                        setattr(options, parkey + 'set', parvalue)
-        else:
-            raise NonMatchingFile()
     if filepath.isfile():
         for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
             if basename.endswith('.' + key):
-                inputname = basename[:-len(key)-1]
                 inputext = key
+                inputname = basename[:-len(key)-1]
+                if options.filter:
+                    matched = match(options.filter, inputname)
+                    if matched:
+                        for parkey in jobspecs.parameters:
+                            try:
+                                if parkey + 'set' in options:
+                                    setattr(options, parkey + 'set', getattr(options, parkey + 'set').format(*matched.groups()))
+                                elif parkey + 'path' in options:
+                                    setattr(options, parkey + 'path', getattr(options, parkey + 'path').format(*matched.groups()))
+                            except IndexError:
+                                messages.opterror('El conjunto de parámetros', parkey, 'contiene variables indefinidas')
+                    else:
+                        raise NonMatchingFile()
                 break
         else:
             raise InputFileError('Este trabajo no se envió porque el archivo de entrada', basename, 'no está asociado a', jobspecs.progname)
@@ -52,7 +52,7 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if interpolate:
         templatename = inputname
-        inputname = '.'.join((prefix, inputname))
+        inputname = '.'.join((jobprefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (templatename, key))):
@@ -84,7 +84,7 @@ def dryrun():
     try:
         inputdir, inputname, inputext = nextfile()
     except NonMatchingFile:
-        pass
+        return
     except InputFileError as e:
         messages.failure(e)
         return
@@ -94,7 +94,7 @@ def upload():
     try:
         inputdir, inputname, inputext = nextfile()
     except NonMatchingFile:
-        pass
+        return
     except InputFileError as e:
         messages.failure(e)
         return
@@ -118,7 +118,8 @@ def setup():
         messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
     
     if getattr(options, 'ignore-defaults'):
-        jobspecs.defaults.pop('version')
+        jobspecs.defaults.pop('version', None)
+        jobspecs.defaults.pop('paramsets', None)
     
     if options.sort:
         files.sort(key=natkey)
@@ -322,7 +323,7 @@ def localrun():
     try:
         inputdir, inputname, inputext = nextfile()
     except NonMatchingFile:
-        pass
+        return
     except InputFileError as e:
         messages.failure(e)
         return
@@ -354,19 +355,25 @@ def localrun():
     for parkey in jobspecs.parameters:
         if parkey + 'path' in options:
             rootpath = AbsPath(getattr(options, parkey + 'path'), cwdir=getcwd())
-        elif parkey in jobspecs.defaults.parameters:
-            rootpath = AbsPath('/')
-            abspath = AbsPath(jobspecs.defaults.parameters[parkey], cwdir=getcwd())
-            defaults = getattr(options, parkey + 'set').split('/') if parkey + 'set' in options else []
-            for prepath, postpath, default in abspath.setkeys(cluster).tokenize(defaults):
-                if default and not getattr(options, 'ignore-defaults'):
-                    rootpath = rootpath.joinpath(prepath, default, postpath)
+        elif parkey in jobspecs.defaults.parampaths:
+            poptions = getattr(options, parkey + 'set').split('/') if parkey + 'set' in options else []
+            pathiter = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
+            rootpath = AbsPath(next(pathiter)[0])
+            for prefix, suffix, index in pathiter:
+#                print(prefix, suffix, index)
+                if index is None:
+                    rootpath = rootpath.joinpath(prefix)
                 else:
-                    choices = diritems(rootpath.joinpath(prepath))
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
-                    rootpath = rootpath.joinpath(prepath, choice, postpath)
+                    if poptions:
+                        rootpath = rootpath.joinpath(prefix + poptions[index] + suffix)
+                    elif 'paramsets' in jobspecs.defaults:
+                        rootpath = rootpath.joinpath(prefix + jobspecs.defaults.paramsets[index] + suffix)
+                    else:
+                        choices = diritems(rootpath, prefix, suffix)
+                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
+                        rootpath = rootpath.joinpath(choice)
         else:
-            messages.opterror('Debe indicar la ruta al directorio de parámetros', p(parkey))
+            messages.cfgerror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():
             parameters.append(rootpath)
         else:
@@ -390,7 +397,7 @@ def localrun():
     
     for parameter in parameters:
         if parameter.isfile():
-            inputfiles.append((parameter, pathjoin(script.workdir, parameter)))
+            inputfiles.append((parameter, pathjoin(script.workdir, path.basename(parameter))))
         elif parameter.isdir():
             inputdirs.append((pathjoin(parameter), script.workdir))
 

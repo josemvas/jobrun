@@ -85,7 +85,7 @@ def setup(relpath=False):
 
     selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Generic'))]
     
-    if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea reestablecerla?'):
+    if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(datadir, 'hostspec.json'))
          
     for dirname in listdir(path.join(hostspecdir, selhostdir, 'pathspecs')):
@@ -111,7 +111,7 @@ def setup(relpath=False):
         hardlink(path.join(datadir, 'hostspec.json'), path.join(specdir, progdir, 'hostspec.json'))
         copyfile(path.join(corespecdir, progdir, 'corespec.json'), path.join(specdir, progdir, 'corespec.json'))
         copypathspec = True
-        if progdir not in configured or not path.isfile(path.join(specdir, progdir, 'pathspec.json')) or readspec(hostspecdir, selhostdir, 'pathspecs', progdir, 'pathspec.json') == readspec(specdir, progdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progdir]), 'difiere de la configuración por defecto, ¿desea reestablecerla?', default=False):
+        if progdir not in configured or not path.isfile(path.join(specdir, progdir, 'pathspec.json')) or readspec(hostspecdir, selhostdir, 'pathspecs', progdir, 'pathspec.json') == readspec(specdir, progdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progdir]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
             copyfile(path.join(hostspecdir, selhostdir, 'pathspecs', progdir, 'pathspec.json'), path.join(specdir, progdir, 'pathspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():

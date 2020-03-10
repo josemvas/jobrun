@@ -70,7 +70,7 @@ if parsed.list:
         if parkey in jobspecs.defaults.parameters:
             print('\nConjuntos de parámetros', p(parkey))
             abspath = AbsPath(jobspecs.defaults.parameters[parkey], cwdir=getcwd())
-            findparameters(AbsPath('/'), abspath.setkeys(cluster).tokenize(), 1)
+            findparameters(AbsPath('/'), abspath.setkeys(cluster).populate(), 1)
     raise SystemExit()
 
 #TODO: Set default=SUPPRESS for all options
@@ -120,8 +120,8 @@ rungroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los
 rungroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 
 molgroup = parser.add_mutually_exclusive_group()
-molgroup.add_argument('-o', '--prefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 molgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+molgroup.add_argument('-j', '--jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
@@ -135,9 +135,9 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    if not prefix:
+    if not jobprefix:
         if molfile:
-            prefix = readmol(molfile, keywords)
+            jobprefix = readmol(molfile, keywords)
         else:
             messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
 elif molfile or keywords:

@@ -21,7 +21,7 @@
       "l": "dlg"
    },
    "parameters": [
-      "ligand",
-      "receptor"
+      "lig",
+      "rec"
    ]
 }
