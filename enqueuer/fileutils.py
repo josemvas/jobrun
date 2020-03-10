@@ -52,25 +52,7 @@ class AbsPath(str):
         return AbsPath(formatted)
     def populate(self):
         for component in splitpath(self):
-            iterator = string.Formatter.parse(None, component)
-            first = next(iterator)
-            if first[1] is None:
-                yield first[0], '', None
-            else:
-                try:
-                    index = int(first[1])
-                except ValueError:
-                    raise PathFormatError(self, 'has non numeric keys')
-                try:
-                    second = next(iterator)
-                except:
-                    suffix = ''
-                else:
-                    if second[1] is None:
-                        suffix = second[0]
-                    else:
-                        raise PathFormatError(self, 'has components with multiple keys')
-                yield first[0], suffix, index
+            yield ''.join(splitcomponent(component))
     def listdir(self):
         return os.listdir(self)
     def parent(self):
@@ -86,13 +68,35 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
 
-def diritems(abspath, prefix='', suffix=''):
+def splitcomponent(component):
+    parts = string.Formatter.parse(None, component)
+    first = next(parts)
+    if first[1] is None:
+        return first[0],
+    else:
+        try:
+            int(first[1])
+        except ValueError:
+            raise PathFormatError(self, 'has unresolved non integer keys')
+        try:
+            second = next(parts)
+        except:
+            suffix = ''
+        else:
+            if second[1] is None:
+                suffix = second[0]
+            else:
+                raise PathFormatError(self, 'has components with multiple keys')
+        return first[0], '{' + first[1] + '}', suffix
+
+def diritems(abspath, component):
     try:
         dirlist = abspath.listdir()
     except FileNotFoundError:
         messages.cfgerror('El directorio', abspath, 'no existe')
     except NotADirectoryError:
         messages.cfgerror('La ruta', abspath, 'no es un directorio')
+    prefix, _, suffix = splitcomponent(component)
     dirlist = [ i for i in dirlist if i.startswith(prefix) and i.endswith(suffix) ]
     if dirlist:
         return dirlist

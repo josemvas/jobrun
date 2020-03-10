@@ -14,7 +14,7 @@
       }
    },
    "defaults": {
-      "parameters": {
+      "parampaths": {
          "slako": "/opt/parameters/DFTB+/slako/{0}"
       }
    }

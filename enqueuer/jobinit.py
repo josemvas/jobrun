@@ -63,14 +63,24 @@ if parsed.list:
     if jobspecs.keywords:
         print('Variables de interpolación')
         printchoices(choices=jobspecs.keywords)
+        print()
     if jobspecs.versions:
-        print('\nVersiones del programa')
+        print('Versiones del programa')
         printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
+        print()
     for parkey in jobspecs.parameters:
-        if parkey in jobspecs.defaults.parameters:
-            print('\nConjuntos de parámetros', p(parkey))
-            abspath = AbsPath(jobspecs.defaults.parameters[parkey], cwdir=getcwd())
-            findparameters(AbsPath('/'), abspath.setkeys(cluster).populate(), 1)
+        if parkey in jobspecs.defaults.parampaths:
+            if 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
+                if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
+                    defaults = jobspecs.defaults.paramsets[parkey]
+                else:
+                    messages.opterror('Los conjuntos de parámetros por defecto deben definirse en una lista', p(parkey))
+            else:
+                defaults = []
+            print('Conjuntos de parámetros', p(parkey))
+            pathcomponents = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
+            findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
+            print()
     raise SystemExit()
 
 #TODO: Set default=SUPPRESS for all options
@@ -79,7 +89,7 @@ parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la col
 parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
-parser.add_argument('-f', '--filter', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+parser.add_argument('-M', '--match', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
 parser.add_argument('--node', metavar='NODENAME', help='Solicitar un nodo específico de ejecución.')

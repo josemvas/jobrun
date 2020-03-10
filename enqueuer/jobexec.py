@@ -19,6 +19,7 @@ jobformat = Bunch(scheduler.jobformat)
 jobenvars = Bunch(scheduler.jobenvars)
 
 def nextfile():
+
     file = files.pop(0)
     filepath = AbsPath(file, cwdir=getcwd())
     inputdir = filepath.parent()
@@ -28,8 +29,8 @@ def nextfile():
             if basename.endswith('.' + key):
                 inputext = key
                 inputname = basename[:-len(key)-1]
-                if options.filter:
-                    matched = match(options.filter, inputname)
+                if options.match:
+                    matched = match(options.match, inputname)
                     if matched:
                         for parkey in jobspecs.parameters:
                             try:
@@ -65,22 +66,25 @@ def nextfile():
 
 @catch_keyboard_interrupt
 def wait():
+
     sleep(options.wait)
 
 @catch_keyboard_interrupt
 def connect():
+
     cluster.remoteshare = check_output(['ssh', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
     if not cluster.remoteshare:
         messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
         
-
 @catch_keyboard_interrupt
 def remoterun():
+
     if remotefiles:
         execv('/usr/bin/ssh', [__file__, '-t', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
+
     try:
         inputdir, inputname, inputext = nextfile()
     except NonMatchingFile:
@@ -91,6 +95,7 @@ def dryrun():
 
 @catch_keyboard_interrupt
 def upload():
+
     try:
         inputdir, inputname, inputext = nextfile()
     except NonMatchingFile:
@@ -356,22 +361,24 @@ def localrun():
         if parkey + 'path' in options:
             rootpath = AbsPath(getattr(options, parkey + 'path'), cwdir=getcwd())
         elif parkey in jobspecs.defaults.parampaths:
-            poptions = getattr(options, parkey + 'set').split('/') if parkey + 'set' in options else []
-            pathiter = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
-            rootpath = AbsPath(next(pathiter)[0])
-            for prefix, suffix, index in pathiter:
-#                print(prefix, suffix, index)
-                if index is None:
-                    rootpath = rootpath.joinpath(prefix)
-                else:
-                    if poptions:
-                        rootpath = rootpath.joinpath(prefix + poptions[index] + suffix)
-                    elif 'paramsets' in jobspecs.defaults:
-                        rootpath = rootpath.joinpath(prefix + jobspecs.defaults.paramsets[index] + suffix)
-                    else:
-                        choices = diritems(rootpath, prefix, suffix)
-                        choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
-                        rootpath = rootpath.joinpath(choice)
+            if parkey + 'set' in options:
+                paramsets = getattr(options, parkey + 'set').split('/')
+            elif 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
+               if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
+                   paramsets = jobspecs.defaults.paramsets[parkey]
+               else:
+                   messages.opterror('Los conjuntos de parámetros por defecto deben definirse en una lista', p(parkey))
+            else:
+                paramsets = []
+            pathcomponents = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
+            rootpath = AbsPath(next(pathcomponents))
+            for component in pathcomponents:
+                try:
+                    rootpath = rootpath.joinpath(component.format(*paramsets))
+                except IndexError:
+                    choices = diritems(rootpath, component)
+                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', jobname, p(parkey), choices=choices)
+                    rootpath = rootpath.joinpath(choice)
         else:
             messages.cfgerror('Debe indicar la ruta al directorio de parámetros', p(parkey))
         if rootpath.exists():

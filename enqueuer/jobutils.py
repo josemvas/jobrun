@@ -19,13 +19,20 @@ def printchoices(choices, indent=1, default=None):
         else:
             print(' '*2*indent + choice)
 
-def findparameters(rootpath, components, indent):
-    if components:
-        prepath, postpath, default = components.pop(0)
-        choices = diritems(rootpath.joinpath(prepath))
-        printchoices(choices=choices, default=default, indent=indent)
-        for choice in choices:
-            findparameters(rootpath.joinpath(prepath, choice, postpath), components, indent + 1)
+def findparameters(rootpath, components, defaults, indent):
+    component = next(components, None)
+    if component:
+        try:
+            findparameters(rootpath.joinpath(component.format()), components, defaults, indent)
+        except IndexError:
+            choices = diritems(rootpath, component)
+            try:
+                default = component.format(*defaults)
+            except IndexError:
+                default = None
+            printchoices(choices=choices, default=default, indent=indent)
+            for choice in choices:
+                findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
 def readmol(molfile, keywords):
     molfile = AbsPath(molfile, cwdir=getcwd())
