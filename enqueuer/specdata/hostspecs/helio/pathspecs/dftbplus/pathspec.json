@@ -1,12 +1,15 @@
 {
    "versions": {
-      "17.1": {
+      "17": {
+         "number": "17.1",
          "executable": "/opt/DFTB+/dftbplus-17.1.x86_64-linux/bin/dftb+"
       },
-      "18.2": {
+      "18": {
+         "number": "18.2",
          "executable": "/opt/DFTB+/dftbplus-18.2.x86_64-linux/bin/dftb+"
       },
-      "19.1": {
+      "19": {
+         "number": "19.1",
          "executable": "/opt/DFTB+/dftbplus-19.1.x86_64-linux/bin/dftb+"
       }
    },

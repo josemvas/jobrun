@@ -245,30 +245,28 @@ def setup():
     else:
         messages.cfgerror('La lista de versiones no existe o está vacía (versions)')
 
-    if options.version in jobspecs.versions:
-        versionspecs = jobspecs.versions[options.version]
-    else:
+    if not options.version in jobspecs.versions:
        messages.opterror('La versión seleccionada no es válida')
     
-    if not versionspecs.executable:
+    if not jobspecs.versions[options.version].executable:
         messages.cfgerror('No se especificó el ejecutable de la versión', options.version)
     
     script.environ.extend(jobspecs.onscript)
 
-    for envar, path in jobspecs.export.items() | versionspecs.export.items():
+    for envar, path in jobspecs.export.items() | jobspecs.versions[options.version].export.items():
         abspath = AbsPath(path, cwdir=script.workdir).setkeys(cluster).validate()
         script.environ.append('export {}={}'.format(envar, abspath))
     
-    for path in jobspecs.source + versionspecs.source:
+    for path in jobspecs.source + jobspecs.versions[options.version].source:
         script.environ.append('source {}'.format(AbsPath(path).setkeys(cluster).validate()))
     
-    for module in jobspecs.load + versionspecs.load:
+    for module in jobspecs.load + jobspecs.versions[options.version].load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(versionspecs.executable).setkeys(cluster).validate())
+        script.command.append(AbsPath(jobspecs.versions[options.version].executable).setkeys(cluster).validate())
     except NotAbsolutePath:
-        script.command.append(versionspecs.executable)
+        script.command.append(jobspecs.versions[options.version].executable)
 
     script.comments.append(jobformat.label(jobspecs.progname))
     script.comments.append(jobformat.queue(options.queue))
@@ -392,7 +390,7 @@ def localrun():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
 
-    outputname = jobname + '.' + jobspecs.progkey + alnum(versionspecs.number[options.version])
+    outputname = jobname + '.' + jobspecs.progkey + alnum(jobspecs.versions[options.version].number)
     hiddendir = AbsPath(outputdir, '.' + outputname)
 
     inputfiles = []

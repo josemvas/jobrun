@@ -1,6 +1,7 @@
 {
    "versions": {
-      "4.0.1": {
+      "4": {
+         "number": "4.0.1",
          "source": [
             "/opt/openmpi/2.0.2/mpivars.sh"
          ],
@@ -8,6 +9,6 @@
       }
    },
    "defaults": {
-      "version": "4.0.1"
+      "version": "4"
    }
 }

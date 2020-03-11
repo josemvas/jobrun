@@ -60,14 +60,9 @@ parser.add_argument('-l', '--list', action='store_true', help='Mostrar las opcio
 parsed, remaining = parser.parse_known_args()
 
 if parsed.list:
-    if jobspecs.keywords:
-        print('Variables de interpolación')
-        printchoices(choices=jobspecs.keywords)
-        print()
     if jobspecs.versions:
         print('Versiones del programa')
         printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
-        print()
     for parkey in jobspecs.parameters:
         if parkey in jobspecs.defaults.parampaths:
             if 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
@@ -80,7 +75,9 @@ if parsed.list:
             print('Conjuntos de parámetros', p(parkey))
             pathcomponents = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
             findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
-            print()
+    if jobspecs.keywords:
+        print('Variables de interpolación')
+        printchoices(choices=jobspecs.keywords)
     raise SystemExit()
 
 #TODO: Set default=SUPPRESS for all options

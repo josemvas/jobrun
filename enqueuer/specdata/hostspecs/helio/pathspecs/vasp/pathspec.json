@@ -1,12 +1,7 @@
 {
    "versions": {
-      "5.4.1": {
-         "source": [
-            "/opt/intel/compilers_and_libraries_2016/linux/bin/compilervars.sh"
-         ],
-         "executable": "/opt/VASP/vasp.5.4.1-ic16/bin/vasp_std"
-      },
-      "5.4.4": {
+      "5": {
+         "number": "5.4.4",
          "source": [
             "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
          ],
@@ -14,6 +9,6 @@
       }
    },
    "defaults": {
-      "version": "5.4.4"
+      "version": "5"
    }
 }

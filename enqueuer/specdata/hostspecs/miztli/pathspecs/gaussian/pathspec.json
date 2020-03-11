@@ -1,12 +1,14 @@
 {
    "versions": {
-      "09E": {
+      "09": {
+         "number": "09E",
          "load": [
             "gaussian/G09-E.01"
          ],
          "executable": "g09"
       },
-      "16.3": {
+      "16": {
+         "number": "16.03",
          "load": [
             "gaussian/2016.03"
          ],
@@ -14,6 +16,6 @@
       }
    },
    "defaults": {
-      "version": "09E"
+      "version": "09"
    }
 }

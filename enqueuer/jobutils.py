@@ -15,7 +15,7 @@ class InputFileError(Exception):
 def printchoices(choices, indent=1, default=None):
     for choice in natsort(choices):
         if choice == default:
-            print(' '*2*indent + choice + ' ' + '(default)')
+            print(' '*2*indent + choice + ' '*2 + '[default]')
         else:
             print(' '*2*indent + choice)
 

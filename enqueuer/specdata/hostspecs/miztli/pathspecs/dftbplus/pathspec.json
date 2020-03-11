@@ -1,16 +1,16 @@
 {
    "versions": {
-      "17.1": {
+      "17": {
+         "number": "17.1",
          "executable": "/tmpu/{group}/{user}/share/dftbplus-17.1.x86_64-linux/bin/dftb+"
       },
-      "18.1": {
-         "executable": "/tmpu/{group}/{user}/share/dftbplus-18.1.x86_64-linux/bin/dftb+"
-      },
-      "18.2": {
+      "18": {
+         "number": "18.2",
          "executable": "/tmpu/{group}/{user}/share/dftbplus-18.2.x86_64-linux/bin/dftb+"
       },
-      "17.1.jm": {
-         "executable": "/tmpu/{group}/{user}/share/dftbplus-17.1-ic17/dftb+"
+      "19": {
+         "number": "19.1",
+         "executable": "/tmpu/{group}/{user}/share/dftbplus-19.1.x86_64-linux/bin/dftb+"
       }
    },
    "defaults": {

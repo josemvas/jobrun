@@ -1,6 +1,7 @@
 {
    "versions": {
-      "6.0.1": {
+      "6": {
+         "number": "6.0.1",
          "executable": "/tmpu/{group}/{user}/share/deMon2k/deMon/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
          "load": [
             "mpi/intel-2017_update3",
@@ -9,7 +10,7 @@
       }
    },
    "defaults": {
-      "version": "6.0.1",
+      "version": "6",
       "parampaths": {
          "basis": "/tmpu/{group}/{user}/share/parameters/deMon2k/{0}"
       },
