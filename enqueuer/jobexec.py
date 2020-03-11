@@ -392,9 +392,8 @@ def localrun():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
 
-    progkey = jobspecs.progkey + alnum(options.version)
-    hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
-    outputname = jobname + '.' + progkey
+    outputname = jobname + '.' + jobspecs.progkey + alnum(versionspecs.number[options.version])
+    hiddendir = AbsPath(outputdir, '.' + outputname)
 
     inputfiles = []
     inputdirs = []
