@@ -1,5 +1,5 @@
 {
-   "progkey": "p",
+   "progkey": "plus",
    "progname": "DFTB+",
    "parallelib": "openmp",
    "filecheck": "dftb_in.hsd",

@@ -19,13 +19,13 @@ loader_script = r'''
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
-from enqueuer.jobinit import dry_run, remote_run, files
+from enqueuer.jobinit import dry_run, remote_host, files
 from enqueuer.jobexec import wait, setup, connect, upload, dryrun, localrun, remoterun
 
 if dry_run:
     while files:
         dryrun()
-elif remote_run:
+elif remote_host:
     connect()
     while files:
         upload()

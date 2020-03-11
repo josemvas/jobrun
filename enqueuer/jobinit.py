@@ -126,12 +126,12 @@ for key, value in vars(parsed).items():
     if value: keywords[key] = value
 
 rungroup = parser.add_mutually_exclusive_group()
-rungroup.add_argument('-d', '--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-rungroup.add_argument('-r', '--remote-run', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
+rungroup.add_argument('-H', '--host', dest='remote_host', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
+rungroup.add_argument('--dry_run', dest='dry_run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
 molgroup = parser.add_mutually_exclusive_group()
-molgroup.add_argument('-m', '--molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
-molgroup.add_argument('-j', '--jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
+molgroup.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+molgroup.add_argument('--prefix', dest='jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 

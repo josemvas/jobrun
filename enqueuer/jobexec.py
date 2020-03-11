@@ -8,7 +8,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_run
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_host
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
@@ -72,7 +72,7 @@ def wait():
 @catch_keyboard_interrupt
 def connect():
 
-    cluster.remoteshare = check_output(['ssh', remote_run, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
+    cluster.remoteshare = check_output(['ssh', remote_host, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
     if not cluster.remoteshare:
         messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
         
@@ -80,7 +80,7 @@ def connect():
 def remoterun():
 
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-t', remote_run] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-t', remote_host] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -110,7 +110,7 @@ def upload():
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-qRtz'] + transferlist + [remote_run + ':' + pathjoin(cluster.remoteshare, userhost)])
+    call(['rsync', '-qRtz'] + transferlist + [remote_host + ':' + pathjoin(cluster.remoteshare, userhost)])
 
 @catch_keyboard_interrupt
 def setup():
@@ -348,11 +348,7 @@ def localrun():
             messages.failure('Hay un conflicto entre los archivos de entrada')
             return
     
-    progkey = jobspecs.progkey + alnum(options.version)
-
-    if inputname.endswith('.' + progkey):
-        jobname = inputname[:-len(progkey)-1]
-    elif inputname.endswith('.' + jobspecs.progkey):
+    if inputname.endswith('.' + jobspecs.progkey):
         jobname = inputname[:-len(jobspecs.progkey)-1]
     else:
         jobname = inputname
@@ -391,6 +387,7 @@ def localrun():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
 
+    progkey = jobspecs.progkey + alnum(options.version)
     hiddendir = AbsPath(outputdir, '.' + jobname + '.' + progkey)
     outputname = jobname + '.' + progkey
 
@@ -400,7 +397,7 @@ def localrun():
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
             if path.isfile(pathjoin(inputdir, (inputname, key))):
-                inputfiles.append(((pathjoin(outputdir, (jobname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
+                inputfiles.append(((pathjoin(outputdir, (inputname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
     for parameter in parameters:
         if parameter.isfile():
@@ -452,7 +449,7 @@ def localrun():
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
                 if path.isfile(pathjoin(inputdir, (inputname, key))):
-                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (jobname, key)))
+                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (inputname, key)))
     
     script.comments.append(jobformat.name(jobname))
 

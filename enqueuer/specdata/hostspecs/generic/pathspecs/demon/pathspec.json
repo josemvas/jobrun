@@ -14,7 +14,7 @@
          "basis": "/home/{user}/share/parameters/deMon2k/{0}"
       },
       "paramsets": {
-         "basis" : [ 'deMon' ]
+         "basis" : [ "deMon" ]
       }
    }
 }

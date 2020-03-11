@@ -31,7 +31,7 @@
          "basis": "/opt/parameters/deMon2k/{0}"
       },
       "paramsets": {
-         "basis" : [ 'deMon' ]
+         "basis" : [ "deMon" ]
       }
    }
 }
