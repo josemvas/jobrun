@@ -6,23 +6,11 @@
          ],
          "executable": "/opt/deMon2k/deMon/6.0.1/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
       },
-      "6.0.1.d2": {
+      "6.0.1-ad2": {
          "source": [
             "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
          ],
          "executable": "/opt/deMon2k/demon/6.0.1.d2a/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
-      },
-      "6.0.1.d2avx": {
-         "source": [
-            "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ],
-         "executable": "/opt/deMon2k/demon/6.0.1.d2a/object.mpi-ic17AVX/deMon.6.0.1.mpi"
-      },
-      "6.0.1.nl": {
-         "source": [
-            "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
-         ],
-         "executable": "/opt/deMon2k/demon/6.0.1.vtmd/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
       }
    },
    "defaults": {

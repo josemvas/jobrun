@@ -9,8 +9,8 @@
       "18.2": {
          "executable": "/opt/DFTB+/dftbplus-18.2.x86_64-linux/bin/dftb+"
       },
-      "17.1.jm": {
-         "executable": "/opt/DFTB+/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+"
+      "19.1": {
+         "executable": "/opt/DFTB+/dftbplus-19.1.x86_64-linux/bin/dftb+"
       }
    },
    "defaults": {

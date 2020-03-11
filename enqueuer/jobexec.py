@@ -8,7 +8,7 @@ from importlib import import_module
 from . import dialogs
 from . import messages
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
-from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remote_host
+from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remotehost
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
@@ -51,18 +51,23 @@ def nextfile():
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
     else:
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
-    if interpolate:
-        templatename = inputname
-        inputname = '.'.join((jobprefix, inputname))
+    if jobprefix:
+        clonename = '.'.join((jobprefix, inputname))
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (templatename, key))):
-                    with open(pathjoin(inputdir, (templatename, key)), 'r') as fr, open(pathjoin(inputdir, (inputname, key)), 'w') as fw:
-                        try:
-                            fw.write(fr.read().format(**keywords))
-                        except KeyError as e:
-                            raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((templatename, key)))
-    return inputdir, inputname, inputext
+                if path.isfile(pathjoin(inputdir, (inputname, key))):
+                    with open(pathjoin(inputdir, (inputname, key)), 'r') as fr, open(pathjoin(inputdir, (clonename, key)), 'w') as fw:
+                        if interpolate:
+                            try:
+                                fw.write(fr.read().format(**keywords))
+                            except KeyError as e:
+                                raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((inputname, key)))
+                        else:
+                            fw.write(fr.read())
+        return inputdir, '.'.join((jobprefix, inputname)), inputext
+        return inputdir, clonename, inputext
+    else:
+        return inputdir, inputname, inputext
 
 @catch_keyboard_interrupt
 def wait():
@@ -72,7 +77,7 @@ def wait():
 @catch_keyboard_interrupt
 def connect():
 
-    cluster.remoteshare = check_output(['ssh', remote_host, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
+    cluster.remoteshare = check_output(['ssh', remotehost, 'echo', '-n', '$JOBSHARE']).decode(sys.stdout.encoding)
     if not cluster.remoteshare:
         messages.runerror('El servidor remoto no acepta trabajos de otro servidor')
         
@@ -80,7 +85,7 @@ def connect():
 def remoterun():
 
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-t', remote_host] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-t', remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -110,7 +115,7 @@ def upload():
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-qRtz'] + transferlist + [remote_host + ':' + pathjoin(cluster.remoteshare, userhost)])
+    call(['rsync', '-qRtz'] + transferlist + [remotehost + ':' + pathjoin(cluster.remoteshare, userhost)])
 
 @catch_keyboard_interrupt
 def setup():
@@ -360,10 +365,10 @@ def localrun():
             if parkey + 'set' in options:
                 paramsets = getattr(options, parkey + 'set').split('/')
             elif 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
-               if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
-                   paramsets = jobspecs.defaults.paramsets[parkey]
-               else:
-                   messages.opterror('Los conjuntos de parámetros por defecto deben definirse en una lista', p(parkey))
+                if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
+                    paramsets = jobspecs.defaults.paramsets[parkey]
+                else:
+                    messages.opterror('Los conjuntos de parámetros por defecto deben definirse en una lista', p(parkey))
             else:
                 paramsets = []
             pathcomponents = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
