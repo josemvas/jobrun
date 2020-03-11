@@ -99,7 +99,7 @@ def diritems(abspath, component):
     prefix, _, suffix = splitcomponent(component)
     dirlist = [ i for i in dirlist if i.startswith(prefix) and i.endswith(suffix) ]
     if dirlist:
-        return dirlist
+        return natsort(dirlist)
     else:
         messages.cfgerror('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
 
