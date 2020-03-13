@@ -2,7 +2,7 @@
 import sys
 from re import match
 from time import sleep
-from os import path, execv, getcwd
+from os import path, execv, getcwd, rename
 from subprocess import call, check_output
 from importlib import import_module
 from . import dialogs
@@ -85,7 +85,7 @@ def connect():
 def remoterun():
 
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-t', remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-t', remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + ['--temporary'] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():
@@ -127,6 +127,11 @@ def setup():
     if not jobspecs.scheduler:
         messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
     
+    if options.temporary:
+        script.putfile = rename
+    else:
+        script.putfile = copyfile
+
     if getattr(options, 'ignore-defaults'):
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('paramsets', None)
@@ -253,12 +258,12 @@ def setup():
     
     script.environ.extend(jobspecs.onscript)
 
-    for envar, path in jobspecs.export.items() | jobspecs.versions[options.version].export.items():
-        abspath = AbsPath(path, cwdir=script.workdir).setkeys(cluster).validate()
+    for envar, filepath in jobspecs.export.items() | jobspecs.versions[options.version].export.items():
+        abspath = AbsPath(filepath, cwdir=script.workdir).setkeys(cluster).validate()
         script.environ.append('export {}={}'.format(envar, abspath))
     
-    for path in jobspecs.source + jobspecs.versions[options.version].source:
-        script.environ.append('source {}'.format(AbsPath(path).setkeys(cluster).validate()))
+    for filepath in jobspecs.source + jobspecs.versions[options.version].source:
+        script.environ.append('source {}'.format(AbsPath(filepath).setkeys(cluster).validate()))
     
     for module in jobspecs.load + jobspecs.versions[options.version].load:
         script.environ.append('module load {}'.format(module))
@@ -310,16 +315,15 @@ def setup():
     script.chdir = 'cd "{}"'.format
     script.runathead = 'ssh $head "{}"'.format
     if jobspecs.hostcopy == 'local':
-        script.mkdir = 'mkdir -p -m 700 "{}"'.format
         script.rmdir = 'rm -rf "{}"'.format
-        script.fetch = 'cp "{}" "{}"'.format
-        script.fetch = 'cp "{}" "{}"'.format
+        script.mkdir = 'mkdir -p -m 700 "{}"'.format
+        script.fetch = 'mv "{}" "{}"'.format
         script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
     elif jobspecs.hostcopy == 'remote':
-        script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
         script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{0}\'"; done'.format
-        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{0}\'"; done'.format
+        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; ssh $head rm "\'{0}\'"; done'.format
         script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
@@ -390,8 +394,9 @@ def localrun():
     else:
         outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
 
-    outputname = jobname + '.' + jobspecs.progkey + alnum(jobspecs.versions[options.version].number)
-    hiddendir = AbsPath(outputdir, '.' + outputname)
+    numkey = alnum(jobspecs.versions[options.version].number)
+    hiddendir = AbsPath(outputdir, '.' + jobspecs.progkey + numkey)
+    outputname = jobname + '.' + jobspecs.progkey + numkey
 
     inputfiles = []
     inputdirs = []
@@ -399,7 +404,7 @@ def localrun():
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
             if path.isfile(pathjoin(inputdir, (inputname, key))):
-                inputfiles.append(((pathjoin(outputdir, (inputname, key))), pathjoin(script.workdir, jobspecs.filekeys[key])))
+                inputfiles.append(((pathjoin(hiddendir, jobspecs.filekeys[key])), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
     for parameter in parameters:
         if parameter.isfile():
@@ -446,12 +451,11 @@ def localrun():
         makedirs(outputdir)
         makedirs(hiddendir)
     
-    if inputdir != outputdir:
-        action = path.rename if options.move else copyfile
-        for item in jobspecs.inputfiles:
-            for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (inputname, key))):
-                    action(pathjoin(inputdir, (inputname, key)), pathjoin(outputdir, (inputname, key)))
+#    if inputdir != outputdir:
+    for item in jobspecs.inputfiles:
+        for key in item.split('|'):
+            if path.isfile(pathjoin(inputdir, (inputname, key))):
+                script.putfile(pathjoin(inputdir, (inputname, key)), pathjoin(hiddendir, jobspecs.filekeys[key]))
     
     script.comments.append(jobformat.name(jobname))
 

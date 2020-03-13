@@ -12,6 +12,7 @@
       "gjf": "job.gjf",
       "log": "job.log",
       "chk": "job.chk",
+      "fchk": "job.fchk",
       "wfn": "job.wfn",
       "cub": "job.cub",
       "oldchk": "job.oldchk"
@@ -20,6 +21,7 @@
       "com": "com",
       "gjf": "gjf",
       "chk": "chk",
+      "fchk": "fchk",
       "oldchk": "oldchk"
    },
    "inputfiles": [
@@ -30,6 +32,7 @@
       "gjf|com",
       "log",
       "chk",
+      "fchk",
       "wfn",
       "cub"
    ],
@@ -44,6 +47,9 @@
       "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
+   ],
+   "postscript": [
+      "formchk \"$chk\" \"$fchk\" && test -s \"$fchk\" && rm \"$chk\""
    ],
    "keywords": [
       "title",
