@@ -85,7 +85,7 @@ def connect():
 def remoterun():
 
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-t', remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + ['--temporary'] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options).items() if value] + ['--temporary'] + remotefiles)
 
 @catch_keyboard_interrupt
 def dryrun():

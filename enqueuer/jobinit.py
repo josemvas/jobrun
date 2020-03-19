@@ -127,9 +127,8 @@ rungroup = parser.add_mutually_exclusive_group()
 rungroup.add_argument('-H', '--host', dest='remotehost', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 rungroup.add_argument('--dry', dest='drytest', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
-molgroup = parser.add_mutually_exclusive_group()
-molgroup.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
-molgroup.add_argument('--prefix', dest='jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
+parser.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+parser.add_argument('--prefix', dest='jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
@@ -143,11 +142,14 @@ if not files:
     messages.opterror('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
-    if not jobprefix:
+    if jobprefix:
+        if molfile:
+            jobprefix = readmol(molfile, keywords) + '.' + jobprefix
+    else:
         if molfile:
             jobprefix = readmol(molfile, keywords)
         else:
-            messages.opterror('Debe especificar un archivo de coordenadas o el prefijo del trabajo para poder interpolar')
+            messages.opterror('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
 elif molfile or keywords:
     messages.opterror('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
 
