@@ -23,7 +23,7 @@ class SpecList(list):
                 else:
                     raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
-                self.append(other[i])
+                self.append(i)
 
 class SpecBunch(Bunch):
     def __init__(self, plaindict={}):

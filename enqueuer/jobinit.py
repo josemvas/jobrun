@@ -9,9 +9,8 @@ from argparse import ArgumentParser, SUPPRESS
 from . import messages
 from .utils import Bunch, p
 from .specparse import SpecBunch, readspec
-from .jobutils import printchoices, findparameters, readmol
+from .jobutils import printchoices, findparameters, readcoords
 from .fileutils import AbsPath, NotAbsolutePath
-from .chemistry import readxyz
 
 envars = Bunch()
 cluster = Bunch()
@@ -85,7 +84,7 @@ parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del
 parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
 parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
-parser.add_argument('-c', '--clean', action='store_true', help='Mover todos los archivos de entrada a la carpeta de salida.')
+#parser.add_argument('-c', '--collect', action='store_true', help='Recolectar todos los archivos de entrada en la carpeta de salida.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
 parser.add_argument('-M', '--match', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
@@ -127,7 +126,7 @@ rungroup = parser.add_mutually_exclusive_group()
 rungroup.add_argument('-H', '--host', dest='remotehost', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
 rungroup.add_argument('--dry', dest='drytest', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
-parser.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
+parser.add_argument('-m', '--mol', dest='coordfile', metavar='MOLFILE', help='Ruta del archivo de coordenadas para la interpolación.')
 parser.add_argument('--prefix', dest='jobprefix', metavar='PREFIX', help='Anteponer el prefijo PREFIX al nombre del trabajo.')
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
@@ -143,13 +142,13 @@ if not files:
 
 if interpolate:
     if jobprefix:
-        if molfile:
-            jobprefix = readmol(molfile, keywords) + '.' + jobprefix
+        if coordfile:
+            jobprefix = readcoords(coordfile, keywords) + '.' + jobprefix
     else:
-        if molfile:
-            jobprefix = readmol(molfile, keywords)
+        if coordfile:
+            jobprefix = readcoords(coordfile, keywords)
         else:
             messages.opterror('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
-elif molfile or keywords:
+elif coordfile or keywords:
     messages.opterror('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
 

@@ -1,0 +1,73 @@
+#!/bin/bash
+
+options=$(getopt -n "$0" -o f -l force -- "$@") || exit
+
+eval "set -- $options"
+
+while (( $# )); do
+  case "$1" in
+    -f|--force) force=; shift;;
+    --) shift; break;;
+     *) echo Unknown option: $1; exit 1
+  esac
+done
+
+if [[ -z $1 ]]; then
+    echo 'Error: Debe especificar un servidor'
+    exit
+fi
+
+filelist=$(rsync -rntii --exclude='.*' "$1":"\$JOBSHARE/$USER@$HOSTNAME/" $HOME)
+missing=$(echo "$filelist" | sed -n 's,^>f+++++++++ ,,p')
+uptodate=$(echo "$filelist" | sed -n 's,^.f          ,,p')
+conflicting=$(echo "$filelist" | grep -v '^>f          ' | grep -v '^>f+++++++++ ' | sed -n 's,^>f......... ,,p')
+
+#echo uptodate
+#echo "$uptodate"
+#echo missing
+#echo "$missing"
+#echo conflicting
+#echo "$conflicting"
+
+if [[ -n $missing || -n $conflicting ]]; then
+    if [[ -n $missing ]]; then
+        echo ${yellow}Sincronizando archivos nuevos...${normal}
+        echo "$missing" | rsync -ztv --files-from=- "$1":"\$JOBSHARE/$USER@$HOSTNAME/" $HOME #| sed -n 's,^>f,,p'
+        echo
+    fi
+    if [[ -n $conflicting ]]; then
+        if [[ -z ${force+?} ]]; then
+            echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local${normal}"
+            echo "$conflicting"
+            echo "${yellow}Ejecute este escript con la opción -f/--force para sobreescribir las versiones locales${normal}"
+        else
+            echo ${yellow}Sobreescribiendo los archivos conflictivos...${normal}
+            echo "$conflicting" | rsync -ztv --files-from=- "$1":"\$JOBSHARE/$USER@$HOSTNAME/" $HOME #| sed -n 's,^>f,,p'
+        fi
+    fi
+else
+    if [[ -n $uptodate ]]; then
+        read -sn 1 -p "${yellow}No hay archivos nuevos que sincronizar ¿desea borrar los archivos viejos del servidor remoto (s/n)?: ${normal}" answer
+        echo
+        case "$answer" in
+          s)
+            echo -e "${yellow}Los siguientes archivos serán borrados del servidor remoto${normal}\n$(echo "$uptodate" | rsync -ntii --files-from=- --remove-source-files "$1":"\$JOBSHARE/$USER@$HOSTNAME/" $HOME | sed -n 's,^.f          ,,p')" | more
+            while true; do
+                read -p "${yellow}Escriba OK para proceder o presione ENTER para cancelar: ${normal}" answer
+                case "$answer" in
+                  ok|OK)
+                    echo -n ${yellow}Borrando los archivos sincronizados... ${normal}
+                    echo "$uptodate" | rsync -tv --files-from=- --remove-source-files "$1":"\$JOBSHARE/$USER@$HOSTNAME/" $HOME | sed -n 's,^.f          ,,p'
+                    echo Hecho
+                    echo
+                    break;;
+                  ?*) echo Escriba OK si desea borrar los archivos;;
+                  *) break;;
+                esac
+            done;;
+          *) :;;
+        esac
+    else
+        echo ${yellow}No hay archivos nuevos que sincronizar${normal}
+    fi
+fi

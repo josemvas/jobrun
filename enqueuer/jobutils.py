@@ -3,7 +3,7 @@ from os import getcwd
 from . import messages
 from .utils import natsort
 from .fileutils import AbsPath, NotAbsolutePath, diritems
-from .chemistry import readxyz
+from .chemistry import readxyzfile, readmolfile
 
 class NonMatchingFile(Exception):
     pass
@@ -34,21 +34,24 @@ def findparameters(rootpath, components, defaults, indent):
             for choice in choices:
                 findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
-def readmol(molfile, keywords):
-    molfile = AbsPath(molfile, cwdir=getcwd())
-    if molfile.isfile():
-        if molfile.hasext('.xyz'):
-            molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
-            for i, step in enumerate(readxyz(molfile), 1):
+def readcoords(coordfile, keywords):
+    coordfile = AbsPath(coordfile, cwdir=getcwd())
+    molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
+    if coordfile.isfile():
+        if coordfile.hasext('.xyz'):
+            for i, step in enumerate(readxyzfile(coordfile), 1):
+                keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
+        elif coordfile.hasext('.mol'):
+            for i, step in enumerate(readmolfile(coordfile), 1):
                 keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
         else:
-            messages.opterror('Solamente están soportados archivos de coordenadas en formato xyz')
-    elif molfile.isdir():
-        messages.opterror('El archivo de coordenadas', molfile, 'es un directorio')
-    elif molfile.exists():
-        messages.opterror('El archivo de coordenadas', molfile, 'no es un archivo regular')
+            messages.opterror('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
+    elif coordfile.isdir():
+        messages.opterror('El archivo de coordenadas', coordfile, 'es un directorio')
+    elif coordfile.exists():
+        messages.opterror('El archivo de coordenadas', coordfile, 'no es un archivo regular')
     else:
-        messages.opterror('El archivo de coordenadas', molfile, 'no existe')
-    keywords['file'] = molfile
-    return molfile.stem
+        messages.opterror('El archivo de coordenadas', coordfile, 'no existe')
+    keywords['file'] = coordfile
+    return coordfile.stem
 
