@@ -67,6 +67,12 @@ class AbsPath(str):
         return os.path.isfile(self)
     def isdir(self):
         return os.path.isdir(self)
+    def linkto(self, *dest):
+        hardlink(self, pathjoin(*dest))
+    def symlinkto(self, *dest):
+        softlink(self, pathjoin(*dest))
+    def copyto(self, *dest):
+        copyfile(self, pathjoin(*dest))
 
 def splitcomponent(component):
     parts = string.Formatter.parse(None, component)
@@ -154,6 +160,16 @@ def hardlink(source, dest):
     except FileExistsError:
         os.remove(dest)
         os.link(source, dest)
+    except FileNotFoundError:
+        messages.runerror('No se puede copiar el archivo', source, 'porque no existe')
+    except PermissionError:
+        messages.runerror('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
+
+def softlink(source, dest):
+    try: os.symlink(source, dest)
+    except FileExistsError:
+        os.remove(dest)
+        os.symlink(source, dest)
     except FileNotFoundError:
         messages.runerror('No se puede copiar el archivo', source, 'porque no existe')
     except PermissionError:

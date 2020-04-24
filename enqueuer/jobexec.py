@@ -34,10 +34,10 @@ def nextfile():
                     if matched:
                         for parkey in jobspecs.parameters:
                             try:
-                                if parkey + 'set' in options:
-                                    setattr(options, parkey + 'set', getattr(options, parkey + 'set').format(*matched.groups()))
-                                elif parkey + 'path' in options:
-                                    setattr(options, parkey + 'path', getattr(options, parkey + 'path').format(*matched.groups()))
+                                if parkey in options:
+                                    setattr(options, parkey, getattr(options, parkey).format(*matched.groups()))
+                                elif parkey + '-path' in options:
+                                    setattr(options, parkey + '-path', getattr(options, parkey + '-path').format(*matched.groups()))
                             except IndexError:
                                 messages.opterror('El conjunto de parámetros', parkey, 'contiene variables indefinidas')
                     else:
@@ -52,22 +52,28 @@ def nextfile():
     else:
         raise InputFileError('Este trabajo no se envió porque el archivo de entrada', filepath, 'no existe')
     if jobprefix:
-        clonename = '.'.join((jobprefix, inputname))
+        prefixed = '.'.join([jobprefix, inputname])
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, (inputname, key))):
-                    with open(pathjoin(inputdir, (inputname, key)), 'r') as fr, open(pathjoin(inputdir, (clonename, key)), 'w') as fw:
+                if path.isfile(pathjoin(inputdir, [inputname, key])):
+                    with open(pathjoin(inputdir, [inputname, key]), 'r') as fr, open(pathjoin(inputdir, [prefixed, key]), 'w') as fw:
                         if interpolate:
                             try:
                                 fw.write(fr.read().format(**keywords))
                             except KeyError as e:
-                                raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin((inputname, key)))
+                                raise InputFileError('No se definió la variable de interpolación', q(e.args[0]), 'del archivo de entrada', pathjoin([inputname, key]))
                         else:
                             fw.write(fr.read())
-        return inputdir, '.'.join((jobprefix, inputname)), inputext
-        return inputdir, clonename, inputext
-    else:
-        return inputdir, inputname, inputext
+        inputname = prefixed
+    for item in jobspecs.resumefiles:
+        key = item.split('|')[0]
+        if key + 'file' in options:
+            sourcepath = AbsPath(getattr(options, key + 'file'), cwdir=getcwd())
+            if sourcepath.isfile():
+                sourcepath.symlinkto(inputdir, [inputname, key])
+            else:
+                messages.opterror('El archivo', sourcepath, 'no existe (', key + 'file)')
+    return inputdir, inputname, inputext
 
 @catch_keyboard_interrupt
 def wait():
@@ -188,8 +194,8 @@ def setup():
         messages.cfgerror('No se especificó la clave del programa (progkey)')
     
     for parkey in jobspecs.parameters:
-        if parkey + 'set' in options:
-            if getattr(options, parkey + 'set').startswith('/') or getattr(options, parkey + 'set').endswith('/'):
+        if parkey in options:
+            if getattr(options, parkey).startswith('/') or getattr(options, parkey).endswith('/'):
                 messages.opterror('El nombre del conjunto de parámetros no puede empezar ni terminar con una diagonal')
 
     if 'mpilauncher' in jobspecs:
@@ -361,11 +367,11 @@ def localrun():
         jobname = inputname
 
     for parkey in jobspecs.parameters:
-        if parkey + 'path' in options:
-            rootpath = AbsPath(getattr(options, parkey + 'path'), cwdir=getcwd())
+        if parkey + '-path' in options:
+            rootpath = AbsPath(getattr(options, parkey + '-path'), cwdir=getcwd())
         elif parkey in jobspecs.defaults.parampaths:
-            if parkey + 'set' in options:
-                paramsets = getattr(options, parkey + 'set').split('/')
+            if parkey in options:
+                paramsets = getattr(options, parkey).split('/')
             elif 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
                 if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
                     paramsets = jobspecs.defaults.paramsets[parkey]

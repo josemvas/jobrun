@@ -10,6 +10,7 @@ listags = (
     'load',
     'source',
     'inputfiles',
+    'resumefiles',
     'outputfiles',
     'positionargs',
     'onscript',

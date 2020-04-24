@@ -12,10 +12,10 @@
    "defaults": {
       "version": "6",
       "parampaths": {
-         "basis": "/tmpu/{group}/{user}/share/parameters/deMon2k/{0}"
+         "paramset": "/tmpu/{group}/{user}/share/parameters/deMon2k/{0}"
       },
       "paramsets": {
-         "basis" : [ "deMon" ]
+         "paramset" : [ "deMon" ]
       }
    }
 }

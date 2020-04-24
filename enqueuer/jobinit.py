@@ -102,14 +102,13 @@ yngroup = parser.add_mutually_exclusive_group()
 yngroup.add_argument('--si', '--yes', dest='yes', action='store_true', default=False, help='Responder "si" a todas las preguntas.')
 yngroup.add_argument('--no', dest='no', action='store_true', default=False, help='Responder "no" a todas las preguntas.')
 
-if len(jobspecs.parameters) == 1:
-    key = jobspecs.parameters[0]
-    parser.add_argument('-p', '--' + key + 'set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-    parser.add_argument('-P', '--' + key + 'path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
-else:
-    for key in jobspecs.parameters:
-        parser.add_argument('--' + key + 'set', metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-        parser.add_argument('--' + key + 'path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
+for key in jobspecs.parameters:
+    parser.add_argument('--' + key, dest=key, metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+    parser.add_argument('--' + key + '-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
+
+for item in jobspecs.resumefiles:
+    key = item.split('|')[0]
+    parser.add_argument('--' + key + 'file', dest=key+'file' , metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo ' + key + '.')
 
 options, remaining = parser.parse_known_args(remaining)
 #print(options)

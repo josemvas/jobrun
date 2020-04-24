@@ -32,6 +32,10 @@
       "pie",
       "bin"
    ],
+   "resumefiles": [
+      "rst",
+      "trj"
+   ],
    "keywords": [
       "title",
       "method",
@@ -42,6 +46,6 @@
       "spin"
    ],
    "parameters": [
-      "basis"
+      "paramset"
    ]
 }

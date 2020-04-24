@@ -36,6 +36,9 @@
       "wfn",
       "cub"
    ],
+   "resumefiles": [
+      "oldchk"
+   ],
    "positionargs": [
       "gjf|com"
    ],
@@ -47,9 +50,6 @@
       "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
-   ],
-   "postscript": [
-      "formchk \"$chk\" \"$fchk\" && test -s \"$fchk\" && rm \"$chk\""
    ],
    "keywords": [
       "title",
