@@ -424,10 +424,9 @@ def localrun():
         if hiddendir.isdir():
             try:
                 with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
-                    jobid = t.read()
-                    jobstate = checkjob(jobid)
-                    if callable(jobstate):
-                        messages.failure(jobstate(jobname=jobname, jobid=jobid))
+                    jobstate = checkjob(t.read())
+                    if jobstate is not None:
+                        messages.failure(jobstate.format(jobname))
                         return
             except FileNotFoundError:
                 pass

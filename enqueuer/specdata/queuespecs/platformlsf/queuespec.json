@@ -21,9 +21,9 @@
     },
     
    "mpilauncher": {
-      "openmpi": "openmpi-mpirun",
-      "intelmpi": "impi-mpirun",
-      "mpich": "mpich-mpirun"
+      "openmpi": "openmpi",
+      "intelmpi": "impi",
+      "mpich": "mpich"
     },
     
    "blocking_states": {

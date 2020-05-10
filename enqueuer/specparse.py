@@ -31,10 +31,7 @@ class SpecBunch(Bunch):
             if isinstance(value, dict):
                 self[key] = SpecBunch(value)
             elif isinstance(value, list):
-                if key.endswith('script'):
-                    self[key] = SpecList(value)
-                else:
-                    self[key] = SpecList(sorted(value))
+                self[key] = SpecList(value)
             else:
                 self[key] = value
     def __missing__(self, item):

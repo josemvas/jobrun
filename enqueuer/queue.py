@@ -7,23 +7,23 @@ from .jobinit import jobspecs
 
 def submitjob(jobscript):
     with open(jobscript, 'r') as fh:
-        p = Popen(jobspecs.sbmtcmd, stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
-    output, error = p.communicate()
+        process = Popen(jobspecs.sbmtcmd, stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
+    output, error = process.communicate()
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
-    if p.returncode == 0:
+    if process.returncode == 0:
         return search(jobspecs.jobidex, output).group(1)
     else:
         raise RuntimeError(error)
         
 def checkjob(jobid):
-    p = Popen(jobspecs.statcmd + [jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
-    output, error = p.communicate()
+    process = Popen(jobspecs.statcmd + [jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
+    output, error = process.communicate()
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
-    if p.returncode == 0:
+    if process.returncode == 0:
         if output in jobspecs.blocking_states:
-            return jobspecs.blocking_states[output].format
+            return jobspecs.blocking_states[output].format(jobid)
         elif output in jobspecs.ready_states:
             return None
         else:
