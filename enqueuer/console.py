@@ -66,7 +66,11 @@ def setup(relpath=False):
         hostspec = readspec(path.join(hostspecdir, dirname, 'hostspec.json'))
         clusternames[dirname] = hostspec.clustername
         hostdirnames[hostspec.clustername] = dirname
-        schedulers[dirname] = hostspec.scheduler
+        if hostspec.scheduler:
+            if hostspec.scheduler in listdir(queuespecdir):
+                schedulers[dirname] = hostspec.scheduler
+            else:
+                messages.error('El gestor de trabajos', hostspec.scheduler, 'no está soportado')
 
     if not clusternames:
         messages.warning('No hay hosts configurados')
@@ -81,7 +85,12 @@ def setup(relpath=False):
     
     if not path.isfile(path.join(cfgdir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(cfgdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(cfgdir, 'hostspec.json'))
+
+    if selhostdir in schedulers:
         copyfile(path.join(queuespecdir, schedulers[selhostdir], 'queuespec.json'), path.join(cfgdir, 'queuespec.json'))
+    else:
+        messages.warning('Especifique el gestor de trabajos en el archivo hostspec.json y ejecute otra vez este comando')
+        return
          
     for dirname in listdir(path.join(hostspecdir, selhostdir, 'pathspecs')):
         prognames[dirname] = readspec(path.join(corespecdir, dirname, 'corespec.json')).progname
