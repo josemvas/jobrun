@@ -5,14 +5,6 @@ from re import search
 from subprocess import Popen, PIPE
 from .jobinit import jobspecs
 
-'''
-{
-   "sbmtcmd": [ "sbatch" ],
-   "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
-   "jobidex": " ([0-9]+)$"
-}
-'''
-
 def submitjob(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen(jobspecs.sbmtcmd, stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
