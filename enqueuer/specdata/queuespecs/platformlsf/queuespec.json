@@ -27,7 +27,7 @@
     },
     
    "blocking_states": {
-      "PEND": "El trabajo \"{{}}\" no se envió porque ya está encolado con jobid {}",
+      "PEND": "El trabajo \"{{}}\" no se envió porque ya está en cola con jobid {}",
       "RUN": "El trabajo \"{{}}\" no se envió porque ya está corriendo con jobid {}",
       "PSUSP": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}",
       "USUSP": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}",

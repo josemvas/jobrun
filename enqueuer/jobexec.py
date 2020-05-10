@@ -173,7 +173,7 @@ def setup():
         script.workdir = AbsPath(options.scrdir, jobspecs.qenv.jobid, cwdir=getcwd())
     else:
         try:
-            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)
+            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid).setkeys(cluster).validate()
         except NotAbsolutePath:
             messages.cfgerror(jobspecs.defaults.scratchdir, 'no es una ruta absoluta (scratchdir)')
 

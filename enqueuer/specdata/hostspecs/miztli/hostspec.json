@@ -9,7 +9,7 @@
    ],
    "defaults": {
       "queue": "q_htc",
-      "scratchdir": "/scratch",
+      "scratchdir": "/tmpu/{group}/{user}",
       "waitime": "3"
    },
    "offscript": [
