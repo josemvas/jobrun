@@ -2,7 +2,7 @@
    "progkey": "orca",
    "progname": "ORCA",
    "parallelib": "openmpi",
-   "mpilauncher": "False",
+   "mpilaunch": "False",
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {

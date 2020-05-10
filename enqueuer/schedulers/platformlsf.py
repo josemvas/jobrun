@@ -21,7 +21,7 @@ jobenvars = {
     'hosts' : '$(printf "%s\\n" $LSB_HOSTS | uniq)',
 }
 
-mpilauncher = {
+mpilaunch = {
     'openmpi' : 'mpirun',
     'intelmpi' : 'mpirun',
     'mpich' : 'mpirun',
@@ -40,7 +40,7 @@ ready_states = (
     'EXIT',
 )
 
-def queuejob(jobscript):
+def submitjob(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen(['bsub'], stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()

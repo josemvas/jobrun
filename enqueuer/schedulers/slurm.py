@@ -21,7 +21,7 @@ jobenvars = {
     'hosts' : '$(getent hosts $SLURM_JOB_NODELIST | cut -d\  -f1 | uniq)',
 }
 
-mpilauncher = {
+mpilaunch = {
     'openmpi' : 'mpirun',
     'intelmpi' : 'mpirun',
     'mpich' : 'mpirun',
@@ -52,7 +52,7 @@ ready_states = (
     'OUT_OF_MEMORY',
 )
 
-def queuejob(jobscript):
+def submitjob(jobscript):
     with open(jobscript, 'r') as fh:
         p = Popen(['sbatch'], stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = p.communicate()

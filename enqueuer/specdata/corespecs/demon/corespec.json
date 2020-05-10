@@ -2,7 +2,7 @@
    "progkey": "deMon",
    "progname": "deMon2k",
    "parallelib": "intelmpi",
-   "mpilauncher": "True",
+   "mpilaunch": "True",
    "filecheck": "inp",
    "defaults" : {
       "outputdir": "{jobname}"

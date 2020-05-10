@@ -1,0 +1,42 @@
+{
+   "sbmtcmd": [ "bsub" ],
+   "statcmd": [ "bjobs", "-ostat", "-noheader" ],
+   "jobidex": "<([0-9]+)>",
+
+   "qctrl": {
+      "name": "#BSUB -J '{}'",
+      "label": "#BSUB -P '{}'",
+      "hosts": "#BSUB -m '{}'",
+      "ncore": "#BSUB -n '{}'",
+      "nhost": "#BSUB -R 'span[hosts={}]'",
+      "queue": "#BSUB -q '{}'",
+      "output": "#BSUB -o '{}/%J.out'",
+      "error": "#BSUB -e '{}/%J.err'"
+    },
+    
+   "qenv": {
+      "jobid": "$LSB_JOBID",
+      "ncore": "$(echo $LSB_HOSTS | wc -w)",
+      "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
+    },
+    
+   "mpilauncher": {
+      "openmpi": "openmpi-mpirun",
+      "intelmpi": "impi-mpirun",
+      "mpich": "mpich-mpirun"
+    },
+    
+   "blocking_states": {
+      "PEND": "El trabajo \"{jobname}\" no se envió porque ya está encolado con jobid {jobid}",
+      "RUN": "El trabajo \"{jobname}\" no se envió porque ya está corriendo con jobid {jobid}",
+      "PSUSP": "El trabajo \"{jobname}\" no se envió porque está suspendido con jobid {jobid}",
+      "USUSP": "El trabajo \"{jobname}\" no se envió porque está suspendido con jobid {jobid}",
+      "SSUSP": "El trabajo \"{jobname}\" no se envió porque está suspendido con jobid {jobid}"
+    },
+    
+   "ready_states": [
+      "DONE",
+      "EXIT"
+    ]
+}
+

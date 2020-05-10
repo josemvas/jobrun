@@ -38,16 +38,6 @@ else:
         localrun()
 '''
 
-def main():
-
-    commands = {
-        'setup' : setup,
-    }
-    
-    parser = ArgumentParser()
-    parser.add_argument('cmd', choices=commands.keys())
-    commands[parser.parse_args().cmd]()
-
 def setup(relpath=False):
 
     libpath = []
@@ -56,37 +46,42 @@ def setup(relpath=False):
     clusternames = {}
     hostdirnames = {}
     progdirnames = {}
+    schedulers = {}
     prognames = {}
     defaults = {}
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
-    datadir = path.join(bindir, 'enqueuer.d')
-    makedirs(datadir)
+    cfgdir = path.join(bindir, 'enqueuer')
+    makedirs(cfgdir)
     
     sourcedir = AbsPath(__file__).parent()
     corespecdir = path.join(sourcedir, 'specdata', 'corespecs')
     hostspecdir = path.join(sourcedir, 'specdata', 'hostspecs')
-    specdir = path.join(datadir, 'jobspecs')
+    queuespecdir = path.join(sourcedir, 'specdata', 'queuespecs')
+    specdir = path.join(cfgdir, 'jobspecs')
     
     for dirname in listdir(hostspecdir):
         if not path.isfile(path.join(hostspecdir, dirname, 'hostspec.json')):
             messages.warning('El directorio', dirname, 'no contiene ningún archivo de configuración')
-        clusternames[dirname] = readspec(path.join(hostspecdir, dirname, 'hostspec.json')).clustername
-        hostdirnames[clusternames[dirname]] = dirname
+        hostspec = readspec(path.join(hostspecdir, dirname, 'hostspec.json'))
+        clusternames[dirname] = hostspec.clustername
+        hostdirnames[hostspec.clustername] = dirname
+        schedulers[dirname] = hostspec.scheduler
 
     if not clusternames:
         messages.warning('No hay hosts configurados')
         raise SystemExit()
 
-    if path.isfile(path.join(datadir, 'hostspec.json')):
-        clustername = readspec(path.join(datadir, 'hostspec.json')).clustername
+    if path.isfile(path.join(cfgdir, 'hostspec.json')):
+        clustername = readspec(path.join(cfgdir, 'hostspec.json')).clustername
         if clustername in clusternames.values():
             defaults['cluster'] = clustername
 
     selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Generic'))]
     
-    if not path.isfile(path.join(datadir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(datadir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-        copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(datadir, 'hostspec.json'))
+    if not path.isfile(path.join(cfgdir, 'hostspec.json')) or readspec(hostspecdir, selhostdir, 'hostspec.json') == readspec(cfgdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        copyfile(path.join(hostspecdir, selhostdir, 'hostspec.json'), path.join(cfgdir, 'hostspec.json'))
+        copyfile(path.join(queuespecdir, schedulers[selhostdir], 'queuespec.json'), path.join(cfgdir, 'queuespec.json'))
          
     for dirname in listdir(path.join(hostspecdir, selhostdir, 'pathspecs')):
         prognames[dirname] = readspec(path.join(corespecdir, dirname, 'corespec.json')).progname
@@ -108,7 +103,8 @@ def setup(relpath=False):
 
     for progdir in selprogdirs:
         makedirs(path.join(specdir, progdir))
-        hardlink(path.join(datadir, 'hostspec.json'), path.join(specdir, progdir, 'hostspec.json'))
+        hardlink(path.join(cfgdir, 'hostspec.json'), path.join(specdir, progdir, 'hostspec.json'))
+        hardlink(path.join(cfgdir, 'queuespec.json'), path.join(specdir, progdir, 'queuespec.json'))
         copyfile(path.join(corespecdir, progdir, 'corespec.json'), path.join(specdir, progdir, 'corespec.json'))
         copypathspec = True
         if progdir not in configured or not path.isfile(path.join(specdir, progdir, 'pathspec.json')) or readspec(hostspecdir, selhostdir, 'pathspecs', progdir, 'pathspec.json') == readspec(specdir, progdir, 'pathspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progdir]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):

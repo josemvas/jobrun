@@ -33,10 +33,12 @@ except KeyError:
     pass
 
 hostspec = path.join(specdir, 'hostspec.json')
+queuespec = path.join(specdir, 'queuespec.json')
 corespec = path.join(specdir, 'corespec.json')
 pathspec = path.join(specdir, 'pathspec.json')
 
 jobspecs.merge(readspec(hostspec))
+jobspecs.merge(readspec(queuespec))
 jobspecs.merge(readspec(corespec))
 jobspecs.merge(readspec(pathspec))
 

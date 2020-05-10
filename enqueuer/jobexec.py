@@ -4,19 +4,15 @@ from re import match
 from time import sleep
 from os import path, execv, getcwd, rename
 from subprocess import call, check_output
-from importlib import import_module
 from . import dialogs
 from . import messages
+from .queue import submitjob, checkjob
 from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
 from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remotehost
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
 from .boolparse import BoolParser
 from .details import mpilibs
-
-scheduler = import_module('.schedulers.' + jobspecs.scheduler, package='enqueuer')
-jobformat = Bunch(scheduler.jobformat)
-jobenvars = Bunch(scheduler.jobenvars)
 
 def nextfile():
 
@@ -121,14 +117,14 @@ def upload():
     for key in jobspecs.filekeys:
         if path.isfile(pathjoin(inputdir, (inputname, key))):
             transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
-    call(['rsync', '-qRtz'] + transferlist + [remotehost + ':' + pathjoin(cluster.remoteshare, userhost)])
+    call(['rsync', '-qRLtz'] + transferlist + [remotehost + ':' + pathjoin(cluster.remoteshare, userhost)])
 
 @catch_keyboard_interrupt
 def setup():
 
     script.environ = []
     script.command = []
-    script.comments = []
+    script.qctrl = []
 
     if not jobspecs.scheduler:
         messages.cfgerror('No se especificó el nombre del sistema de colas (scheduler)')
@@ -174,10 +170,10 @@ def setup():
         messages.cfgerror('No se especificó el directorio temporal de escritura por defecto (scratchdir)')
 
     if options.scrdir:
-        script.workdir = AbsPath(options.scrdir, jobenvars.jobid, cwdir=getcwd())
+        script.workdir = AbsPath(options.scrdir, jobspecs.qenv.jobid, cwdir=getcwd())
     else:
         try:
-            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobenvars.jobid)
+            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)
         except NotAbsolutePath:
             messages.cfgerror(jobspecs.defaults.scratchdir, 'no es una ruta absoluta (scratchdir)')
 
@@ -198,10 +194,10 @@ def setup():
             if getattr(options, parkey).startswith('/') or getattr(options, parkey).endswith('/'):
                 messages.opterror('El nombre del conjunto de parámetros no puede empezar ni terminar con una diagonal')
 
-    if 'mpilauncher' in jobspecs:
-        try: jobspecs.mpilauncher = boolstrs[jobspecs.mpilauncher]
+    if 'mpilaunch' in jobspecs:
+        try: jobspecs.mpilaunch = boolstrs[jobspecs.mpilaunch]
         except KeyError:
-            messages.cfgerror('Este valor requiere ser "True" o "False" (mpilauncher)')
+            messages.cfgerror('Este valor requiere ser "True" o "False" (mpilaunch)')
     
     if not jobspecs.filekeys:
         messages.cfgerror('La lista de archivos del programa no existe o está vacía (filekeys)')
@@ -225,18 +221,18 @@ def setup():
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            script.comments.append(jobformat.nhost(options.nhost))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.nhost))
         elif jobspecs.parallelib.lower() == 'openmp':
-            script.comments.append(jobformat.ncore(options.ncore))
-            script.comments.append(jobformat.nhost(options.nhost))
+            script.qctrl.append(jobspecs.qctrl.ncore.format(options.ncore))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.nhost))
             script.command.append('OMP_NUM_THREADS=' + str(options.ncore))
         elif jobspecs.parallelib.lower() in mpilibs:
-            if not 'mpilauncher' in jobspecs:
-                messages.cfgerror('No se especificó si el programa es lanzado por mpirun (mpilauncher)')
-            script.comments.append(jobformat.ncore(options.ncore))
-            script.comments.append(jobformat.nhost(options.nhost))
-            if jobspecs.mpilauncher:
-                script.command.append(scheduler.mpilauncher[jobspecs.parallelib])
+            if not 'mpilaunch' in jobspecs:
+                messages.cfgerror('No se especificó si el programa es lanzado por mpirun (mpilaunch)')
+            script.qctrl.append(jobspecs.qctrl.ncore.format(options.ncore))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.nhost))
+            if jobspecs.mpilaunch:
+                script.command.append(jobspecs.mpilauncher[jobspecs.parallelib])
         else:
             messages.cfgerror('El tipo de paralelización ' + jobspecs.parallelib + ' no está soportado')
     else:
@@ -279,17 +275,17 @@ def setup():
     except NotAbsolutePath:
         script.command.append(jobspecs.versions[options.version].executable)
 
-    script.comments.append(jobformat.label(jobspecs.progname))
-    script.comments.append(jobformat.queue(options.queue))
-    script.comments.append(jobformat.output(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
-    script.comments.append(jobformat.error(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
+    script.qctrl.append(jobspecs.qctrl.label.format(jobspecs.progname))
+    script.qctrl.append(jobspecs.qctrl.queue.format(options.queue))
+    script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
+    script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     
     if options.node:
-        script.comments.append(jobformat.hosts(options.node))
+        script.qctrl.append(jobspecs.qctrl.hosts.format(options.node))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + cluster.head)
-    script.environ.extend('='.join(i) for i in jobenvars.items())
+    script.environ.extend('='.join(i) for i in jobspecs.qenv.items())
     script.environ.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     script.environ.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     script.environ.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
@@ -429,7 +425,7 @@ def localrun():
             try:
                 with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
                     jobid = t.read()
-                    jobstate = scheduler.checkjob(jobid)
+                    jobstate = checkjob(jobid)
                     if callable(jobstate):
                         messages.failure(jobstate(jobname=jobname, jobid=jobid))
                         return
@@ -463,7 +459,7 @@ def localrun():
             if path.isfile(pathjoin(inputdir, (inputname, key))):
                 script.putfile(pathjoin(inputdir, (inputname, key)), pathjoin(hiddendir, jobspecs.filekeys[key]))
     
-    script.comments.append(jobformat.name(jobname))
+    script.qctrl.append(jobspecs.qctrl.name.format(jobname))
 
     offscript = []
 
@@ -477,7 +473,7 @@ def localrun():
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
-        f.write(''.join(i + '\n' for i in script.comments))
+        f.write(''.join(i + '\n' for i in script.qctrl))
         f.write(''.join(i + '\n' for i in script.environ))
         f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.mkdir(script.workdir) + '\n')
@@ -492,7 +488,7 @@ def localrun():
         f.write(''.join(script.runathead(i) + '\n' for i in offscript))
     
     try:
-        jobid = scheduler.queuejob(jobscript)
+        jobid = submitjob(jobscript)
     except RuntimeError as error:
         messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
         return

@@ -2,7 +2,7 @@
    "progkey": "vasp",
    "progname": "VASP",
    "parallelib": "intelmpi",
-   "mpilauncher": "True",
+   "mpilaunch": "True",
    "filecheck": "INCAR and POSCAR and POTCAR",
    "stdoutput": "log",
    "defaults" : {
