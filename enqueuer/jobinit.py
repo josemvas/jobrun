@@ -92,7 +92,7 @@ parser.add_argument('-M', '--match', metavar='REGEX', help='Enviar únicamente l
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
 parser.add_argument('--temporary', action='store_true', help='Borrar los archivos de entrada y vrear una carpeta temporal de salida.')
-parser.add_argument('--node', metavar='NODENAME', help='Solicitar un nodo específico de ejecución.')
+parser.add_argument('--nodes', metavar='NODENAME', help='Solicitar nodos específicos de ejecución por nombre.')
 parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com directorio de salida.')
 parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como directorio de escritura.')
 

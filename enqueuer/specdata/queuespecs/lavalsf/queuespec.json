@@ -6,7 +6,7 @@
    "qctrl": {
       "name": "#BSUB -J '{}'",
       "label": "#BSUB -P '{}'",
-      "hosts": "#BSUB -m '{}'",
+      "nodes": "#BSUB -m '{}'",
       "ncore": "#BSUB -n '{}'",
       "nhost": "#BSUB -R 'span[hosts={}]'",
       "queue": "#BSUB -q '{}'",

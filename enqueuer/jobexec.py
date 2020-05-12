@@ -280,8 +280,8 @@ def setup():
     script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     
-    if options.node:
-        script.qctrl.append(jobspecs.qctrl.hosts.format(options.node))
+    if options.nodes:
+        script.qctrl.append(jobspecs.qctrl.nodes.format(options.nodes))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + cluster.head)

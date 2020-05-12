@@ -5,7 +5,7 @@ delete () {
     echo
     case "$answer" in
       s|y)
-        echo -e "${yellow}Los siguientes archivos serán borrados del servidor remoto${normal}\n$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')" | more
+        echo -e "${yellow}Los siguientes archivos serán borrados de $host:${normal}\n$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')" | more
         while true; do
             read -p "${yellow}Escriba \"ok\" para proceder o presione ENTER para cancelar: ${normal}" answer
             case "$answer" in
@@ -65,7 +65,7 @@ if [[ -n $unsynced || -n $conflicting ]]; then
     fi
     if [[ -n $conflicting ]]; then
         if [[ -z ${force+?} ]]; then
-            echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local${normal}"
+            echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local:${normal}"
             echo "$conflicting"
             echo "${yellow}Ejecute este escript con la opción --force para sobreescribir las versiones locales${normal}"
         else
@@ -74,7 +74,7 @@ if [[ -n $unsynced || -n $conflicting ]]; then
         fi
     fi
 elif [[ -n $synced ]]; then
-    delete "desea borrar los archivos sincronizados de $host" "$synced"
+    delete "desea borrar los archivos redundantes" "$synced"
 elif [[ -n $excluded ]]; then
     delete "desea borrar los archivos excluidos de $host" "$synced"
 else

@@ -6,7 +6,7 @@
    "qctrl": {
        "name": "#SBATCH -J '{}'",
        "label": "#SBATCH --comment='{}'",
-       "hosts": "#SBATCH -w '{}'",
+       "nodes": "#SBATCH -w '{}'",
        "ncore": "#SBATCH -n '{}'",
        "nhost": "#SBATCH -N '{}'",
        "queue": "#SBATCH -p '{}'",
