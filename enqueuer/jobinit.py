@@ -18,7 +18,7 @@ jobspecs = SpecBunch()
 keywords = {}
 
 try:
-    specdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
+    jobspecdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
 except KeyError:
     messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
 
@@ -32,10 +32,10 @@ try:
 except KeyError:
     pass
 
-hostspec = path.join(specdir, 'hostspec.json')
-queuespec = path.join(specdir, 'queuespec.json')
-corespec = path.join(specdir, 'corespec.json')
-pathspec = path.join(specdir, 'pathspec.json')
+hostspec = path.join(jobspecdir, 'hostspec.json')
+queuespec = path.join(jobspecdir, 'queuespec.json')
+corespec = path.join(jobspecdir, 'corespec.json')
+pathspec = path.join(jobspecdir, 'pathspec.json')
 
 jobspecs.merge(readspec(hostspec))
 jobspecs.merge(readspec(queuespec))
