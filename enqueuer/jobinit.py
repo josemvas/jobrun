@@ -18,7 +18,7 @@ jobspecs = SpecBunch()
 keywords = {}
 
 try:
-    jobspecdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
+    specdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
 except KeyError:
     messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
 
@@ -32,20 +32,15 @@ try:
 except KeyError:
     pass
 
-hostspec = path.join(jobspecdir, 'hostspec.json')
-queuespec = path.join(jobspecdir, 'queuespec.json')
-corespec = path.join(jobspecdir, 'corespec.json')
-pathspec = path.join(jobspecdir, 'pathspec.json')
+jobspecs.merge(readspec(path.join(specdir, 'hostspec.json')))
+jobspecs.merge(readspec(path.join(specdir, 'queuespec.json')))
+jobspecs.merge(readspec(path.join(specdir, 'progspec.json')))
+jobspecs.merge(readspec(path.join(specdir, 'hostprogspec.json')))
 
-jobspecs.merge(readspec(hostspec))
-jobspecs.merge(readspec(queuespec))
-jobspecs.merge(readspec(corespec))
-jobspecs.merge(readspec(pathspec))
+userspecdir = path.join(cluster.home, '.jobspecs', program + '.json')
 
-userspec = path.join(cluster.home, '.jobspecs', program + '.json')
-
-if path.isfile(userspec):
-    jobspecs.merge(readspec(userspec))
+if path.isfile(userspecdir):
+    jobspecs.merge(readspec(userspecdir))
 
 try: cluster.name = jobspecs.clustername
 except AttributeError:
