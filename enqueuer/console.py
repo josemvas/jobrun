@@ -98,7 +98,7 @@ def setup(relpath=False):
             if libdir not in libpath and libdir not in pyldpath:
                 pyldpath.append(libdir)
 
-    copyfile(path.join(sourcedir, 'exec','jobsync'), path.join(bindir, 'jobsync'))
+    copyfile(path.join(sourcedir, 'bin','jobsync'), path.join(bindir, 'jobsync'))
     chmod(path.join(bindir, 'jobsync'), 0o755)
 
     for dirname in listdir(specdir):
@@ -108,7 +108,7 @@ def setup(relpath=False):
         else:
             modulepath = path.dirname(sourcedir)
             specpath = AbsPath(specdir, dirname)
-        with open(path.join(sourcedir, 'exec', 'launcher'), 'r') as fr, open(path.join(bindir, dirname), 'w') as fw:
+        with open(path.join(sourcedir, 'bin', 'launcher'), 'r') as fr, open(path.join(bindir, dirname), 'w') as fw:
             fw.write(fr.read().format(
                 python=sys.executable,
                 pyldpath=pathsep.join(pyldpath),
