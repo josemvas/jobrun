@@ -5,8 +5,8 @@
 "SPECPATH={specpath}" \
 '{python}' "$0" "$@"
 
-from enqueuer.jobinit import drytest, remotehost, files
-from enqueuer.jobexec import wait, setup, connect, upload, dryrun, localrun, remoterun
+from job2q.jobinit import drytest, remotehost, files
+from job2q.jobexec import wait, setup, connect, upload, dryrun, localrun, remoterun
 
 if drytest:
     while files:

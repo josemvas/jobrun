@@ -24,7 +24,7 @@ def setup(relpath=False):
     defaults = {}
     
     bindir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
-    systemdir = path.join(bindir, 'enqueuer')
+    systemdir = path.join(bindir, 'job2q')
     specdir = path.join(systemdir, 'progspecs')
     makedirs(systemdir)
     makedirs(specdir)

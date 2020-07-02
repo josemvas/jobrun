@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
 assert sys.version_info >= (3, 4)
-from enqueuer.console import setup
+from job2q.console import setup
 setup(relpath=True)
 
