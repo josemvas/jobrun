@@ -18,10 +18,10 @@
    "defaults": {
       "version": "6",
       "parampaths": {
-         "paramset": "/opt/parameters/deMon2k/{0}"
+         "paramset": "/opt/parameters/deMon/{0}"
       },
       "paramsets": {
-         "paramset" : [ "deMon" ]
+         "paramset" : [ "deMon2k" ]
       }
    }
 }

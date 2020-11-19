@@ -64,8 +64,8 @@ def setup(relpath=False):
         messages.warning('Especifique el gestor de trabajos en el archivo hostspec.json y ejecute otra vez este comando')
         return
          
-    for dirname in listdir(path.join(platformspecs, selhostdir, 'prog')):
-        prognames[dirname] = readspec(path.join(sourcedir, 'specs', 'prog', dirname, 'progspec.json')).progname
+    for dirname in listdir(path.join(platformspecs, selhostdir, 'progs')):
+        prognames[dirname] = readspec(path.join(sourcedir, 'specs', 'progs', dirname, 'progspec.json')).progname
         progdirnames[prognames[dirname]] = dirname
 
     if not prognames:
@@ -81,10 +81,10 @@ def setup(relpath=False):
         makedirs(path.join(specdir, progname))
         hardlink(path.join(systemdir, 'hostspec.json'), path.join(specdir, progname, 'hostspec.json'))
         hardlink(path.join(systemdir, 'queuespec.json'), path.join(specdir, progname, 'queuespec.json'))
-        copyfile(path.join(sourcedir, 'specs', 'prog', progname, 'progspec.json'), path.join(specdir, progname, 'progspec.json'))
+        copyfile(path.join(sourcedir, 'specs', 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'progspec.json'))
         copypathspec = True
-        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(platformspecs, selhostdir, 'prog', progname, 'progspec.json') == readspec(specdir, progname, 'hostprogspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
-            copyfile(path.join(platformspecs, selhostdir, 'prog', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
+        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(platformspecs, selhostdir, 'progs', progname, 'progspec.json') == readspec(specdir, progname, 'hostprogspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+            copyfile(path.join(platformspecs, selhostdir, 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)
