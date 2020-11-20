@@ -31,5 +31,5 @@ dictags = (
 )
 
 inputkeys = (
-    'inputdir',
+    'srcdir',
 )

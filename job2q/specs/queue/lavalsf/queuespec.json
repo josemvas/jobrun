@@ -27,11 +27,11 @@
     },
     
    "blocking_states": {
-      "PEND": "El trabajo \"{{}}\" no se envió porque ya está en cola con jobid {}",
-      "RUN": "El trabajo \"{{}}\" no se envió porque ya está corriendo con jobid {}",
-      "PSUSP": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}",
-      "USUSP": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}",
-      "SSUSP": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}"
+      "PEND": "El trabajo {name} no se envió porque ya está en cola con número {id}",
+      "RUN": "El trabajo {name} no se envió porque ya está corriendo con número {id}",
+      "PSUSP": "El trabajo {name} no se envió porque está suspendido con número {id}",
+      "USUSP": "El trabajo {name} no se envió porque está suspendido con número {id}",
+      "SSUSP": "El trabajo {name} no se envió porque está suspendido con número {id}"
     },
     
    "ready_states": [

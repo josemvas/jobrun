@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from . import dialogs
 from . import messages
 from .queue import submitjob, checkjob
-from .utils import Bunch, IdentityList, alnum, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
+from .utils import Bunch, IdentityList, natkey, natsort, p, q, sq, catch_keyboard_interrupt, boolstrs
 from .jobinit import cluster, program, envars, jobspecs, options, files, keywords, interpolate, jobprefix, remotehost
 from .fileutils import AbsPath, NotAbsolutePath, diritems, pathjoin, remove, makedirs, copyfile
 from .jobutils import NonMatchingFile, InputFileError
@@ -18,12 +18,12 @@ def nextfile():
 
     file = files.pop(0)
     filepath = AbsPath(file, cwdir=getcwd())
-    inputdir = filepath.parent()
+    srcdir = filepath.parent()
     basename = filepath.name
     if filepath.isfile():
         for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
             if basename.endswith('.' + key):
-                inputext = key
+                extension = key
                 inputname = basename[:-len(key)-1]
                 if options.match:
                     matched = match(options.match, inputname)
@@ -51,8 +51,8 @@ def nextfile():
         prefixed = '.'.join([jobprefix, inputname])
         for item in jobspecs.inputfiles:
             for key in item.split('|'):
-                if path.isfile(pathjoin(inputdir, [inputname, key])):
-                    with open(pathjoin(inputdir, [inputname, key]), 'r') as fr, open(pathjoin(inputdir, [prefixed, key]), 'w') as fw:
+                if path.isfile(pathjoin(srcdir, [inputname, key])):
+                    with open(pathjoin(srcdir, [inputname, key]), 'r') as fr, open(pathjoin(srcdir, [prefixed, key]), 'w') as fw:
                         if interpolate:
                             try:
                                 fw.write(fr.read().format(**keywords))
@@ -66,10 +66,10 @@ def nextfile():
         if key + 'file' in options:
             sourcepath = AbsPath(getattr(options, key + 'file'), cwdir=getcwd())
             if sourcepath.isfile():
-                sourcepath.symlinkto(inputdir, [inputname, key])
+                sourcepath.symlinkto(srcdir, [inputname, key])
             else:
                 messages.opterror('El archivo', sourcepath, 'no existe (', key + 'file)')
-    return inputdir, inputname, inputext
+    return srcdir, inputname, extension
 
 @catch_keyboard_interrupt
 def wait():
@@ -93,7 +93,7 @@ def remoterun():
 def dryrun():
 
     try:
-        inputdir, inputname, inputext = nextfile()
+        srcdir, inputname, extension = nextfile()
     except NonMatchingFile:
         return
     except InputFileError as e:
@@ -104,18 +104,18 @@ def dryrun():
 def upload():
 
     try:
-        inputdir, inputname, inputext = nextfile()
+        srcdir, inputname, extension = nextfile()
     except NonMatchingFile:
         return
     except InputFileError as e:
         messages.failure(e)
         return
     transferlist = []
-    relparentdir = path.relpath(inputdir, cluster.home)
+    relparentdir = path.relpath(srcdir, cluster.home)
     userhost = cluster.user + '@' + cluster.name.lower()
-    remotefiles.append(pathjoin(cluster.remoteshare, userhost, relparentdir, (inputname, inputext)))
+    remotefiles.append(pathjoin(cluster.remoteshare, userhost, relparentdir, (inputname, extension)))
     for key in jobspecs.filekeys:
-        if path.isfile(pathjoin(inputdir, (inputname, key))):
+        if path.isfile(pathjoin(srcdir, (inputname, key))):
             transferlist.append(pathjoin(cluster.home, '.', relparentdir, (inputname, key)))
     call(['rsync', '-qRLtz'] + transferlist + [remotehost + ':' + pathjoin(cluster.remoteshare, userhost)])
 
@@ -163,14 +163,14 @@ def setup():
             messages.failure = join_arguments(wordseps)(TkDialogs().message)
             messages.success = join_arguments(wordseps)(TkDialogs().message)
 
-    if not 'outputdir' in jobspecs.defaults:
-        messages.cfgerror('No se especificó el directorio de salida por defecto (outputdir)')
+    if not 'outdir' in jobspecs.defaults:
+        messages.cfgerror('No se especificó el directorio de salida por defecto (outdir)')
 
     if not 'scratchdir' in jobspecs.defaults:
         messages.cfgerror('No se especificó el directorio temporal de escritura por defecto (scratchdir)')
 
-    if options.scrdir:
-        script.workdir = AbsPath(options.scrdir, jobspecs.qenv.jobid, cwdir=getcwd())
+    if options.writedir:
+        script.workdir = AbsPath(options.writedir, jobspecs.qenv.jobid, cwdir=getcwd())
     else:
         try:
             script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid).setkeys(cluster).validate()
@@ -335,7 +335,7 @@ def setup():
 def localrun():
 
     try:
-        inputdir, inputname, inputext = nextfile()
+        srcdir, inputname, extension = nextfile()
     except NonMatchingFile:
         return
     except InputFileError as e:
@@ -345,7 +345,7 @@ def localrun():
     filebools = {}
 
     for key in jobspecs.filekeys:
-        filebools[key] = path.isfile(pathjoin(inputdir, (inputname, key)))
+        filebools[key] = path.isfile(pathjoin(srcdir, (inputname, key)))
 
     if 'filecheck' in jobspecs:
         if not BoolParser(jobspecs.filecheck).ev(filebools):
@@ -392,20 +392,18 @@ def localrun():
             messages.opterror('La ruta', rootpath, 'no existe', p(parkey))
     
     if options.outdir:
-        outputdir = AbsPath(options.outdir, cwdir=inputdir)
+        outdir = AbsPath(options.outdir, cwdir=srcdir)
     else:
-        outputdir = AbsPath(jobspecs.defaults.outputdir, cwdir=inputdir).setkeys(dict(jobname=jobname)).validate()
+        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=srcdir).setkeys({'jobname':jobname, 'progkey':jobspecs.progkey, 'version':jobspecs.versions[options.version].number}).validate()
 
-    numkey = alnum(jobspecs.versions[options.version].number)
-    hiddendir = AbsPath(outputdir, '.' + jobspecs.progkey + numkey)
-    outputname = jobname + '.' + jobspecs.progkey + numkey
+    hiddendir = AbsPath(outdir, '.job')
 
     inputfiles = []
     inputdirs = []
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if path.isfile(pathjoin(inputdir, (inputname, key))):
+            if path.isfile(pathjoin(srcdir, (inputname, key))):
                 inputfiles.append(((pathjoin(hiddendir, jobspecs.filekeys[key])), pathjoin(script.workdir, jobspecs.filekeys[key])))
     
     for parameter in parameters:
@@ -418,16 +416,17 @@ def localrun():
 
     for item in jobspecs.outputfiles:
         for key in item.split('|'):
-            outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outputdir, (outputname, key))))
+            outputfiles.append((pathjoin(script.workdir, jobspecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
     
-    if outputdir.isdir():
+    if outdir.isdir():
         if hiddendir.isdir():
             try:
-                with open(pathjoin(hiddendir, 'jobid'), 'r') as t:
-                    jobstate = checkjob(t.read())
-                    if jobstate is not None:
-                        messages.failure(jobstate.format(jobname))
-                        return
+                with open(pathjoin(hiddendir, 'jobid'), 'r') as f:
+                    jobid = f.read()
+                jobstate = checkjob(jobid)
+                if jobstate is not None:
+                    messages.failure(jobstate.format(id=jobid, name=jobname))
+                    return
             except FileNotFoundError:
                 pass
         elif hiddendir.exists():
@@ -435,28 +434,28 @@ def localrun():
             return
         else:
             makedirs(hiddendir)
-        if not set(outputdir.listdir()).isdisjoint(pathjoin((outputname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
-            if options.no is True or (options.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outputdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
+            if options.no is True or (options.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 return
         for item in jobspecs.outputfiles:
             for key in item.split('|'):
-                remove(pathjoin(outputdir, (outputname, key)))
-        if inputdir != outputdir:
+                remove(pathjoin(outdir, (jobname, key)))
+        if srcdir != outdir:
             for item in jobspecs.inputfiles:
                 for key in item.split('|'):
-                    remove(pathjoin(outputdir, (jobname, key)))
-    elif outputdir.exists():
-        messages.failure('No se puede crear la carpeta', outputdir, 'porque hay un archivo con ese mismo nombre')
+                    remove(pathjoin(outdir, (jobname, key)))
+    elif outdir.exists():
+        messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
         return
     else:
-        makedirs(outputdir)
+        makedirs(outdir)
         makedirs(hiddendir)
     
-#    if inputdir != outputdir:
+#    if srcdir != outdir:
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if path.isfile(pathjoin(inputdir, (inputname, key))):
-                script.putfile(pathjoin(inputdir, (inputname, key)), pathjoin(hiddendir, jobspecs.filekeys[key]))
+            if path.isfile(pathjoin(srcdir, (inputname, key))):
+                script.putfile(pathjoin(srcdir, (inputname, key)), pathjoin(hiddendir, jobspecs.filekeys[key]))
     
     script.qctrl.append(jobspecs.qctrl.name.format(jobname))
 

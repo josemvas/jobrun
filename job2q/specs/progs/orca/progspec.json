@@ -1,12 +1,12 @@
 {
-   "progkey": "orca",
+   "progkey": "ORCA",
    "progname": "ORCA",
    "parallelib": "openmpi",
    "mpilaunch": "False",
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {
-      "outputdir": "{jobname}"
+      "outdir": "{jobname}.{progkey}.{version}"
    },
    "filekeys": {
       "inp": "job.inp",

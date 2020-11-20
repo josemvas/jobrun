@@ -1,10 +1,10 @@
 {
-   "progkey": "ad",
+   "progkey": "AD",
    "progname": "AutoDock",
    "parallelib": "None",
    "filecheck": "dpf",
    "defaults" : {
-      "outputdir": "."
+      "outdir": "."
    },
    "filekeys": {
       "dpf": "job.dpf",

@@ -1,12 +1,12 @@
 {
-   "progkey": "vasp",
+   "progkey": "VASP",
    "progname": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
    "filecheck": "INCAR and POSCAR and POTCAR",
    "stdoutput": "log",
    "defaults" : {
-      "outputdir": "{jobname}"
+      "outdir": "{jobname}.{progkey}.{version}"
    },
    "filekeys": {
       "INCAR": "INCAR",

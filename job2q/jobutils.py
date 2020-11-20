@@ -23,7 +23,7 @@ def findparameters(rootpath, components, defaults, indent):
     component = next(components, None)
     if component:
         try:
-            findparameters(rootpath.joinpath(component.format()), components, defaults, indent)
+            findparameters(rootpath.pathjoin(component.format()), components, defaults, indent)
         except IndexError:
             choices = diritems(rootpath, component)
             try:
@@ -32,7 +32,7 @@ def findparameters(rootpath, components, defaults, indent):
                 default = None
             printchoices(choices=choices, default=default, indent=indent)
             for choice in choices:
-                findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
+                findparameters(rootpath.pathjoin(choice), components, defaults, indent + 1)
             
 def readcoords(coordfile, keywords):
     coordfile = AbsPath(coordfile, cwdir=getcwd())

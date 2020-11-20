@@ -23,7 +23,7 @@ def checkjob(jobid):
     error = error.decode(sys.stdout.encoding).strip()
     if process.returncode == 0:
         if output in jobspecs.blocking_states:
-            return jobspecs.blocking_states[output].format(jobid)
+            return jobspecs.blocking_states[output]
         elif output in jobspecs.ready_states:
             return None
         else:

@@ -27,12 +27,12 @@
     },
     
    "blocking_states": {
-      "Q": "El trabajo \"{{}}\" no se envió porque ya está en cola con jobid {}",
-      "R": "El trabajo \"{{}}\" no se envió porque ya está corriendo con jobid {}",
-      "H": "El trabajo \"{{}}\" no se envió porque está retenido con jobid {}",
-      "S": "El trabajo \"{{}}\" no se envió porque está suspendido con jobid {}",
-      "W": "El trabajo \"{{}}\" no se envió porque está esperando a ser ejecutado con jobid {}",
-      "T": "El trabajo \"{{}}\" no se envió porque está siendo movido a otro host con jobid {}"
+      "Q": "El trabajo {name} no se envió porque ya está en cola con número {id}",
+      "R": "El trabajo {name} no se envió porque ya está corriendo con número {id}",
+      "H": "El trabajo {name} no se envió porque está retenido con número {id}",
+      "S": "El trabajo {name} no se envió porque está suspendido con número {id}",
+      "W": "El trabajo {name} no se envió porque está esperando a ser ejecutado con número {id}",
+      "T": "El trabajo {name} no se envió porque está siendo movido a otro host con número {id}"
     },
     
    "ready_states": [

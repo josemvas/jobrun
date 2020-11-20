@@ -57,8 +57,6 @@ class AbsPath(str):
         return os.listdir(self)
     def parent(self):
         return AbsPath(os.path.dirname(self))
-    def joinpath(self, *args):
-        return AbsPath(self, *args)
     def hasext(self, extension):
         return self.extension == extension
     def exists(self):
@@ -73,6 +71,8 @@ class AbsPath(str):
         softlink(self, pathjoin(*dest))
     def copyto(self, *dest):
         copyfile(self, pathjoin(*dest))
+    def joinpath(self, *args):
+        return AbsPath(self, *args)
 
 def splitcomponent(component):
     parts = string.Formatter.parse(None, component)

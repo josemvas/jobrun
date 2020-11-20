@@ -1,11 +1,11 @@
 {
-   "progkey": "g",
+   "progkey": "Gau",
    "progname": "Gaussian",
    "parallelib": "openmp",
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
    "defaults" : {
-      "outputdir": "{jobname}"
+      "outdir": "{jobname}.{progkey}.{version}"
    },
    "filekeys": {
       "com": "job.com",

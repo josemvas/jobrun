@@ -89,7 +89,7 @@ parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='s
 parser.add_argument('--temporary', action='store_true', help='Borrar los archivos de entrada y vrear una carpeta temporal de salida.')
 parser.add_argument('--nodes', metavar='NODENAME', help='Solicitar nodos específicos de ejecución por nombre.')
 parser.add_argument('--outdir', metavar='OUTPUTDIR', help='Usar OUTPUTDIR com directorio de salida.')
-parser.add_argument('--scrdir', metavar='SCRATCHDIR', help='Usar SCRATCHDIR como directorio de escritura.')
+parser.add_argument('--writedir', metavar='WRITEDIR', help='Usar WRITEDIR como directorio de escritura.')
 
 sortgroup = parser.add_mutually_exclusive_group()
 sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos numéricamente de menor a mayor.')

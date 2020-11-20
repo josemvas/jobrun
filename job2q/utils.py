@@ -32,8 +32,8 @@ def natkey(string):
 def natsort(stringlist):
     return sorted(stringlist, key=natkey)
 
-def alnum(string): 
-    return ''.join(c for c in string if c.isalnum())
+def lowalnum(keystr):
+    return ''.join(c.lower() for c in keystr if c.isalnum())
 
 def deepjoin(a, i):
     return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)

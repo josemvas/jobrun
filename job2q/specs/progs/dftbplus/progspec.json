@@ -1,11 +1,11 @@
 {
-   "progkey": "plus",
+   "progkey": "DFTB+",
    "progname": "DFTB+",
    "parallelib": "openmp",
    "filecheck": "dftb_in.hsd",
    "stdoutput": "dftb_out.log",
    "defaults" : {
-      "outputdir": "{jobname}"
+      "outdir": "{jobname}.{progkey}.{version}"
    },
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
