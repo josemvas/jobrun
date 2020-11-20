@@ -8,6 +8,5 @@ dist/
 *.pyo
 __pycache__/
 
-# Testing
+# Test output
 /tests/*/
-/bin/
