@@ -1,8 +1,8 @@
 #########################################
-JobQueuer: Submit any job to any queue
+JobEnqueuer: Submit any job to any queue
 #########################################
 
-JobEnQueuer is a python module and command line utility to readily submit jobs to HPC
+JobEnqueuer is a python module and command line utility to readily submit jobs to HPC
 clusters. It is compatible with PBS, LSF and Slurm schedulers and currently supports the
 following simulation software:
 

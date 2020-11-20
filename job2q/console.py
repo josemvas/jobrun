@@ -61,7 +61,7 @@ def setup(relpath=False):
     if selhostdir in schedulers:
         copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostdir], 'queuespec.json'), path.join(systemdir, 'queuespec.json'))
     else:
-        messages.warning('Especifique el gestor de trabajos en el archivo hostspec.json y ejecute otra vez este comando')
+        messages.warning('Especifique el gestor de trabajos en el archivo', path.join(systemdir, 'queuespec.json'), 'y ejecute otra vez este comando')
         return
          
     for dirname in listdir(path.join(platformspecs, selhostdir, 'progs')):

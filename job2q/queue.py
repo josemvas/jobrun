@@ -27,7 +27,7 @@ def checkjob(jobid):
         elif output in jobspecs.ready_states:
             return None
         else:
-            return 'El trabajo "{jobname}" no se envió porque su estado no está registrado": ' + output.strip()
+            return 'El trabajo "{name}" no se envió porque su estado no está registrado: ' + output.strip()
     else:
-        return 'El trabajo "{jobname}" no se envió porque ocurrió error al revisar su estado": ' + error
+        return 'El trabajo "{name}" no se envió porque ocurrió error al revisar su estado: ' + error
        
