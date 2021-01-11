@@ -9,3 +9,11 @@ progspec.json
 Unificar la llave y el numero de las versiones de los programas en los archivos de configuración
 Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
 Separar los archivos de instalacion en bin/ y etc/
+
+Mantener la carpeta de salida en el scratch si falla la copia al home
+
+Ignorar el known_hosts de los usuarios
+
+Trap para SIGINT y SIGTERM enviados por bkill
+
+Poner límite de memoria a los trabajos
