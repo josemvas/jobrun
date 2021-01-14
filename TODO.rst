@@ -17,3 +17,5 @@ Ignorar el known_hosts de los usuarios
 Trap para SIGINT y SIGTERM enviados por bkill
 
 Poner límite de memoria a los trabajos
+
+Agregar opción para imprimir la versión del programa
