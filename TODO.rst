@@ -1,5 +1,5 @@
 console.py
-Seleccionar el scheduler interactivamente y renombrar Generic -> Nuevo
+Seleccionar el scheduler interactivamente
 
 queue.py
 Preguntar si se lanza el trabajo en caso de error al consultar su estado
@@ -19,3 +19,5 @@ Trap para SIGINT y SIGTERM enviados por bkill
 Poner límite de memoria a los trabajos
 
 Agregar opción para imprimir la versión del programa
+
+Crear un solo ejecutable job2q y enlaces simbolicos de los programas configurados a el
