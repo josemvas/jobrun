@@ -6,6 +6,8 @@ General
 - Poner límite de memoria a los trabajos
 - Agregar opción para imprimir la versión del programa
 - Crear un solo ejecutable job2q y enlaces simbolicos de los programas configurados a el
+- Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
+- Separar los archivos de instalacion en bin/ y etc/
 
 console.py
 ----------
@@ -19,6 +21,4 @@ queue.py
 progspec.json
 -------------
 - Unificar la llave y el numero de las versiones de los programas en los archivos de configuración
-- Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
-- Separar los archivos de instalacion en bin/ y etc/
 
