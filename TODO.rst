@@ -5,9 +5,7 @@ General
 - Trap para SIGINT y SIGTERM enviados por bkill
 - Poner límite de memoria a los trabajos
 - Agregar opción para imprimir la versión del programa
-- Crear un solo ejecutable job2q y enlaces simbolicos de los programas configurados a el
 - Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
-- Separar los archivos de instalacion en bin/ y etc/
 
 console.py
 ----------
@@ -18,3 +16,7 @@ queue.py
 - Preguntar si se lanza el trabajo en caso de error al consultar su estado
 - Checar el error estandar ademas de la salida estandar cuando no hay error
 
+AbsPath
+-------
+- Considerar no aceptar listas de componentes de path como argumento (usar el método joinpath en su lugar)
+- Considerar reemplazar método append con la opción keys=

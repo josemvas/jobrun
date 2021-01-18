@@ -3,6 +3,5 @@ find job2q -name \*.pyc -type f -delete
 find job2q -name \*.pyo -type f -delete
 find job2q -name __pycache__ -type d -delete
 find tests -mindepth 2 -type f -delete
-find tests -mindepth 1 -type d -delete
-find tests -mindepth 1 -type f -executable -delete
 find tests -mindepth 1 -type l -delete
+find tests -mindepth 1 -type d -delete

@@ -66,9 +66,9 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
     def linkto(self, *dest):
-        hardlink(self, pathjoin(*dest))
+        link(self, pathjoin(*dest))
     def symlinkto(self, *dest):
-        softlink(self, pathjoin(*dest))
+        symlink(self, pathjoin(*dest))
     def copyto(self, *dest):
         copyfile(self, pathjoin(*dest))
     def joinpath(self, *args):
@@ -124,6 +124,15 @@ def splitpath(path):
     else:
         return []
 
+def mkdir(path):
+    try: os.mkdir(path)
+    except FileExistsError:
+        pass
+    except FileNotFoundError:
+        messages.runerror('No se puede crear el directorio', path, 'porque la ruta no existe')
+    except PermissionError:
+        messages.runerror('No se puede crear el directorio', path, 'porque no tiene permiso')
+
 def makedirs(path):
     try: os.makedirs(path)
     except FileExistsError:
@@ -155,7 +164,7 @@ def copyfile(source, dest):
     except PermissionError:
         messages.runerror('No se puede copiar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
-def hardlink(source, dest):
+def link(source, dest):
     try: os.link(source, dest)
     except FileExistsError:
         os.remove(dest)
@@ -165,7 +174,7 @@ def hardlink(source, dest):
     except PermissionError:
         messages.runerror('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
-def softlink(source, dest):
+def symlink(source, dest):
     try: os.symlink(source, dest)
     except FileExistsError:
         os.remove(dest)
