@@ -1,21 +1,20 @@
 {
-   "versions": {
-      "6": {
-         "number": "6.0.1",
-         "executable": "/home/{user}/share/deMon2k/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
-         "load": [
-            "path/to/mpi",
-            "path/to/mkl"
-         ]
-      }
-   },
    "defaults": {
-      "version": "6",
+      "version": "6.0.1",
       "parampaths": {
          "paramset": "/home/{user}/share/parameters/deMon2k/{0}"
       },
       "paramsets": {
          "paramset" : [ "deMon" ]
+      }
+   },
+   "versions": {
+      "6.0.1": {
+         "executable": "/home/{user}/share/deMon2k/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
+         "load": [
+            "path/to/mpi",
+            "path/to/mkl"
+         ]
       }
    }
 }

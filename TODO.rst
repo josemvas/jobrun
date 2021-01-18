@@ -18,7 +18,3 @@ queue.py
 - Preguntar si se lanza el trabajo en caso de error al consultar su estado
 - Checar el error estandar ademas de la salida estandar cuando no hay error
 
-progspec.json
--------------
-- Unificar la llave y el numero de las versiones de los programas en los archivos de configuración
-

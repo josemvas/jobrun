@@ -1,7 +1,9 @@
 {
+   "defaults": {
+      "version": "09"
+   },
    "versions": {
       "09": {
-         "number": "09E",
          "executable": "g09",
          "export": {
              "g09root": "/opt/Gaussian/G09E.01-Linux-x86_64"
@@ -11,7 +13,6 @@
          ]
       },
       "16": {
-         "number": "16C",
          "executable": "g16",
          "export": {
              "g16root": "/opt/Gaussian/G16C.01-Linux-x86_64_SSE4.2"
@@ -20,8 +21,7 @@
             "/opt/Gaussian/G16C.01-Linux-x86_64_SSE4.2/g16/bsd/g16.profile"
          ]
       },
-      "16AVX": {
-         "number": "16C",
+      "16 AVX": {
          "executable": "g16",
          "export": {
              "g16root": "/opt/Gaussian/G16C.01-Linux-x86_64_AVX"
@@ -30,8 +30,5 @@
             "/opt/Gaussian/G16C.01-Linux-x86_64_AVX/g16/bsd/g16.profile"
          ]
       }
-   },
-   "defaults": {
-      "version": "09"
    }
 }

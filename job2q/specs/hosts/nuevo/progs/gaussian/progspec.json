@@ -4,7 +4,6 @@
    },
    "versions": {
       "09": {
-         "number": "09C",
          "executable": "g09",
          "export": {
             "g09root": "/home/{user}/share/G09E01"

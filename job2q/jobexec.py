@@ -394,7 +394,11 @@ def localrun():
     if options.outdir:
         outdir = AbsPath(options.outdir, cwdir=srcdir)
     else:
-        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=srcdir).setkeys({'jobname':jobname, 'progkey':jobspecs.progkey, 'version':jobspecs.versions[options.version].number}).validate()
+        jobinfo = dict(
+            jobname = jobname,
+            progkey = jobspecs.progkey,
+            version = options.version.replace(' ', '.'))
+        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=srcdir).setkeys(jobinfo).validate()
 
     hiddendir = AbsPath(outdir, '.job')
 

@@ -53,7 +53,7 @@ def setup(relpath=False):
         if clustername in clusternames.values():
             defaults['cluster'] = clustername
 
-    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Generic'))]
+    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Nueo'))]
     
     if not path.isfile(path.join(systemdir, 'hostspec.json')) or readspec(platformspecs, selhostdir, 'hostspec.json') == readspec(systemdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(path.join(platformspecs, selhostdir, 'hostspec.json'), path.join(systemdir, 'hostspec.json'))
