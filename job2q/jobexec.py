@@ -68,7 +68,7 @@ def nextfile():
             if sourcepath.isfile():
                 sourcepath.symlinkto(srcdir, [inputname, key])
             else:
-                messages.opterror('El archivo', sourcepath, 'no existe (', key + 'file)')
+                messages.opterror('El archivo', sourcepath, 'no existe', p(key + 'file'))
     return srcdir, inputname, extension
 
 @catch_keyboard_interrupt
