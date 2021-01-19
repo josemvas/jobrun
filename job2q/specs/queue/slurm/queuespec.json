@@ -7,7 +7,7 @@
        "name": "#SBATCH -J '{}'",
        "label": "#SBATCH --comment='{}'",
        "nodes": "#SBATCH -w '{}'",
-       "ncore": "#SBATCH -n '{}'",
+       "nproc": "#SBATCH -n '{}'",
        "nhost": "#SBATCH -N '{}'",
        "queue": "#SBATCH -p '{}'",
        "output": "#SBATCH -o '{}/%A.out'",
@@ -16,7 +16,7 @@
    
    "qenv": {
        "jobid": "$SLURM_JOB_ID",
-       "ncore": "$SLURM_NTASKS",
+       "nproc": "$SLURM_NTASKS",
        "hosts": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
    },
    

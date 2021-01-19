@@ -27,8 +27,8 @@ def nextfile():
             if basename.endswith('.' + key):
                 extension = key
                 inputname = basename[:-len(key)-1]
-                if options.object.filter:
-                    match = re.match(options.object.filter, inputname)
+                if options.core.filter:
+                    match = re.match(options.core.filter, inputname)
                     if not match:
                         raise NonMatchingFile()
                 break
@@ -63,7 +63,7 @@ def nextfile():
 @catch_keyboard_interrupt
 def wait():
 
-    sleep(options.object.wait)
+    sleep(options.core.wait)
 
 
 
@@ -80,7 +80,7 @@ def connect():
 def remoterun():
 
     if remotefiles:
-        execv('/usr/bin/ssh', [__file__, '-qt', options.remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [options.program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options.object).items() if value] + ['--temporary'] + remotefiles)
+        execv('/usr/bin/ssh', [__file__, '-qt', options.remotehost] + ['{}={}'.format(envar, value) for envar, value in envars.items()] + [options.program] + ['--{}'.format(option) if value is True else '--{}={}'.format(option, value) for option, value in vars(options.core).items() if value] + ['--temporary'] + remotefiles)
 
 
 
@@ -129,31 +129,31 @@ def setup():
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.object.temporary:
+    if options.core.temporary:
         script.putfile = rename
     else:
         script.putfile = copyfile
 
-    if getattr(options.object, 'ignore-defaults'):
+    if getattr(options.core, 'ignore-defaults'):
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('parameterset', None)
     
-    if options.object.sort:
+    if options.core.sort:
         files.sort(key=natkey)
-    elif getattr(options.object, 'sort-reverse'):
+    elif getattr(options.core, 'sort-reverse'):
         files.sort(key=natkey, reverse=True)
     
-    if not options.object.wait:
-        try: options.object.wait = float(jobspecs.defaults.waitime)
-        except AttributeError: options.object.wait = 0
+    if not options.core.wait:
+        try: options.core.wait = float(jobspecs.defaults.waitime)
+        except AttributeError: options.core.wait = 0
     
-    if not options.object.ncore:
-        options.object.ncore = 1
+    if not options.core.nproc:
+        options.core.nproc = 1
     
-    if not options.object.nhost:
-        options.object.nhost = 1
+    if not options.core.nhost:
+        options.core.nhost = 1
 
-    if options.object.xdialog:
+    if options.core.xdialog:
         try:
             from bulletin import TkDialogs
         except ImportError:
@@ -169,17 +169,17 @@ def setup():
     if not 'scratchdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
-    if options.object.writedir:
-        script.workdir = AbsPath(options.object.writedir, jobspecs.qenv.jobid, cwdir=getcwd())
+    if options.core.writedir:
+        script.workdir = AbsPath(options.core.writedir, jobspecs.qenv.jobid, cwdir=getcwd())
     else:
         try:
             script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid).setkeys(cluster).validate()
         except NotAbsolutePath:
             messages.error(jobspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
-    if not options.object.queue:
+    if not options.core.queue:
         if jobspecs.defaults.queue:
-            options.object.queue = jobspecs.defaults.queue
+            options.core.queue = jobspecs.defaults.queue
         else:
             messages.error('No se especificó la cola por defecto', spec='defaults.queue')
     
@@ -190,9 +190,9 @@ def setup():
         messages.error('No se especificó la clave del programa', spec='progkey')
     
     for key in jobspecs.parameters:
-        if key in options.object:
-            if '/' in getattr(options.object, key):
-                messages.error(getattr(options.object, key), 'no puede ser una ruta', option=key)
+        if key in options.core:
+            if '/' in getattr(options.core, key):
+                messages.error(getattr(options.core, key), 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in jobspecs:
         try: jobspecs.mpilaunch = boolstrs[jobspecs.mpilaunch]
@@ -221,16 +221,16 @@ def setup():
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.object.nhost))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.core.nhost))
         elif jobspecs.parallelib.lower() == 'openmp':
-            script.qctrl.append(jobspecs.qctrl.ncore.format(options.object.ncore))
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.object.nhost))
-            script.command.append('OMP_NUM_THREADS=' + str(options.object.ncore))
+            script.qctrl.append(jobspecs.qctrl.nproc.format(options.core.nproc))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.core.nhost))
+            script.command.append('OMP_NUM_THREADS=' + str(options.core.nproc))
         elif jobspecs.parallelib.lower() in mpilibs:
             if not 'mpilaunch' in jobspecs:
                 messages.error('No se especificó si el programa debe ser ejecutado por mpirun', spec='mpilaunch')
-            script.qctrl.append(jobspecs.qctrl.ncore.format(options.object.ncore))
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.object.nhost))
+            script.qctrl.append(jobspecs.qctrl.nproc.format(options.core.nproc))
+            script.qctrl.append(jobspecs.qctrl.nhost.format(options.core.nhost))
             if jobspecs.mpilaunch:
                 script.command.append(jobspecs.mpilauncher[jobspecs.parallelib])
         else:
@@ -239,53 +239,53 @@ def setup():
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
     
     if jobspecs.versions:
-        if not options.object.version:
+        if not options.core.version:
             if 'version' in jobspecs.defaults:
                 if jobspecs.defaults.version in jobspecs.versions:
-                    options.object.version = jobspecs.defaults.version
+                    options.core.version = jobspecs.defaults.version
                 else:
                     messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
             else:
-                options.object.version = dialogs.chooseone('Seleccione una versión', choices=natsort(jobspecs.versions.keys()))
-        if not options.object.version in jobspecs.versions:
-            messages.error('La versión', options.object.version, 'no es válida', option='version')
+                options.core.version = dialogs.chooseone('Seleccione una versión', choices=natsort(jobspecs.versions.keys()))
+        if not options.core.version in jobspecs.versions:
+            messages.error('La versión', options.core.version, 'no es válida', option='version')
     else:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
-    if not jobspecs.versions[options.object.version].executable:
-        messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.object.version))
+    if not jobspecs.versions[options.core.version].executable:
+        messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.core.version))
     
     script.environ.extend(jobspecs.onscript)
 
-    for envar, filepath in jobspecs.export.items() | jobspecs.versions[options.object.version].export.items():
+    for envar, filepath in jobspecs.export.items() | jobspecs.versions[options.core.version].export.items():
         abspath = AbsPath(filepath, cwdir=script.workdir).setkeys(cluster).validate()
         script.environ.append('export {}={}'.format(envar, abspath))
     
-    for filepath in jobspecs.source + jobspecs.versions[options.object.version].source:
+    for filepath in jobspecs.source + jobspecs.versions[options.core.version].source:
         script.environ.append('source {}'.format(AbsPath(filepath).setkeys(cluster).validate()))
     
-    for module in jobspecs.load + jobspecs.versions[options.object.version].load:
+    for module in jobspecs.load + jobspecs.versions[options.core.version].load:
         script.environ.append('module load {}'.format(module))
     
     try:
-        script.command.append(AbsPath(jobspecs.versions[options.object.version].executable).setkeys(cluster).validate())
+        script.command.append(AbsPath(jobspecs.versions[options.core.version].executable).setkeys(cluster).validate())
     except NotAbsolutePath:
-        script.command.append(jobspecs.versions[options.object.version].executable)
+        script.command.append(jobspecs.versions[options.core.version].executable)
 
     script.qctrl.append(jobspecs.qctrl.label.format(jobspecs.progname))
-    script.qctrl.append(jobspecs.qctrl.queue.format(options.object.queue))
+    script.qctrl.append(jobspecs.qctrl.queue.format(options.core.queue))
     script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(cluster).validate()))
     
-    if options.object.nodes:
-        script.qctrl.append(jobspecs.qctrl.nodes.format(options.object.nodes))
+    if options.core.nodes:
+        script.qctrl.append(jobspecs.qctrl.nodes.format(options.core.nodes))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + cluster.head)
     script.environ.extend('='.join(i) for i in jobspecs.qenv.items())
     script.environ.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     script.environ.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
-    script.environ.append("jobram=$(($ncore*$totalram/$(nproc --all)))")
+    script.environ.append("jobram=$(($nproc*$totalram/$(nproc --all)))")
     
     for var in jobspecs.filevars:
         script.environ.append(var + '=' + sq(jobspecs.filekeys[jobspecs.filevars[var]]))
@@ -336,23 +336,23 @@ def setup():
 
     for item in jobspecs.restartfiles:
         for key in item.split('|'):
-            if key in options.object:
-                restartfiles[key] = AbsPath(getattr(options.object, key), cwdir=getcwd())
+            if key in options.core:
+                restartfiles[key] = AbsPath(getattr(options.core, key), cwdir=getcwd())
                 if not restartfiles[key].isfile():
                     messages.error('El archivo de entrada', restartfiles[key], 'no existe', option=key)
 
 #TODO: Check if variables in parameter sets match filter groups
-#    if options.object.filter:
-#        pattern = re.compile(options.object.filter)
+#    if options.core.filter:
+#        pattern = re.compile(options.core.filter)
 #        for item in jobspecs.parameters + [i + '-path' for i in jobspecs.parameters]:
-#            if item in options.object:
-#                for key in Formatter().parse(getattr(options.object, item)):
+#            if item in options.core:
+#                for key in Formatter().parse(getattr(options.core, item)):
 #                    if key[1] is not None:
 #                        try:
 #                            if int(key[1]) not in range(pattern.groups()):
-#                                messages.error('El nombre o ruta', getattr(options.object, key), 'contiene referencias no numéricas', option=key)
+#                                messages.error('El nombre o ruta', getattr(options.core, key), 'contiene referencias no numéricas', option=key)
 #                        except ValueError:
-#                            messages.error('El nombre o ruta', getattr(options.object, key), 'contiene referencias fuera de rango', option=key)
+#                            messages.error('El nombre o ruta', getattr(options.core, key), 'contiene referencias fuera de rango', option=key)
 
 
 
@@ -389,20 +389,20 @@ def localrun():
 
 #TODO: Use filter matchings groups to build the parameter list
 #    for key in jobspecs.parameters:
-#        if key in options.object:
-#            for var in getattr(options.object, key).split(','): 
+#        if key in options.core:
+#            for var in getattr(options.core, key).split(','): 
 #                if var.startswith('%'):
 #                    parameterlist.append(match.groups(var[1:]))
 #                else:
 #                    parameterlist.append(var[1:])
 
     for key in jobspecs.parameters:
-        if key + '-path' in options.object:
-            rootpath = AbsPath(getattr(options.object, key + '-path'), cwdir=getcwd())
+        if key + '-path' in options.core:
+            rootpath = AbsPath(getattr(options.core, key + '-path'), cwdir=getcwd())
 #       if key in jobspecs.defaults.parameterpath: (key and key-path options should not be exclusive)
         elif key in jobspecs.defaults.parameterpath:
-            if key in options.object:
-                parameterlist = getattr(options.object, key).split(',')
+            if key in options.core:
+                parameterlist = getattr(options.core, key).split(',')
             elif 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
                 if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
                     parameterlist = jobspecs.defaults.parameterset[key]
@@ -426,13 +426,13 @@ def localrun():
         else:
             messages.error('La ruta', rootpath, 'no existe', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
     
-    if options.object.outdir:
-        outdir = AbsPath(options.object.outdir, cwdir=srcdir)
+    if options.core.outdir:
+        outdir = AbsPath(options.core.outdir, cwdir=srcdir)
     else:
         jobinfo = dict(
             jobname = jobname,
             progkey = jobspecs.progkey,
-            version = options.object.version.replace(' ', '.'))
+            version = '.'.join(options.core.version.split()))
         outdir = AbsPath(jobspecs.defaults.outdir, cwdir=srcdir).setkeys(jobinfo).validate()
 
     hiddendir = AbsPath(outdir, '.job')
@@ -474,7 +474,7 @@ def localrun():
         else:
             makedirs(hiddendir)
         if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
-            if options.object.no is True or (options.object.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+            if options.core.no is True or (options.core.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for item in jobspecs.outputfiles:
@@ -531,7 +531,7 @@ def localrun():
         messages.failure('El sistema de colas no envió el trabajo porque ocurrió un error', p(error))
         return
     else:
-        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.object.ncore), 'núcleo(s) en', cluster.name, 'con número de trabajo', jobid)
+        messages.success('El trabajo', q(jobname), 'se correrá en', str(options.core.nproc), 'núcleo(s) en', cluster.name, 'con número de trabajo', jobid)
         with open(pathjoin(hiddendir, 'jobid'), 'w') as f:
             f.write(jobid)
     

@@ -7,7 +7,7 @@
       "name": "#BSUB -J '{}'",
       "label": "#BSUB -P '{}'",
       "nodes": "#BSUB -m '{}'",
-      "ncore": "#BSUB -n '{}'",
+      "nproc": "#BSUB -n '{}'",
       "nhost": "#BSUB -R 'span[hosts={}]'",
       "queue": "#BSUB -q '{}'",
       "output": "#BSUB -o '{}/%J.out'",
@@ -16,7 +16,7 @@
     
    "qenv": {
       "jobid": "$LSB_JOBID",
-      "ncore": "$(echo $LSB_HOSTS | wc -w)",
+      "nproc": "$(echo $LSB_HOSTS | wc -w)",
       "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
     },
     

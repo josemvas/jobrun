@@ -1,11 +1,11 @@
 {
-   "progkey": "Gau",
+   "progkey": "G",
    "progname": "Gaussian",
    "parallelib": "openmp",
    "filecheck": "gjf or com",
    "fileclash": "gjf and com",
    "defaults" : {
-      "outdir": "{jobname}.{progkey}.{version}"
+      "outdir": "{jobname}.{progkey}{version}"
    },
    "filekeys": {
       "com": "job.com",
@@ -47,8 +47,8 @@
    },
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",
-      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
-      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${ncore}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
    ],
    "keywords": [

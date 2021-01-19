@@ -6,9 +6,9 @@
    "qctrl": [
       "#PBS -N '{name}'",
       "#PBS -W label='{label}'",
-      "#PBS -l 'nodes={nodes}:ppn={ncore}'",
-      "#PBS -l 'nodes=1:ppn={ncore}'",
-      "#PBS -l 'nodes={nhost}:ppn={ncore}'",
+      "#PBS -l 'nodes={nodes}:ppn={nproc}'",
+      "#PBS -l 'nodes=1:ppn={nproc}'",
+      "#PBS -l 'nodes={nhost}:ppn={nproc}'",
       "#PBS -q '{queue}'",
       "#PBS -o '{output}/%J.out'",
       "#PBS -e '{error}/%J.err'"
@@ -16,7 +16,7 @@
     
    "qenv": {
       "jobid": "$PBS_JOBID",
-      "ncore": "$(echo $PBS_NODEFILE | wc -w)",
+      "nproc": "$(echo $PBS_NODEFILE | wc -w)",
       "hosts": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"
     },
     

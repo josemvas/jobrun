@@ -6,7 +6,7 @@
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {
-      "outdir": "{jobname}.{progkey}.{version}"
+      "outdir": "{jobname}.{progkey}{version}"
    },
    "filekeys": {
       "inp": "job.inp",
@@ -40,6 +40,6 @@
       "property"
    ],
    "prescript": [
-      "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $ncore end\" $inp"
+      "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $nproc end\" $inp"
    ]
 }

@@ -5,7 +5,7 @@
    "mpilaunch": "True",
    "filecheck": "inp",
    "defaults" : {
-      "outdir": "{jobname}.{progkey}.{version}"
+      "outdir": "{jobname}.{progkey}{version}"
    },
    "filekeys": {
       "inp": "deMon.inp",

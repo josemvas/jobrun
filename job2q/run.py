@@ -68,7 +68,7 @@ if parsed.list:
 #TODO: Set default=SUPPRESS for all options
 parser.add_argument('-v', '--version', metavar='PROGVERSION', help='Versión del ejecutable.')
 parser.add_argument('-q', '--queue', metavar='QUEUENAME', help='Nombre de la cola requerida.')
-parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número de núcleos de cpu requeridos.')
+parser.add_argument('-n', '--nproc', type=int, metavar='#PROCS', help='Número de núcleos de procesador requeridos.')
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
 #parser.add_argument('-c', '--collect', action='store_true', help='Recolectar todos los archivos de entrada en la carpeta de salida.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
@@ -96,8 +96,8 @@ for item in jobspecs.restartfiles:
     for key in item.split('|'):
         parser.add_argument('--' + key, dest=key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo ' + key + '.')
 
-options.object, remaining = parser.parse_known_args(remaining)
-#print(options.object)
+options.core, remaining = parser.parse_known_args(remaining)
+#print(options.core)
 
 for key in jobspecs.keywords:
     parser.add_argument('--'+key, metavar=key.upper(), help='Valor de la variable {}.'.format(key.upper()))
