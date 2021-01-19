@@ -18,7 +18,7 @@ def failure(message):
 @join_arguments(wordseps)
 def error(message, **kwargs):
     if kwargs:
-        sys.exit(colors.red + '{} ({})'.format(message, ', '.join([key + ':' + value for key, value in kwargs.items()])) + colors.default)
+        sys.exit(colors.red + '{} ({})'.format(message, ', '.join([key + ': ' + value for key, value in kwargs.items()])) + colors.default)
     else:
         sys.exit(colors.red + '{}'.format(message) + colors.default)
 

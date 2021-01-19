@@ -1,43 +1,33 @@
 # -*- coding: utf-8 -*-
 import sys
-from pwd import getpwnam
-from grp import getgrgid
-from getpass import getuser 
-from socket import gethostname, gethostbyname
+from socket import gethostname
 from os import path, listdir, environ, getcwd
 from argparse import ArgumentParser, SUPPRESS
 from . import messages
-from .utils import Bunch, p
-from .specparse import SpecBunch, readspec
+from .utils import p
+from .specparse import readspec
+from .bunches import cluster, envars, jobspecs, options, keywords, files
+from .submit import wait, setup, connect, upload, dryrun, localrun, remoterun
 from .jobutils import printchoices, findparameters, readcoords
 from .fileutils import AbsPath, NotAbsolutePath
 
-envars = Bunch()
-cluster = Bunch()
-jobspecs = SpecBunch()
-keywords = {}
-
-try:
-    specdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
-except KeyError:
-    messages.error('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
-
-cluster.user = getuser()
-cluster.home = path.expanduser('~')
-cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-program = path.basename(sys.argv[0])
+parser = ArgumentParser(add_help=False)
+parser.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
+parser.add_argument('--program', metavar='PROGRAMNAME', help='Nombre normalizado del programa.')
+parsed, remaining = parser.parse_known_args()
+options.update(vars(parsed))
 
 try:
     envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
 except KeyError:
     pass
 
-jobspecs.merge(readspec(path.join(specdir, 'hostspec.json')))
-jobspecs.merge(readspec(path.join(specdir, 'queuespec.json')))
-jobspecs.merge(readspec(path.join(specdir, 'progspec.json')))
-jobspecs.merge(readspec(path.join(specdir, 'hostprogspec.json')))
+jobspecs.merge(readspec(path.join(options.specdir, options.program, 'hostspec.json')))
+jobspecs.merge(readspec(path.join(options.specdir, options.program, 'queuespec.json')))
+jobspecs.merge(readspec(path.join(options.specdir, options.program, 'progspec.json')))
+jobspecs.merge(readspec(path.join(options.specdir, options.program, 'hostprogspec.json')))
 
-userspecdir = path.join(cluster.home, '.jobspecs', program + '.json')
+userspecdir = path.join(cluster.home, '.jobspecs', options.program + '.json')
 
 if path.isfile(userspecdir):
     jobspecs.merge(readspec(userspecdir))
@@ -50,10 +40,9 @@ try: cluster.head = jobspecs.headname.format(hostname=gethostname())
 except AttributeError:
     messages.error('No se definió el nombre del nodo maestro', spec='headname')
 
-parser = ArgumentParser(prog=program, add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
-
+parser = ArgumentParser(prog=options.program, add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
 parser.add_argument('-l', '--list', action='store_true', help='Mostrar las opciones disponibles y salir.')
-parsed, remaining = parser.parse_known_args()
+parsed, remaining = parser.parse_known_args(remaining)
 
 if parsed.list:
     if jobspecs.versions:
@@ -107,8 +96,8 @@ for item in jobspecs.restartfiles:
     for key in item.split('|'):
         parser.add_argument('--' + key, dest=key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo ' + key + '.')
 
-options, remaining = parser.parse_known_args(remaining)
-#print(options)
+options.object, remaining = parser.parse_known_args(remaining)
+#print(options.object)
 
 for key in jobspecs.keywords:
     parser.add_argument('--'+key, metavar=key.upper(), help='Valor de la variable {}.'.format(key.upper()))
@@ -116,7 +105,8 @@ for key in jobspecs.keywords:
 parsed, remaining = parser.parse_known_args(remaining)
 
 for key, value in vars(parsed).items():
-    if value: keywords[key] = value
+    if value:
+        keywords[key] = value
 
 rungroup = parser.add_mutually_exclusive_group()
 rungroup.add_argument('-H', '--host', dest='remotehost', metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
@@ -127,24 +117,40 @@ parser.add_argument('--prefix', dest='jobprefix', metavar='PREFIX', help='Antepo
 
 parser.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
 
+parsed, remaining = parser.parse_known_args(remaining)
+options.update(vars(parsed))
+
+if options.interpolate:
+    if options.jobprefix:
+        if options.coordfile:
+            options.jobprefix = readcoords(options.coordfile, keywords) + '.' + options.jobprefix
+    else:
+        if options.coordfile:
+            options.jobprefix = readcoords(options.coordfile, keywords)
+        else:
+            messages.error('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
+elif options.coordfile or keywords:
+    messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
+
 parser.add_argument('files', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
 parser.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-
-parsed = parser.parse_args(remaining)
-globals().update(vars(parsed))
+files.extend(parser.parse_args(remaining).files)
 
 if not files:
     messages.error('Debe especificar al menos un archivo de entrada')
 
-if interpolate:
-    if jobprefix:
-        if coordfile:
-            jobprefix = readcoords(coordfile, keywords) + '.' + jobprefix
-    else:
-        if coordfile:
-            jobprefix = readcoords(coordfile, keywords)
-        else:
-            messages.error('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
-elif coordfile or keywords:
-    messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
+if options.drytest:
+    while files:
+        dryrun()
+elif options.remotehost:
+    connect()
+    while files:
+        upload()
+    remoterun()
+else:
+    setup()
+    localrun()
+    while files:
+        wait()
+        localrun()
 

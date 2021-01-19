@@ -2,5 +2,5 @@
 import sys
 assert sys.version_info >= (3, 4)
 from job2q.console import setup
-setup(relpath=True)
+setup()
 

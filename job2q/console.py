@@ -94,6 +94,7 @@ def setup(relpath=False):
         if match and match.group(1) not in libpath:
             libpath.append(match.group(1))
 
+    pyldpath.append('$LD_LIBRARY_PATH')
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'=> (.+) \(0x', line)
         if match:
@@ -101,24 +102,21 @@ def setup(relpath=False):
             if libdir not in libpath and libdir not in pyldpath:
                 pyldpath.append(libdir)
 
-    if relpath:
-        modulepath = path.join('${0%/*}', path.relpath(path.dirname(sourcedir), bindir))
-        specpath = path.join('${0%/*}', path.relpath(specdir, bindir), '${0##*/}')
-    else:
-        modulepath = path.dirname(sourcedir)
-        specpath = AbsPath(specdir, '${0##*/}')
+    modulepath = path.dirname(sourcedir)
+
     with open(path.join(sourcedir, 'bin', 'job2q'), 'r') as fr, open(path.join(bindir, 'job2q'), 'w') as fw:
         fw.write(fr.read().format(
             python=sys.executable,
             pyldpath=pathsep.join(pyldpath),
             modulepath=modulepath,
-            specpath=specpath,
+            specdir=specdir
         ))
-    chmod(path.join(bindir, 'job2q'), 0o755)
 
     for spec in listdir(specdir):
         symlink(path.join(bindir, 'job2q'), path.join(bindir, spec))
 
     copyfile(path.join(sourcedir, 'bin','jobsync'), path.join(bindir, 'jobsync'))
+
     chmod(path.join(bindir, 'jobsync'), 0o755)
+    chmod(path.join(bindir, 'job2q'), 0o755)
 

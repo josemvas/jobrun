@@ -1,25 +1,6 @@
 #!/bin/sh
-'exec' 'env' \
-"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{pyldpath}" \
-"PYTHONPATH={modulepath}" \
-"SPECPATH={specpath}" \
-'{python}' "$0" "$@"
-
-from job2q.jobinit import drytest, remotehost, files
-from job2q.jobexec import wait, setup, connect, upload, dryrun, localrun, remoterun
-
-if drytest:
-    while files:
-        dryrun()
-elif remotehost:
-    connect()
-    while files:
-        upload()
-    remoterun()
-else:
-    setup()
-    localrun()
-    while files:
-        wait()
-        localrun()
+exec env \
+LD_LIBRARY_PATH={pyldpath} \
+PYTHONPATH={modulepath} \
+'{python}' -m job2q.run "$@" --specdir='{specdir}' --program="$(basename "$0")"
 
