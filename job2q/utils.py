@@ -49,7 +49,7 @@ def catch_keyboard_interrupt(f):
     def wrapper(*args, **kwargs):
         try: return f(*args, **kwargs)
         except KeyboardInterrupt:
-            raise SystemExit(colors.red + 'Cancelado por el usuario' + colors.default)
+            raise SystemExit(colors.red + 'Interrumpido por el usuario' + colors.default)
     return wrapper
 
 def override_function(cls):

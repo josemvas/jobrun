@@ -20,7 +20,7 @@ keywords = {}
 try:
     specdir = AbsPath(environ['SPECPATH'], cwdir=getcwd())
 except KeyError:
-    messages.cfgerror('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
+    messages.error('No se pueden enviar trabajos porque no se definió la variable de entorno $SPECPATH')
 
 cluster.user = getuser()
 cluster.home = path.expanduser('~')
@@ -44,11 +44,11 @@ if path.isfile(userspecdir):
 
 try: cluster.name = jobspecs.clustername
 except AttributeError:
-    messages.cfgerror('No se definió la propiedad "clustername" en la configuración')
+    messages.error('No se definió el nombre del clúster', spec='clustername')
 
 try: cluster.head = jobspecs.headname.format(hostname=gethostname())
 except AttributeError:
-    messages.cfgerror('No se definió la propiedad "headname" en la configuración')
+    messages.error('No se definió el nombre del nodo maestro', spec='headname')
 
 parser = ArgumentParser(prog=program, add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
 
@@ -59,17 +59,17 @@ if parsed.list:
     if jobspecs.versions:
         print('Versiones del programa')
         printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
-    for parkey in jobspecs.parameters:
-        if parkey in jobspecs.defaults.parampaths:
-            if 'paramsets' in jobspecs.defaults and parkey in jobspecs.defaults.paramsets:
-                if isinstance(jobspecs.defaults.paramsets[parkey], (list, tuple)):
-                    defaults = jobspecs.defaults.paramsets[parkey]
+    for key in jobspecs.parameters:
+        if key in jobspecs.defaults.parameterpath:
+            if 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
+                if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
+                    defaults = jobspecs.defaults.parameterset[key]
                 else:
-                    messages.opterror('Los conjuntos de parámetros por defecto deben definirse en una lista', p(parkey))
+                    messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
             else:
                 defaults = []
-            print('Conjuntos de parámetros', p(parkey))
-            pathcomponents = AbsPath(jobspecs.defaults.parampaths[parkey], cwdir=getcwd()).setkeys(cluster).populate()
+            print('Conjuntos de parámetros', p(key))
+            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwdir=getcwd()).setkeys(cluster).populate()
             findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
     if jobspecs.keywords:
         print('Variables de interpolación')
@@ -83,7 +83,7 @@ parser.add_argument('-n', '--ncore', type=int, metavar='#CORES', help='Número d
 parser.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', help='Número de nodos de ejecución requeridos.')
 #parser.add_argument('-c', '--collect', action='store_true', help='Recolectar todos los archivos de entrada en la carpeta de salida.')
 parser.add_argument('-w', '--wait', type=float, metavar='TIME', help='Tiempo de pausa (en segundos) después de cada ejecución.')
-parser.add_argument('-M', '--match', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+parser.add_argument('-f', '--filter', metavar='REGEX', help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 parser.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 parser.add_argument('-I', '--ignore-defaults', dest='ignore-defaults', action='store_true', help='Ignorar todas las opciones por defecto.')
 parser.add_argument('--temporary', action='store_true', help='Borrar los archivos de entrada y vrear una carpeta temporal de salida.')
@@ -103,9 +103,9 @@ for key in jobspecs.parameters:
     parser.add_argument('--' + key, dest=key, metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
     parser.add_argument('--' + key + '-path', dest=key+'-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
 
-for item in jobspecs.resumefiles:
-    key = item.split('|')[0]
-    parser.add_argument('--' + key + 'file', dest=key+'file' , metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo ' + key + '.')
+for item in jobspecs.restartfiles:
+    for key in item.split('|'):
+        parser.add_argument('--' + key, dest=key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo ' + key + '.')
 
 options, remaining = parser.parse_known_args(remaining)
 #print(options)
@@ -134,7 +134,7 @@ parsed = parser.parse_args(remaining)
 globals().update(vars(parsed))
 
 if not files:
-    messages.opterror('Debe especificar al menos un archivo de entrada')
+    messages.error('Debe especificar al menos un archivo de entrada')
 
 if interpolate:
     if jobprefix:
@@ -144,7 +144,7 @@ if interpolate:
         if coordfile:
             jobprefix = readcoords(coordfile, keywords)
         else:
-            messages.opterror('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
+            messages.error('Para interpolar debe especificar un archivo de coordenadas o/y un prefijo de trabajo')
 elif coordfile or keywords:
-    messages.opterror('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
+    messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
 

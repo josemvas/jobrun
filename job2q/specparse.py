@@ -58,5 +58,5 @@ def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
         try: return SpecBunch(json.load(fh))
         except ValueError as e:
-            messages.cfgerror('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
+            messages.error('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 

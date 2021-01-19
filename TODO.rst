@@ -7,6 +7,10 @@ General
 - Agregar opción para imprimir la versión del programa
 - Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
 
+job2q
+-----
+- Move PYTHONPATH and SPECPATH from bash section to python section in job2q
+
 console.py
 ----------
 - Seleccionar el scheduler interactivamente
@@ -20,3 +24,4 @@ AbsPath
 -------
 - Considerar no aceptar listas de componentes de path como argumento (usar el método joinpath en su lugar)
 - Considerar reemplazar método append con la opción keys=
+- Change slash by comma to set interpolable path components with setkeys

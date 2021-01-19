@@ -66,8 +66,6 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
     def linkto(self, *dest):
-        link(self, pathjoin(*dest))
-    def symlinkto(self, *dest):
         symlink(self, pathjoin(*dest))
     def copyto(self, *dest):
         copyfile(self, pathjoin(*dest))
@@ -99,15 +97,15 @@ def diritems(abspath, component):
     try:
         dirlist = abspath.listdir()
     except FileNotFoundError:
-        messages.cfgerror('El directorio', abspath, 'no existe')
+        messages.error('El directorio', abspath, 'no existe')
     except NotADirectoryError:
-        messages.cfgerror('La ruta', abspath, 'no es un directorio')
+        messages.error('La ruta', abspath, 'no es un directorio')
     prefix, _, suffix = splitcomponent(component)
     dirlist = [ i for i in dirlist if i.startswith(prefix) and i.endswith(suffix) ]
     if dirlist:
         return natsort(dirlist)
     else:
-        messages.cfgerror('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
+        messages.error('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
 
 def pathjoin(*args):
     return deepjoin(args, iter(pathseps))
@@ -129,30 +127,30 @@ def mkdir(path):
     except FileExistsError:
         pass
     except FileNotFoundError:
-        messages.runerror('No se puede crear el directorio', path, 'porque la ruta no existe')
+        messages.error('No se puede crear el directorio', path, 'porque la ruta no existe')
     except PermissionError:
-        messages.runerror('No se puede crear el directorio', path, 'porque no tiene permiso')
+        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso')
 
 def makedirs(path):
     try: os.makedirs(path)
     except FileExistsError:
         pass
     except PermissionError:
-        messages.runerror('No se puede crear el directorio', path, 'porque no tiene permiso')
+        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso')
 
 def remove(path):
     try: os.remove(path)
     except FileNotFoundError:
         pass
     except PermissionError:
-        messages.runerror('No se puede eliminar el archivo', path, 'porque no tiene permiso')
+        messages.error('No se puede eliminar el archivo', path, 'porque no tiene permiso')
 
 def rmdir(path):
     try: os.rmdir(path)
     except FileNotFoundError:
         pass
     except PermissionError:
-        messages.runerror('No se puede eliminar el directorio', path, 'porque no tiene permiso')
+        messages.error('No se puede eliminar el directorio', path, 'porque no tiene permiso')
 
 def copyfile(source, dest):
     try: shutil.copyfile(source, dest)
@@ -160,9 +158,9 @@ def copyfile(source, dest):
         os.remove(dest)
         shutil.copyfile(source, dest)
     except FileNotFoundError:
-        messages.runerror('No se puede copiar el archivo', source, 'porque no existe')
+        messages.error('No se puede copiar el archivo', source, 'porque no existe')
     except PermissionError:
-        messages.runerror('No se puede copiar el archivo', source, 'a', dest, 'porque no tiene permiso')
+        messages.error('No se puede copiar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
 def link(source, dest):
     try: os.link(source, dest)
@@ -170,9 +168,9 @@ def link(source, dest):
         os.remove(dest)
         os.link(source, dest)
     except FileNotFoundError:
-        messages.runerror('No se puede copiar el archivo', source, 'porque no existe')
+        messages.error('No se puede copiar el archivo', source, 'porque no existe')
     except PermissionError:
-        messages.runerror('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
+        messages.error('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
 def symlink(source, dest):
     try: os.symlink(source, dest)
@@ -180,7 +178,7 @@ def symlink(source, dest):
         os.remove(dest)
         os.symlink(source, dest)
     except FileNotFoundError:
-        messages.runerror('No se puede copiar el archivo', source, 'porque no existe')
+        messages.error('No se puede copiar el archivo', source, 'porque no existe')
     except PermissionError:
-        messages.runerror('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
+        messages.error('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 

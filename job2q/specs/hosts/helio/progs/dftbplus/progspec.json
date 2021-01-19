@@ -1,6 +1,6 @@
 {
    "defaults": {
-      "parampaths": {
+      "parameterpath": {
          "slako": "/opt/parameters/dftbplus/slako/{0}"
       }
    },

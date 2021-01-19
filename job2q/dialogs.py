@@ -47,12 +47,13 @@ def inputpath(prompt='', check=lambda _:True):
 def yesno(prompt='', default=None):
     while True:
         readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
-        answer = input('{} (si/no): '.format(prompt)).strip()
+        print('{} (si/no):'.format(prompt), end='')
+        answer = input(' ').strip()
         if answer:
             if any(word.startswith(answer.lower()) for word in ('yes', 'si', 'no')):
-                if answer in ('yes', 'si'):
+                if answer in ['yes', 'si']:
                     return True
-                if answer in ('no'):
+                if answer in ['no']:
                     return False
                 else:
                     print('Por favor responda "si" o "yes" para confirmar o "no" para cancelar:')

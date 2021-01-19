@@ -45,13 +45,13 @@ def readcoords(coordfile, keywords):
             for i, step in enumerate(readmolfile(coordfile), 1):
                 keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
         else:
-            messages.opterror('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
+            messages.error('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
     elif coordfile.isdir():
-        messages.opterror('El archivo de coordenadas', coordfile, 'es un directorio')
+        messages.error('El archivo de coordenadas', coordfile, 'es un directorio')
     elif coordfile.exists():
-        messages.opterror('El archivo de coordenadas', coordfile, 'no es un archivo regular')
+        messages.error('El archivo de coordenadas', coordfile, 'no es un archivo regular')
     else:
-        messages.opterror('El archivo de coordenadas', coordfile, 'no existe')
+        messages.error('El archivo de coordenadas', coordfile, 'no existe')
     keywords['file'] = coordfile
     return coordfile.stem
 

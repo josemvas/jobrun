@@ -1,11 +1,11 @@
 {
    "defaults": {
       "version": "6.0.1",
-      "parampaths": {
-         "paramset": "/opt/parameters/demon2k/{0}"
+      "parameterpath": {
+         "bases": "/opt/parameters/demon2k/{0}"
       },
-      "paramsets": {
-         "paramset" : [ "deMon2k" ]
+      "parameterset": {
+         "bases" : [ "default" ]
       }
    },
    "versions": {

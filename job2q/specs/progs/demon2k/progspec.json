@@ -32,7 +32,7 @@
       "pie",
       "bin"
    ],
-   "resumefiles": [
+   "restartfiles": [
       "rst",
       "trj"
    ],
@@ -46,6 +46,6 @@
       "spin"
    ],
    "parameters": [
-      "paramset"
+      "bases"
    ]
 }
