@@ -4,7 +4,7 @@
    "parallelib": "openmp",
    "filecheck": "dftb_in.hsd",
    "stdoutput": "dftb_out.log",
-   "defaults" : {
+   "defaults": {
       "outdir": "{jobname}.{progkey}{version}"
    },
    "filekeys": {
@@ -35,6 +35,9 @@
    "filevars": {
       "dftbin": "dftb_in.hsd"
    },
+   "fileopts": {
+      "charges": "charges.bin"
+   },
    "inputfiles": [
       "dftb_in.hsd",
       "charges.bin"
@@ -64,7 +67,7 @@
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
    ],
-   "parameters": [
+   "parametersets": [
       "slako"
    ],
    "prescript": [

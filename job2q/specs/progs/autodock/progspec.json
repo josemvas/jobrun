@@ -20,7 +20,7 @@
       "p": "dpf",
       "l": "dlg"
    },
-   "parameters": [
+   "parametersets": [
       "lig",
       "rec"
    ]

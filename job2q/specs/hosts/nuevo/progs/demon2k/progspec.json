@@ -2,10 +2,10 @@
    "defaults": {
       "version": "6.0.1",
       "parameterpath": {
-         "paramset": "/home/{user}/share/parameters/deMon2k/{0}"
+         "bases": "/home/{user}/share/parameters/deMon2k/{0}"
       },
       "parameterset": {
-         "paramset" : [ "deMon" ]
+         "bases" : [ "deMon" ]
       }
    },
    "versions": {

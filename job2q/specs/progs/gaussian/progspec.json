@@ -24,6 +24,9 @@
       "fchk": "fchk",
       "oldchk": "oldchk"
    },
+   "fileopts": {
+      "oldchk": "oldchk"
+   },
    "inputfiles": [
       "gjf|com",
       "oldchk"
@@ -35,9 +38,6 @@
       "fchk",
       "wfn",
       "cub"
-   ],
-   "restartfiles": [
-      "oldchk"
    ],
    "positionargs": [
       "gjf|com"

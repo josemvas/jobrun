@@ -41,6 +41,14 @@ class Node:
         else:
             raise Exception(self.name, 'not in value dict')
 
+#    if not filepath.isfile():
+#        if not filepath.exists():
+#            raise InputFileError('El trabajo', q(basename), 'no se envió porque el archivo de entrada', filepath, 'no existe')
+#        elif filepath.isdir():
+#            raise InputFileError('El trabajo', q(basename), 'no se envió porque el archivo de entrada', filepath, 'es un directorio')
+#        else:
+#            raise InputFileError('El trabajo', q(basename), 'no se envió porque el archivo de entrada', filepath, 'no es un archivo regular')
+
 class BoolParser:
 
     def __init__(self, expr):

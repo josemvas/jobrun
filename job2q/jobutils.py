@@ -23,7 +23,7 @@ def findparameters(rootpath, components, defaults, indent):
     component = next(components, None)
     if component:
         try:
-            findparameters(rootpath.pathjoin(component.format()), components, defaults, indent)
+            findparameters(rootpath.joinpath(component.format()), components, defaults, indent)
         except IndexError:
             choices = diritems(rootpath, component)
             try:
@@ -32,26 +32,25 @@ def findparameters(rootpath, components, defaults, indent):
                 default = None
             printchoices(choices=choices, default=default, indent=indent)
             for choice in choices:
-                findparameters(rootpath.pathjoin(choice), components, defaults, indent + 1)
+                findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
-def readcoords(coordfile, keywords):
-    coordfile = AbsPath(coordfile, cwdir=getcwd())
+def readcoords(options):
+    molfile = AbsPath(molfile, cwdir=getcwd())
     molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
-    if coordfile.isfile():
-        if coordfile.hasext('.xyz'):
-            for i, step in enumerate(readxyzfile(coordfile), 1):
-                keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
-        elif coordfile.hasext('.mol'):
-            for i, step in enumerate(readmolfile(coordfile), 1):
-                keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
+    if molfile.isfile():
+        if molfile.hasext('.xyz'):
+            for i, step in enumerate(readxyzfile(molfile), 1):
+                options.keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
+        elif molfile.hasext('.mol'):
+            for i, step in enumerate(readmolfile(molfile), 1):
+                options.keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
         else:
             messages.error('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
-    elif coordfile.isdir():
-        messages.error('El archivo de coordenadas', coordfile, 'es un directorio')
-    elif coordfile.exists():
-        messages.error('El archivo de coordenadas', coordfile, 'no es un archivo regular')
+    elif molfile.isdir():
+        messages.error('El archivo de coordenadas', molfile, 'es un directorio')
+    elif molfile.exists():
+        messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
     else:
-        messages.error('El archivo de coordenadas', coordfile, 'no existe')
-    keywords['file'] = coordfile
-    return coordfile.stem
+        messages.error('El archivo de coordenadas', molfile, 'no existe')
+    options.keywords.molfile = molfile
 

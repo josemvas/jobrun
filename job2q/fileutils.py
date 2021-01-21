@@ -66,9 +66,9 @@ class AbsPath(str):
     def isdir(self):
         return os.path.isdir(self)
     def linkto(self, *dest):
-        symlink(self, pathjoin(*dest))
+        symlink(self, os.path.join(*dest))
     def copyto(self, *dest):
-        copyfile(self, pathjoin(*dest))
+        copyfile(self, os.path.join(*dest))
     def joinpath(self, *args):
         return AbsPath(self, *args)
 
@@ -107,7 +107,7 @@ def diritems(abspath, component):
     else:
         messages.error('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
 
-def pathjoin(*args):
+def buildpath(*args):
     return deepjoin(args, iter(pathseps))
 
 def splitpath(path):

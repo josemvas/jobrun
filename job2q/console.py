@@ -51,14 +51,15 @@ def setup(relpath=False):
         messages.warning('No hay hosts configurados')
         raise SystemExit()
 
+    defaulthost = '[otro]'
     if path.isfile(path.join(etcdir, 'hostspec.json')):
         clustername = readspec(path.join(etcdir, 'hostspec.json')).clustername
         if clustername in clusternames.values():
-            defaults['cluster'] = clustername
+            defaulthost = clustername
 
-    selhostdir = hostdirnames[dialogs.chooseone('Seleccione la opción con la arquitectura más adecuada', choices=natsort(clusternames.values()), default=defaults.get('cluster', 'Nuevo'))]
+    selhostdir = hostdirnames[dialogs.chooseone('¿Qué clúster desea configurar?', choices=natsort(clusternames.values()), default=defaulthost)]
     
-    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(platformspecs, selhostdir, 'hostspec.json') == readspec(etcdir, 'hostspec.json') or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(path.join(platformspecs, selhostdir, 'hostspec.json')) == readspec(path.join(etcdir, 'hostspec.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(path.join(platformspecs, selhostdir, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
 
     if selhostdir in schedulers:
@@ -86,7 +87,7 @@ def setup(relpath=False):
         link(path.join(etcdir, 'queuespec.json'), path.join(specdir, progname, 'queuespec.json'))
         copyfile(path.join(sourcedir, 'specs', 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'progspec.json'))
         copypathspec = True
-        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(platformspecs, selhostdir, 'progs', progname, 'progspec.json') == readspec(specdir, progname, 'hostprogspec.json') or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(platformspecs, selhostdir, 'progs', progname, 'progspec.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
             copyfile(path.join(platformspecs, selhostdir, 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():

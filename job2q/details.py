@@ -11,7 +11,6 @@ listags = (
     'source',
     'inputfiles',
     'outputfiles',
-    'restartfiles',
     'positionargs',
     'onscript',
     'offscript',
@@ -25,11 +24,9 @@ dictags = (
     'defaults',
     'versions',
     'optionargs',
-    'parameters',
+    'parametersets',
     'filekeys',
     'filevars',
+    'fileopts',
 )
 
-inputkeys = (
-    'srcdir',
-)

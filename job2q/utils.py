@@ -3,6 +3,10 @@ import os
 import re
 from . import colors
 
+wordseps = (' ', '')
+pathseps = (os.path.sep, '.')
+boolstrs = {'True' : True, 'False' : False}
+
 class IdentityList(list):
     def __init__(self, *args):
         list.__init__(self, args)
@@ -11,26 +15,33 @@ class IdentityList(list):
 
 class Bunch(dict):
     def __getattr__(self, item):
-        try: return self.__getitem__(item)
+        try:
+            return self.__getitem__(item)
         except KeyError:
             raise AttributeError(item)
     def __setattr__(self, item, value):
-            self.__setitem__(item, value)
+        self.__setitem__(item, value)
 
+def o(key, value=None):
+    if value:
+        return('--{}={}'.format(key, value))
+    else:
+        return('--{}'.format(key))
+    
 def p(string):
     return '({0})'.format(string)
 
 def q(string):
     return '"{0}"'.format(string)
 
-def sq(string):
+def Q(string):
     return "'{0}'".format(string)
 
-def natkey(string):
-    return [ int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string) ]
+def natural(string):
+    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
 
 def natsort(stringlist):
-    return sorted(stringlist, key=natkey)
+    return sorted(stringlist, key=natural)
 
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())
@@ -38,12 +49,15 @@ def lowalnum(keystr):
 def deepjoin(a, i):
     return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)
 
-def join_arguments(seq):
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            return f(deepjoin(args, iter(seq)), **kwargs)
-        return wrapper
-    return decorator
+def join_args(f):
+    def wrapper(*args, **kwargs):
+        return f(' '.join(args), **kwargs)
+    return wrapper
+
+def join_kwargs(f):
+    def wrapper(*args, **kwargs):
+        return f(*args, ', '.join(key + ' ' + value for key, value in kwargs.items()))
+    return wrapper
 
 def catch_keyboard_interrupt(f):
     def wrapper(*args, **kwargs):
@@ -62,7 +76,16 @@ def override_function(cls):
         return wrapper
     return decorator
 
-wordseps = (' ', '')
-pathseps = (os.path.sep, '.')
-boolstrs = {'True' : True, 'False' : False}
+def removeprefix(self, prefix):
+    if self.startswith(prefix):
+        return self[len(prefix):]
+    else:
+        return self[:]
+
+def removesuffix(self, suffix):
+    # suffix='' should not call self[:-0].
+    if suffix and self.endswith(suffix):
+        return self[:-len(suffix)]
+    else:
+        return self[:]
 

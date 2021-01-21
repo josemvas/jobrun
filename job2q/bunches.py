@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
-from os import path
+from os.path import expanduser
+from socket import gethostname
 from getpass import getuser 
-from pwd import getpwnam
-from grp import getgrgid
-from .utils import Bunch
 from .specparse import SpecBunch
+from .utils import Bunch
 
-cluster = Bunch()
-cluster.user = getuser()
-cluster.home = path.expanduser('~')
-cluster.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+class OptBunch(Bunch):
+    def __setattr__(self, item, value):
+        try:
+            self.__setitem__(item, OptBunch(vars(value)))
+        except TypeError:
+            self.__setitem__(item, value)
+
+sysinfo = Bunch()
+sysinfo.username = getuser()
+# Python 3.5+ with pathlib
+#sysinfo.userhome = Path.home()
+sysinfo.userhome = expanduser('~')
+sysinfo.hostname = gethostname()
 
 envars = Bunch()
-options = Bunch()
+options = OptBunch()
 jobspecs = SpecBunch()
-keywords = {}
-files = []
+argfiles = []
 

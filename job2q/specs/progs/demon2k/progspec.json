@@ -18,6 +18,10 @@
       "pie": "deMon.pie",
       "bin": "deMon.bin"
    },
+   "fileopts": {
+      "rst": "rst",
+      "trj": "trj"
+   },
    "inputfiles": [
       "inp",
       "rst",
@@ -32,10 +36,6 @@
       "pie",
       "bin"
    ],
-   "restartfiles": [
-      "rst",
-      "trj"
-   ],
    "keywords": [
       "title",
       "method",
@@ -45,7 +45,7 @@
       "charge",
       "spin"
    ],
-   "parameters": [
+   "parametersets": [
       "bases"
    ]
 }

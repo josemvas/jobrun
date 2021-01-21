@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 from . import messages
-from .utils import Bunch, join_arguments, pathseps
+from .utils import Bunch
 from .details import dictags, listags
 
 class SpecList(list):
@@ -53,7 +53,6 @@ class SpecBunch(Bunch):
             else:
                 self[i] = other[i]
 
-@join_arguments(pathseps)
 def readspec(jsonfile):
     with open(jsonfile, 'r') as fh:
         try: return SpecBunch(json.load(fh))
