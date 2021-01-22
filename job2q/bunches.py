@@ -13,8 +13,8 @@ from os import getcwd
 
 class AttrDict(object):
     def __init__(self, init=None):
-        if init is not None:
-            self.__dict__.update(init)
+#        if init is not None:
+#            self.__dict__.update(init)
         self.constant = {}
         self.boolean = set()
     def __setattr__(self, item, value):
@@ -39,19 +39,18 @@ class AttrDict(object):
                 messages.error('Se especificaron variables o coordenadas de interpolación pero no se incluyó la opción -i|--interpolate para realizarla')
             else:
                 self.interpolation = None
-        return self.__dict__[item]
-    def __getitem__(self, key):
-        return self.__dict__[key]
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
-    def __delitem__(self, key):
-        del self.__dict__[key]
-    def __contains__(self, key):
-        return key in self.__dict__
-    def __len__(self):
-        return len(self.__dict__)
-    def __repr__(self):
-        return repr(self.__dict__)
+#    def __getitem__(self, key):
+#        return self.__dict__[key]
+#    def __setitem__(self, key, value):
+#        self.__dict__[key] = value
+#    def __delitem__(self, key):
+#        del self.__dict__[key]
+#    def __contains__(self, key):
+#        return key in self.__dict__
+#    def __len__(self):
+#        return len(self.__dict__)
+#    def __repr__(self):
+#        return repr(self.__dict__)
     def appendto(self, extlist, item):
         if item in self.__dict__:
             if isinstance(item, (list, tuple)):
