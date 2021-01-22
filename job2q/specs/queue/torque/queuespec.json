@@ -6,9 +6,12 @@
    "qctrl": [
       "#PBS -N '{name}'",
       "#PBS -W label='{label}'",
-      "#PBS -l 'nodes={nodes}:ppn={nproc}'",
+      ! Serial job
       "#PBS -l 'nodes=1:ppn={nproc}'",
+      ! Number of nodes
       "#PBS -l 'nodes={nhost}:ppn={nproc}'",
+      ! List of node names
+      "#PBS -l 'nodes={nodes}:ppn={nproc}'",
       "#PBS -q '{queue}'",
       "#PBS -o '{output}/%J.out'",
       "#PBS -e '{error}/%J.err'"

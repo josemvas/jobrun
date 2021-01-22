@@ -5,7 +5,8 @@ General
 - Trap para SIGINT y SIGTERM enviados por bkill
 - Poner límite de memoria a los trabajos
 - Agregar opción para imprimir la versión del programa
-- Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE
+- Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE (problemas con nodes/nproc/nhost)
+- Terminar la reescritura para la ejecucion remota de trabajos (falta copiar molfile, realfiles)
 
 job2q
 -----
