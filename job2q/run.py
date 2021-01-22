@@ -51,8 +51,8 @@ class RemoteRun(Action):
             messages.error(error)
         if not sysinfo.remoteshare:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        options.appendto(filelist, realfiles)
         options.appendto(filelist, molfile)
+        options.appendto(filelist, realfiles)
 #        filelist.append(options.common.molfile)
 #        filelist.extend(options.realfiles)
         while argfiles:

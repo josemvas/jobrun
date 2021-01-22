@@ -270,8 +270,6 @@ def setup():
     else:
         messages.error('El método de copia', q(jobspecs.hostcopy), 'no es válido', spec='hostcopy')
 
-    options.interpolation()
-
 #TODO: Check if variables in parameter sets match filter groups
 #    if 'filter' in options.common:
 #        pattern = re.compile(options.common.filter)
@@ -295,7 +293,7 @@ def submit():
         if e: messages.failure(str(e))
         return
 
-    jobname = '.'.join(options.common.prefix + [removesuffix(basename, '.' + jobspecs.progkey)] + options.common.suffix)
+    jobname = '.'.join(options.interpolation.prefix + [removesuffix(basename, '.' + jobspecs.progkey)] + options.common.suffix)
 
 #TODO: Use filter matchings groups to build the parameter list
 #    for key in options.parametersets:
@@ -404,9 +402,9 @@ def submit():
         for key in item.split('|'):
             if AbsPath(buildpath(parentdir, (basename, key))).isfile():
                 with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
-                    if options.common.interpolate:
+                    if options.interpolation:
                         try:
-                            fw.write(fr.read().format(**options.keywords))
+                            fw.write(fr.read().format(**options.interpolation))
                         except KeyError as e:
                             messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                             return

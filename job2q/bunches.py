@@ -23,6 +23,17 @@ class AttrDict(object):
         else:
             self.__dict__[item] = value
     def __getattr__(self, item):
+        if item == 'interpolation':
+            if self.common.interpolate:
+                self.interpolation = Interpolation()
+                self.interpolation.update(self.keywords)
+                self.interpolation.molfile = getattr(self.common, 'molfile', None)
+                self.interpolation.prefix = self.common.prefix
+                self.interpolation.interpolate()
+            elif 'molfile' in self.common or self.keywords:
+                messages.error('Se especificaron variables o coordenadas de interpolación pero no se incluyó la opción -i|--interpolate para realizarla')
+            else:
+                self.interpolation = None
         return self.__dict__[item]
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -42,25 +53,25 @@ class AttrDict(object):
                 extlist.extend(self.__dict__[item])
             else:
                 extlist.append(self.__dict__[item])
-    def interpolation(self):
-        if self.common.interpolate:
-            if 'molfile' in self.common:
-                self.parsemol()
-                self.common.prefix.append(self.keywords.molfile.stem)
-            elif 'suffix' not in self.common:
-                messages.error('Para interpolar debe especificar un archivo de coordenadas o un sufijo de trabajo')
-        elif 'molfile' in self.common or self.keywords:
-            messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
+
+
+class Interpolation(Bunch):
+    def interpolate(self):
+        if self.molfile:
+            self.parsemol()
+            self.prefix.append(self.molfile.stem)
+        elif not self.prefix:
+            messages.error('Para interpolar debe especificar un archivo de coordenadas o un prefijo de trabajo')
     def parsemol(self):
-        molfile = AbsPath(self.common.molfile, cwdir=getcwd())
+        molfile = AbsPath(self.molfile, cwdir=getcwd())
         molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
         if molfile.isfile():
             if molfile.hasext('.xyz'):
                 for i, step in enumerate(readxyz(molfile), 1):
-                    self.keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
+                    self['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
             elif molfile.hasext('.mol'):
                 for i, step in enumerate(readmol(molfile), 1):
-                    self.keywords['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
+                    self['mol' + str(i)] = '\n'.join(molformat(*atom) for atom in step['coords'])
             else:
                 messages.error('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
         elif molfile.isdir():
@@ -69,7 +80,7 @@ class AttrDict(object):
             messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
         else:
             messages.error('El archivo de coordenadas', molfile, 'no existe')
-        self.keywords.molfile = molfile
+        self.molfile = molfile
 
 
 
