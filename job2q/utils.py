@@ -23,7 +23,7 @@ class Bunch(dict):
         self.__setitem__(item, value)
 
 def o(key, value=None):
-    if value:
+    if value is not None:
         return('--{}={}'.format(key.replace('_', '-'), value))
     else:
         return('--{}'.format(key.replace('_', '-')))

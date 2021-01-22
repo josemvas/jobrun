@@ -4,12 +4,12 @@ from os import path, listdir, environ, getcwd, execv
 from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import call, Popen, PIPE, check_output, CalledProcessError
 from . import messages
-from .utils import p, q
+from .utils import o, p, q
 from .specparse import readspec
 from .bunches import sysinfo, envars, jobspecs, options, argfiles
 from .jobutils import printchoices, findparameters
-from .fileutils import AbsPath, NotAbsolutePath
-from .submit import setup, submit
+from .fileutils import AbsPath, NotAbsolutePath, buildpath
+from .submit import setup, submit, popfile
 
 class LsOptions(Action):
     def __init__(self, nargs=0, **kwargs):
@@ -42,17 +42,18 @@ class RemoteRun(Action):
         filelist = []
         remotejobs = []
         remotehost = values[0]
-        #sysinfo.remoteshare = check_output(['ssh', remotehost, 'echo $JOBSHARE']).decode(sys.stdout.encoding).strip()
-        process = Popen(['ssh', remotehost, 'echo $JOBSHARE'], stdout=PIPE, stderr=PIPE, close_fds=True)
-        output, error = process.communicate()
-        sysinfo.remoteshare = output.decode(sys.stdout.encoding).strip()
-        error = error.decode(sys.stdout.encoding).strip()
-        if process.returncode != 0:
-            messages.error(error)
-        if not sysinfo.remoteshare:
-            messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        options.appendto(filelist, molfile)
-        options.appendto(filelist, realfiles)
+        remoteshare = '/test'
+        #remoteshare = check_output(['ssh', remotehost, 'echo $JOBSHARE']).decode(sys.stdout.encoding).strip()
+        #process = Popen(['ssh', remotehost, 'echo $JOBSHARE'], stdout=PIPE, stderr=PIPE, close_fds=True)
+#        output, error = process.communicate()
+#        remoteshare = output.decode(sys.stdout.encoding).strip()
+#        error = error.decode(sys.stdout.encoding).strip()
+#        if process.returncode != 0:
+#            messages.error(error)
+#        if not remoteshare:
+#            messages.error('El servidor remoto no acepta trabajos de otro servidor')
+#        options.appendto(filelist, 'molfile')
+#        options.appendto(filelist, 'realfiles')
 #        filelist.append(options.common.molfile)
 #        filelist.extend(options.realfiles)
         while argfiles:
@@ -62,14 +63,16 @@ class RemoteRun(Action):
                 if e: messages.failure(e)
                 break
             relparentdir = path.relpath(parentdir, sysinfo.home)
-            userhost = sysinfo.username + '@' + sysinfo.hostname
-            remotejobs.append(buildpath(sysinfo.remoteshare, userhost, relparentdir, basename))
+            userhost = sysinfo.user + '@' + sysinfo.hostname
+            remotejobs.append(buildpath(remoteshare, userhost, relparentdir, basename))
             for key in jobspecs.filekeys:
                 if path.isfile(buildpath(parentdir, (basename, key))):
                     filelist.append(buildpath(sysinfo.home, '.', relparentdir, (basename, key)))
         if remotejobs:
-            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(sysinfo.remoteshare, userhost)])
-            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [options.program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
+#            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
+#            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
+            call(['echo', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
+            execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items() if value] + remotejobs)
         raise SystemExit()
 
 try:
@@ -107,7 +110,6 @@ try:
     parser1.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     parser1.add_argument('-l', '--list', action=LsOptions, help='Mostrar las opciones disponibles y salir.')
     parser1.add_argument('-H', '--host', action=RemoteRun, metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
-    parsed, remaining = parser1.parse_known_args(remaining)
     
     parser2 = ArgumentParser(add_help=False)
     parser2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
@@ -163,7 +165,7 @@ try:
     parser7.add_argument('argfiles', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
     parsed, remaining = parser7.parse_known_args(remaining)
     argfiles.extend(parsed.argfiles)
-    
+
     parser = ArgumentParser(prog=program, parents=[parser1, parser2, parser3, parser4, parser5, parser6, parser7], add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
     parser.parse_args(remaining)
     
