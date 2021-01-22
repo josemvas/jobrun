@@ -15,11 +15,16 @@ class AttrDict(object):
     def __init__(self, init=None):
         if init is not None:
             self.__dict__.update(init)
-        self.collection = {}
+        self.constant = {}
+        self.boolean = set()
     def __setattr__(self, item, value):
         if isinstance(value, Namespace):
             self.__dict__[item] = Bunch(vars(value))
-            self.__dict__['collection'].update(vars(value))
+            for key, value in self.__dict__[item].items():
+                if value is True:
+                    self.__dict__['boolean'].add(key)
+                elif value is not False:
+                    self.__dict__['constant'].update({key:value})
         else:
             self.__dict__[item] = value
     def __getattr__(self, item):

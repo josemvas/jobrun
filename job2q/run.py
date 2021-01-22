@@ -71,8 +71,10 @@ class RemoteRun(Action):
         if remotejobs:
 #            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
 #            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
+            options.boolean.add('bare')
+            options.boolean.add('delete')
             call(['echo', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
-            execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items() if value] + remotejobs)
+            execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
         raise SystemExit()
 
 try:
