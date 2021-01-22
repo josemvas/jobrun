@@ -18,7 +18,7 @@
       "pie": "deMon.pie",
       "bin": "deMon.bin"
    },
-   "fileopts": {
+   "realfiles": {
       "rst": "rst",
       "trj": "trj"
    },

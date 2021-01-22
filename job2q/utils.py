@@ -24,9 +24,9 @@ class Bunch(dict):
 
 def o(key, value=None):
     if value:
-        return('--{}={}'.format(key, value))
+        return('--{}={}'.format(key.replace('_', '-'), value))
     else:
-        return('--{}'.format(key))
+        return('--{}'.format(key.replace('_', '-')))
     
 def p(string):
     return '({0})'.format(string)
@@ -54,9 +54,9 @@ def join_args(f):
         return f(' '.join(args), **kwargs)
     return wrapper
 
-def join_kwargs(f):
+def join_allargs(f):
     def wrapper(*args, **kwargs):
-        return f(*args, ', '.join(key + ' ' + value for key, value in kwargs.items()))
+        return f(' '.join(args), ', '.join(key + ' ' + value for key, value in kwargs.items()))
     return wrapper
 
 def catch_keyboard_interrupt(f):

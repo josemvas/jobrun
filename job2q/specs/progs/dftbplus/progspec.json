@@ -35,7 +35,7 @@
    "filevars": {
       "dftbin": "dftb_in.hsd"
    },
-   "fileopts": {
+   "realfiles": {
       "charges": "charges.bin"
    },
    "inputfiles": [

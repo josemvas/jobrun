@@ -2,8 +2,7 @@
    "progkey": "G",
    "progname": "Gaussian",
    "parallelib": "openmp",
-   "filecheck": "gjf or com",
-   "fileclash": "gjf and com",
+   "filecheck": "(gjf and not com) or (com and not gjf)",
    "defaults" : {
       "outdir": "{jobname}.{progkey}{version}"
    },
@@ -24,7 +23,7 @@
       "fchk": "fchk",
       "oldchk": "oldchk"
    },
-   "fileopts": {
+   "realfiles": {
       "oldchk": "oldchk"
    },
    "inputfiles": [

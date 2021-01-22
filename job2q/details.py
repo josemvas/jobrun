@@ -27,6 +27,6 @@ dictags = (
     'parametersets',
     'filekeys',
     'filevars',
-    'fileopts',
+    'realfiles',
 )
 

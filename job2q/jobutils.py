@@ -5,10 +5,7 @@ from .utils import natsort
 from .fileutils import AbsPath, NotAbsolutePath, diritems
 from .chemistry import readxyzfile, readmolfile
 
-class NonMatchingFile(Exception):
-    pass
-
-class InputFileError(Exception):
+class InputFileException(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
@@ -35,7 +32,7 @@ def findparameters(rootpath, components, defaults, indent):
                 findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
 def readcoords(options):
-    molfile = AbsPath(molfile, cwdir=getcwd())
+    molfile = AbsPath(options.common.molfile, cwdir=getcwd())
     molformat = '{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format
     if molfile.isfile():
         if molfile.hasext('.xyz'):
@@ -52,5 +49,5 @@ def readcoords(options):
         messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
     else:
         messages.error('El archivo de coordenadas', molfile, 'no existe')
-    options.keywords.molfile = molfile
+    options.common.molfile = molfile
 

@@ -2,17 +2,15 @@
 import re
 import sys
 from time import sleep
-from os import execv, getcwd, rename
-from os.path import isfile, basename
-from subprocess import call, check_output
+from os import execv, getcwd
 from string import Formatter
 from . import dialogs
 from . import messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
-from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs
+from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
 from .bunches import sysinfo, envars, jobspecs, options, argfiles
-from .jobutils import NonMatchingFile, InputFileError
+from .jobutils import InputFileException
 from .boolparse import BoolParser
 from .details import mpilibs
 
@@ -23,7 +21,8 @@ def popfile():
     abspath = AbsPath(filepath, cwdir=getcwd())
     parentdir = abspath.parent()
     filename = abspath.name
-    if options.common.base:
+
+    if options.common.bare:
         basename = filename
     else:
         for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
@@ -31,13 +30,33 @@ def popfile():
                 basename = removesuffix(filename, '.' + key)
                 break
         else:
-            raise InputFileError(filename)
-    if options.common.filter:
+            raise InputFileException('La extensión del archivo', q(filename), 'no está asociada a', jobspecs.progname)
+
+    if 'filter' in options.common:
         if not re.match(options.common.filter, basename):
-            raise NonMatchingFile(basename)
-    for key in restartfiles:
-        restartfiles[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
+            raise InputFileException()
+
+    if not abspath.isfile():
+        if not abspath.exists():
+            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'no existe')
+        elif abspath.isdir():
+            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'es un directorio')
+        else:
+            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'no es un archivo regular')
+
+    for key in realfiles:
+        realfiles[key].linkto(buildpath(parentdir, (basename, jobspecs.realfiles[key])))
     return parentdir, basename
+
+    filebools = {}
+
+    for key in jobspecs.filekeys:
+        filebools[key] = AbsPath(buildpath(parentdir, (basename, key))).isfile()
+
+    if 'filecheck' in jobspecs:
+        if BoolParser(jobspecs.filecheck).ev(filebools):
+            raise InputFileException('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos', p(jobspecs.filecheck))
+
 
 
 
@@ -47,37 +66,28 @@ def setup():
     script.command = []
     script.qctrl = []
 
-    if options.common.interpolate:
-        if options.common.molfile:
-            readcoords(options)
-            options.prefix.append(options.keywords.molfile.stem)
-        elif not options.suffix:
-            messages.error('Para interpolar debe especificar un archivo de coordenadas o un sufijo de trabajo')
-    elif options.common.molfile or options.keywords:
-        print(options.common.molfile)
-        print(options.keywords)
-        messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
-
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if getattr(options.common, 'ignore-defaults'):
+    if options.common.ignore_defaults:
         jobspecs.defaults.get('version', None)
         jobspecs.defaults.get('parameterset', None)
     
     if options.common.sort:
         argfiles.sort(key=natural)
-    elif getattr(options.common, 'sort-reverse'):
+    elif options.common.sort_reverse:
         argfiles.sort(key=natural, reverse=True)
     
-    if not options.common.wait:
-        try: options.common.wait = float(jobspecs.defaults.waitime)
-        except AttributeError: options.common.wait = 0
+    if 'wait' not in options.common:
+        try:
+            options.common.wait = float(jobspecs.defaults.waitime)
+        except AttributeError:
+            options.common.wait = 0
     
-    if not options.common.nproc:
+    if 'nproc' not in options.common:
         options.common.nproc = 1
     
-    if not options.common.nhost:
+    if 'nhost' not in options.common:
         options.common.nhost = 1
 
     if options.common.xdialog:
@@ -96,15 +106,15 @@ def setup():
     if not 'scratchdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
-    if options.common.writedir:
-        script.workdir = AbsPath(options.common.writedir, jobspecs.qenv.jobid, cwdir=getcwd())
+    if 'writedir' in options.common:
+        script.workdir = AbsPath(buildpath(options.common.writedir, jobspecs.qenv.jobid), cwdir=getcwd())
     else:
         try:
-            script.workdir = AbsPath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid).setkeys(sysinfo).validate()
+            script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)).setkeys(sysinfo).validate()
         except NotAbsolutePath:
             messages.error(jobspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
-    if not options.common.queue:
+    if 'queue' not in options.common:
         if jobspecs.defaults.queue:
             options.common.queue = jobspecs.defaults.queue
         else:
@@ -165,7 +175,7 @@ def setup():
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
     
     if jobspecs.versions:
-        if not options.common.version:
+        if 'version' not in options.common:
             if 'version' in jobspecs.defaults:
                 if jobspecs.defaults.version in jobspecs.versions:
                     options.common.version = jobspecs.defaults.version
@@ -173,7 +183,7 @@ def setup():
                     messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
             else:
                 options.common.version = dialogs.chooseone('Seleccione una versión', choices=natsort(jobspecs.versions.keys()))
-        if not options.common.version in jobspecs.versions:
+        if options.common.version not in jobspecs.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
     else:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
@@ -203,11 +213,11 @@ def setup():
     script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
     script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
     
-    if options.common.nodes:
+    if 'nodes' in options.common:
         script.qctrl.append(jobspecs.qctrl.nodes.format(options.common.nodes))
     
     script.environ.append("shopt -s nullglob extglob")
-    script.environ.append("head=" + sysinfo.clusterhead)
+    script.environ.append("head=" + sysinfo.headname)
     script.environ.extend('='.join(i) for i in jobspecs.qenv.items())
     script.environ.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     script.environ.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
@@ -260,13 +270,8 @@ def setup():
     else:
         messages.error('El método de copia', q(jobspecs.hostcopy), 'no es válido', spec='hostcopy')
 
-    for key in options.files:
-        restartfiles[key] = AbsPath(getattr(options.files, key), cwdir=getcwd())
-        if not restartfiles[key].isfile():
-            messages.error('El archivo de entrada', restartfiles[key], 'no existe', option=key)
-
 #TODO: Check if variables in parameter sets match filter groups
-#    if options.common.filter:
+#    if 'filter' in options.common:
 #        pattern = re.compile(options.common.filter)
 #        for item in jobspecs.parametersets + [i + '-path' for i in jobspecs.parametersets]:
 #            if item in options.parametersets or item in options.parameterpaths:
@@ -284,28 +289,11 @@ def submit():
 
     try:
         parentdir, basename = popfile()
-    except NonMatchingFile:
-        return
-    except InputFileError as e:
-        messages.failure('La extensión del archivo', q(e), 'no está asociada a', jobspecs.progname)
+    except InputFileException as e:
+        if e: messages.failure(str(e))
         return
 
-    filebools = {}
-
-    for key in jobspecs.filekeys:
-        filebools[key] = isfile(buildpath(parentdir, (basename, key)))
-
-    if 'filecheck' in jobspecs:
-        if not BoolParser(jobspecs.filecheck).ev(filebools):
-            messages.failure('No se encontraron todos los archivos de entrada requeridos')
-            return
-
-    if 'fileclash' in jobspecs:
-        if BoolParser(jobspecs.fileclash).ev(filebools):
-            messages.failure('Hay un conflicto entre los archivos de entrada')
-            return
-
-    jobname = '.'.join(options.prefix + [removesuffix(basename, '.' + jobspecs.progkey)] + options.suffix)
+    jobname = '.'.join(options.common.prefix + [removesuffix(basename, '.' + jobspecs.progkey)] + options.common.suffix)
 
 #TODO: Use filter matchings groups to build the parameter list
 #    for key in options.parametersets:
@@ -345,7 +333,7 @@ def submit():
         else:
             messages.error('La ruta', rootpath, 'no existe', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
     
-    if options.common.outdir:
+    if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwdir=parentdir)
     else:
         jobinfo = dict(
@@ -354,19 +342,19 @@ def submit():
             version = '.'.join(options.common.version.split()))
         outdir = AbsPath(jobspecs.defaults.outdir, cwdir=parentdir).setkeys(jobinfo).validate()
 
-    hiddendir = AbsPath(outdir, '.job')
+    hiddendir = AbsPath(buildpath(outdir, '.job'))
 
     inputfiles = []
     inputdirs = []
 
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if isfile(buildpath(parentdir, (basename, key))):
+            if AbsPath(buildpath(parentdir, (basename, key))).isfile():
                 inputfiles.append(((buildpath(hiddendir, jobspecs.filekeys[key])), buildpath(script.workdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
-            inputfiles.append((path, buildpath(script.workdir, basename(path))))
+            inputfiles.append((path, buildpath(script.workdir, path.name)))
         elif path.isdir():
             inputdirs.append((buildpath(path), script.workdir))
 
@@ -393,7 +381,7 @@ def submit():
         else:
             makedirs(hiddendir)
         if not set(outdir.listdir()).isdisjoint(buildpath((jobname, k)) for i in jobspecs.outputfiles for k in i.split('|')):
-            if options.common.no is True or (options.common.yes is False and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for item in jobspecs.outputfiles:
@@ -412,8 +400,8 @@ def submit():
     
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if isfile(buildpath(parentdir, (basename, key))):
-                with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(parentdir, jobspecs.filekeys[key]), 'w') as fw:
+            if AbsPath(buildpath(parentdir, (basename, key))).isfile():
+                with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
                     if options.common.interpolate:
                         try:
                             fw.write(fr.read().format(**keywords))
@@ -431,7 +419,7 @@ def submit():
 
     for line in jobspecs.offscript:
         try:
-           offscript.append(line.format(jobname=jobname, **sysinfo, **envars))
+           offscript.append(line.format(jobname=jobname, clustername=sysinfo.clustername, **envars))
         except KeyError:
            pass
 
@@ -453,7 +441,7 @@ def submit():
         f.write(script.rmdir(script.workdir) + '\n')
         f.write(''.join(script.runathead(i) + '\n' for i in offscript))
 
-    if options.dry:
+    if options.common.dry:
         messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', hiddendir, option='--dry')
     else:
         try:
@@ -467,7 +455,6 @@ def submit():
                 f.write(jobid)
     
 parameterpaths = []
-remotefiles = []
-restartfiles = {}
+realfiles = {}
 script = Bunch()
 

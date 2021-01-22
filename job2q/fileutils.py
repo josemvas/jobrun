@@ -18,10 +18,7 @@ class EmptyDirectoryError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, *args, cwdir=None):
-        path = os.path.join(*args)
-        if splitpath(path) != [ j for i in args for j in splitpath(i) ]:
-            raise PathFormatError('Conflicting path components in', *args)
+    def __new__(cls, path, cwdir=None):
         path = os.path.normpath(os.path.expanduser(path))
         if not os.path.isabs(path):
             if isinstance(cwdir, str) and os.path.isabs(cwdir):
@@ -69,8 +66,8 @@ class AbsPath(str):
         symlink(self, os.path.join(*dest))
     def copyto(self, *dest):
         copyfile(self, os.path.join(*dest))
-    def joinpath(self, *args):
-        return AbsPath(self, *args)
+    def joinpath(self, path):
+        return AbsPath(os.path.join(self, path))
 
 def splitcomponent(component):
     parts = string.Formatter.parse(None, component)
@@ -108,10 +105,14 @@ def diritems(abspath, component):
         messages.error('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
 
 def buildpath(*args):
-    return deepjoin(args, iter(pathseps))
+    path = deepjoin(args, iter(pathseps))
+#    if splitpath(path) != [j for i in args for j in splitpath(i)]:
+#        raise PathFormatError('Conflicting path components in', *args)
+    return path
 
 def splitpath(path):
     if path:
+        print(path)
         path = os.path.normpath(path)
         if path == os.path.sep:
             return [os.path.sep]
