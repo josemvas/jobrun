@@ -51,8 +51,10 @@ class RemoteRun(Action):
             messages.error(error)
         if not sysinfo.remoteshare:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        filelist.append(options.common.molfile)
-        reansferlist.extend(options.realfiles)
+        options.appendto(filelist, realfiles)
+        options.appendto(filelist, molfile)
+#        filelist.append(options.common.molfile)
+#        filelist.extend(options.realfiles)
         while argfiles:
             try:
                 parentdir, basename = popfile()
@@ -65,132 +67,120 @@ class RemoteRun(Action):
             for key in jobspecs.filekeys:
                 if path.isfile(buildpath(parentdir, (basename, key))):
                     filelist.append(buildpath(sysinfo.home, '.', relparentdir, (basename, key)))
-        options.optional = {}
-        options.optional.update(options.common)
-        options.optional.update(options.parametersets)
-        options.optional.update(options.parameterpaths)
-        options.optional.update(options.realfiles)
-        options.optional.update(options.keywords)
         if remotejobs:
             call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(sysinfo.remoteshare, userhost)])
-            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [options.program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.optional.items()] + remotejobs)
+            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [options.program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
         raise SystemExit()
 
-parser0 = ArgumentParser(add_help=False)
-parser0.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
-parser0.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
-parsed, remaining = parser0.parse_known_args()
-globals().update(vars(parsed))
-
 try:
-    envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
-except KeyError:
-    pass
 
-jobspecs.merge(readspec(path.join(specdir, program, 'hostspec.json')))
-jobspecs.merge(readspec(path.join(specdir, program, 'queuespec.json')))
-jobspecs.merge(readspec(path.join(specdir, program, 'progspec.json')))
-jobspecs.merge(readspec(path.join(specdir, program, 'hostprogspec.json')))
-
-userspecdir = path.join(sysinfo.home, '.jobspecs', program + '.json')
-
-if path.isfile(userspecdir):
-    jobspecs.merge(readspec(userspecdir))
-
-try: sysinfo.clustername = jobspecs.clustername
-except AttributeError:
-    messages.error('No se definió el nombre del clúster', spec='clustername')
-
-try: sysinfo.headname = jobspecs.headname.format(**sysinfo)
-except AttributeError:
-    messages.error('No se definió el nombre del nodo maestro', spec='headname')
-
-parser1 = ArgumentParser(add_help=False)
-parser1.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-parser1.add_argument('-l', '--list', action=LsOptions, help='Mostrar las opciones disponibles y salir.')
-parser1.add_argument('-H', '--host', action=RemoteRun, metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
-parsed, remaining = parser1.parse_known_args(remaining)
-
-parser2 = ArgumentParser(add_help=False)
-parser2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
-parser2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
-parser2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
-parser2.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
-parser2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-parser2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-parser2.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', default=SUPPRESS, help='Ruta del archivo de coordenadas para la interpolación.')
-parser2.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
-parser2.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
-parser2.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
-parser2.add_argument('--prefix', metavar='PREFIX', action='append', default=[], help='Agregar el prefijo PREFIX al nombre del trabajo.')
-parser2.add_argument('--suffix', metavar='SUFFIX', action='append', default=[], help='Agregar el sufijo SUFFIX al nombre del trabajo.')
-parser2.add_argument('-0', '--ignore-defaults', action='store_true', help='Ignorar las opciones por defecto.')
-parser2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-parser2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-parser2.add_argument('-b', '--bare', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
-parser2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
-parser2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-
-sortgroup = parser2.add_mutually_exclusive_group()
-sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
-sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos de mayor a menor.')
-
-yngroup = parser2.add_mutually_exclusive_group()
-yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
-yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
-
-options.common, remaining = parser2.parse_known_args(remaining)
-
-parser3 = ArgumentParser(add_help=False)
-for key in jobspecs.parametersets:
-    parser3.add_argument('--' + key, metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-options.parametersets, remaining = parser3.parse_known_args(remaining)
-
-parser4 = ArgumentParser(add_help=False)
-for key in jobspecs.parametersets:
-    parser4.add_argument('--' + key + '-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
-options.parameterpaths, remaining = parser4.parse_known_args(remaining)
-
-parser5 = ArgumentParser(add_help=False)
-for key, value in jobspecs.realfiles.items():
-    parser5.add_argument('--' + key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo {}.'.format(value))
-options.realfiles, remaining = parser5.parse_known_args(remaining)
-
-parser6 = ArgumentParser(add_help=False)
-for key in jobspecs.keywords:
-    parser6.add_argument('--'+key, metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
-options.keywords, remaining = parser6.parse_known_args(remaining)
-
-parser7 = ArgumentParser(add_help=False)
-parser7.add_argument('argfiles', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
-parsed, remaining = parser7.parse_known_args(remaining)
-argfiles.extend(parsed.argfiles)
-
-parser = ArgumentParser(prog=program, parents=[parser1, parser2, parser3, parser4, parser5, parser6, parser7], add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
-parser.parse_args(remaining)
-
-if not argfiles:
-    messages.error('Debe especificar al menos un archivo de entrada')
-
-if options.common.interpolate:
-    if 'molfile' in options.common:
-        readcoords(options)
-        options.common.prefix.append(options.common.molfile.stem)
-    elif 'suffix' not in options.common:
-        messages.error('Para interpolar debe especificar un archivo de coordenadas o un sufijo de trabajo')
-elif 'molfile' in options.common or options.keywords:
-    print(options.common)
-    print(options.keywords)
-    messages.error('Se especificaron coordenadas o variables de interpolación pero no se va a interpolar nada')
-
-for key in options.realfiles:
-    options.realfiles[key] = AbsPath(options.realfiles[key], cwdir=getcwd())
-    if not options.realfiles[key].isfile():
-        messages.error('El archivo de entrada', options.realfiles[key], 'no existe', option=o(key))
-
-setup()
-submit()
-while argfiles:
-    sleep(options.common.wait)
+    parser0 = ArgumentParser(add_help=False)
+    parser0.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
+    parser0.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
+    parsed, remaining = parser0.parse_known_args()
+    globals().update(vars(parsed))
+    
+    try:
+        envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
+    except KeyError:
+        pass
+    
+    jobspecs.merge(readspec(path.join(specdir, program, 'hostspec.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'queuespec.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'progspec.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'hostprogspec.json')))
+    
+    userspecdir = path.join(sysinfo.home, '.jobspecs', program + '.json')
+    
+    if path.isfile(userspecdir):
+        jobspecs.merge(readspec(userspecdir))
+    
+    try: sysinfo.clustername = jobspecs.clustername
+    except AttributeError:
+        messages.error('No se definió el nombre del clúster', spec='clustername')
+    
+    try: sysinfo.headname = jobspecs.headname.format(**sysinfo)
+    except AttributeError:
+        messages.error('No se definió el nombre del nodo maestro', spec='headname')
+    
+    parser1 = ArgumentParser(add_help=False)
+    parser1.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
+    parser1.add_argument('-l', '--list', action=LsOptions, help='Mostrar las opciones disponibles y salir.')
+    parser1.add_argument('-H', '--host', action=RemoteRun, metavar='HOSTNAME', help='Procesar los archivos de entrada y enviar el trabajo al host remoto HOSTNAME.')
+    parsed, remaining = parser1.parse_known_args(remaining)
+    
+    parser2 = ArgumentParser(add_help=False)
+    parser2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
+    parser2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
+    parser2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
+    parser2.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
+    parser2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
+    parser2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+    parser2.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', default=SUPPRESS, help='Ruta del archivo de coordenadas para la interpolación.')
+    parser2.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
+    parser2.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
+    parser2.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
+    parser2.add_argument('--prefix', metavar='PREFIX', action='append', default=[], help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    parser2.add_argument('--suffix', metavar='SUFFIX', action='append', default=[], help='Agregar el sufijo SUFFIX al nombre del trabajo.')
+    parser2.add_argument('-0', '--ignore-defaults', action='store_true', help='Ignorar las opciones por defecto.')
+    parser2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    parser2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
+    parser2.add_argument('-b', '--bare', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
+    parser2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
+    parser2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    
+    sortgroup = parser2.add_mutually_exclusive_group()
+    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
+    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos de mayor a menor.')
+    
+    yngroup = parser2.add_mutually_exclusive_group()
+    yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
+    yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
+    
+    options.common, remaining = parser2.parse_known_args(remaining)
+    
+    parser3 = ArgumentParser(add_help=False)
+    for key in jobspecs.parametersets:
+        parser3.add_argument('--' + key, metavar='PARAMSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+    options.parametersets, remaining = parser3.parse_known_args(remaining)
+    
+    parser4 = ArgumentParser(add_help=False)
+    for key in jobspecs.parametersets:
+        parser4.add_argument('--' + key + '-path', metavar='PARAMPATH', default=SUPPRESS, help='Ruta del directorio de parámetros.')
+    options.parameterpaths, remaining = parser4.parse_known_args(remaining)
+    
+    parser5 = ArgumentParser(add_help=False)
+    for key, value in jobspecs.realfiles.items():
+        parser5.add_argument('--' + key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo {}.'.format(value))
+    options.realfiles, remaining = parser5.parse_known_args(remaining)
+    
+    parser6 = ArgumentParser(add_help=False)
+    for key in jobspecs.keywords:
+        parser6.add_argument('--'+key, metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
+    options.keywords, remaining = parser6.parse_known_args(remaining)
+    
+    parser7 = ArgumentParser(add_help=False)
+    parser7.add_argument('argfiles', nargs='*', metavar='FILE(S)', help='Rutas de los archivos de entrada.')
+    parsed, remaining = parser7.parse_known_args(remaining)
+    argfiles.extend(parsed.argfiles)
+    
+    parser = ArgumentParser(prog=program, parents=[parser1, parser2, parser3, parser4, parser5, parser6, parser7], add_help=False, description='Ejecuta trabajos de {} en el sistema de colas del clúster.'.format(jobspecs.progname))
+    parser.parse_args(remaining)
+    
+    if not argfiles:
+        messages.error('Debe especificar al menos un archivo de entrada')
+    
+    for key in options.realfiles:
+        options.realfiles[key] = AbsPath(options.realfiles[key], cwdir=getcwd())
+        if not options.realfiles[key].isfile():
+            messages.error('El archivo de entrada', options.realfiles[key], 'no existe', option=o(key))
+    
+    setup()
     submit()
+    while argfiles:
+        sleep(options.common.wait)
+        submit()
+    
+except KeyboardInterrupt:
+    raise SystemExit(colors.red + 'Interrumpido por el usuario' + colors.default)
 

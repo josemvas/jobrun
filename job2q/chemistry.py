@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from job2q import messages
 
-def readxyzfile(path):
+def readxyz(path):
     optrj = []
     with open(path, mode='r') as fh:
         while True:
@@ -27,7 +27,7 @@ def readxyzfile(path):
                 messages.error('¡El archivo de coordenadas', path, 'termina antes de lo esperado!')
     return optrj
 
-def readmolfile(path):
+def readmol(path):
     optrj = []
     with open(path, mode='r') as fh:
         coords = [ ]

@@ -2,7 +2,7 @@
 import re
 import sys
 from time import sleep
-from os import execv, getcwd
+from os import getcwd
 from string import Formatter
 from . import dialogs
 from . import messages
@@ -270,6 +270,8 @@ def setup():
     else:
         messages.error('El método de copia', q(jobspecs.hostcopy), 'no es válido', spec='hostcopy')
 
+    options.interpolation()
+
 #TODO: Check if variables in parameter sets match filter groups
 #    if 'filter' in options.common:
 #        pattern = re.compile(options.common.filter)
@@ -404,7 +406,7 @@ def submit():
                 with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
                     if options.common.interpolate:
                         try:
-                            fw.write(fr.read().format(**keywords))
+                            fw.write(fr.read().format(**options.keywords))
                         except KeyError as e:
                             messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                             return
