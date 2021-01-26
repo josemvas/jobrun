@@ -7,6 +7,9 @@ General
 - Agregar opción para imprimir la versión del programa
 - Cambiar el mecanisno de generación de comentarios BSUB/SBATCH/PBS para soportar TORQUE (problemas con nodes/nproc/nhost)
 - Terminar la reescritura para la ejecucion remota de trabajos (falta copiar molfile, realfiles)
+- Agregar opción para incluir la clave y versión del programa en los nombres de los archivos de salida
+- Presentar la lista de parámetros una sola vez (o no preguntar si hay default o se obtienen del filtro)
+- Interpolar si se requiere los conjuntos de parámetros del filtro, pero no las rutas de parámetros
 
 job2q
 -----
@@ -15,6 +18,8 @@ job2q
 console.py
 ----------
 - Seleccionar el scheduler interactivamente
+- Listar la opción "Nuevo" siempre al principio
+- Mover hostspec.json y queuespec.json dentro del directorio jobspecs y eliminar los links dentro de las carpetas de programa
 
 queue.py
 ----------
@@ -24,5 +29,5 @@ queue.py
 AbsPath
 -------
 - Considerar no aceptar listas de componentes de path como argumento (usar el método joinpath en su lugar)
-- Considerar reemplazar método append con la opción keys=
+- Considerar reemplazar método stekeys con la opción keys= y aceptar listas además de diccionarios para interpolar
 - Change slash by comma to set interpolable path components with setkeys
