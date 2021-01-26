@@ -20,6 +20,7 @@ console.py
 - Seleccionar el scheduler interactivamente
 - Listar la opción "Nuevo" siempre al principio
 - Mover hostspec.json y queuespec.json dentro del directorio jobspecs y eliminar los links dentro de las carpetas de programa
+- Manejar permisos denegados cuando se instalan los programas
 
 queue.py
 ----------
