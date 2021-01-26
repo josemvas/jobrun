@@ -5,7 +5,7 @@
          "bases": "/home/{user}/share/parameters/deMon2k/{0}"
       },
       "parameterset": {
-         "bases" : [ "deMon" ]
+         "bases" : [ "default" ]
       }
    },
    "versions": {

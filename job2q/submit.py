@@ -336,11 +336,10 @@ def submit():
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwdir=parentdir)
     else:
-        jobinfo = dict(
-            jobname = jobname,
-            progkey = jobspecs.progkey,
-            version = '.'.join(options.common.version.split()))
-        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=parentdir).setkeys(jobinfo).validate()
+        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=parentdir).setkeys({'jobname':jobname}).validate()
+
+#TODO: Prepend program version to extension of output files
+#    progfix = jobspecs.progkey + '.' + '.'.join(options.common.version.split())
 
     hiddendir = AbsPath(buildpath(outdir, '.job'))
 

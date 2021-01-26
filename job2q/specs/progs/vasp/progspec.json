@@ -6,7 +6,7 @@
    "filecheck": "INCAR and POSCAR and POTCAR",
    "stdoutput": "log",
    "defaults" : {
-      "outdir": "{jobname}.{progkey}{version}"
+      "outdir": "{jobname}"
    },
    "filekeys": {
       "INCAR": "INCAR",

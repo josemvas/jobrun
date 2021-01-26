@@ -6,7 +6,7 @@
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {
-      "outdir": "{jobname}.{progkey}{version}"
+      "outdir": "{jobname}"
    },
    "filekeys": {
       "inp": "job.inp",
