@@ -32,3 +32,7 @@ AbsPath
 - Considerar no aceptar listas de componentes de path como argumento (usar el método joinpath en su lugar)
 - Considerar reemplazar método stekeys con la opción keys= y aceptar listas además de diccionarios para interpolar
 - Change slash by comma to set interpolable path components with setkeys
+
+jobsync
+-------
+- List redundant files with less and ask only once to delete
