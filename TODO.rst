@@ -9,7 +9,7 @@ General
 - Terminar la reescritura para la ejecucion remota de trabajos (falta copiar molfile, realfiles)
 - Agregar opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Presentar la lista de parámetros una sola vez (o no preguntar si hay default o se obtienen del filtro)
-- Permitir obntener los conjuntos de parámetros del filtro e independizar las rutas de parámetros de los conjuntos de parámetros, por ejemplo: autodock --addpath=$HOME/autodock/parameters/{version}/{ligand}.pdbqt --addpath=$HOME/autodock/parameters/{version}/{receptor} --version 1.1 --ligand=%1 --receptor=%2 --filter '([^_]+)_([^_]+)'
+- Permitir obntener los conjuntos de parámetros del filtro e independizar las rutas de parámetros de los conjuntos de parámetros, por ejemplo: autodock --addpath=$HOME/autodock/{version}/ligands/{ligand}.pdbqt --addpath=$HOME/autodock/{version}/receptors/{receptor} --version 1.1 --ligand=%1 --receptor=%2 --filter '([^_]+)_([^_]+)'
 
 job2q
 -----
