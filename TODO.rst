@@ -11,10 +11,6 @@ General
 - Presentar la lista de parámetros una sola vez (o no preguntar si hay default o se obtienen del filtro)
 - Permitir obntener los conjuntos de parámetros del filtro e independizar las rutas de parámetros de los conjuntos de parámetros, por ejemplo: autodock --addpath=$HOME/autodock/{version}/ligands/{ligand}.pdbqt --addpath=$HOME/autodock/{version}/receptors/{receptor} --version 1.1 --ligand=%1 --receptor=%2 --filter '([^_]+)_([^_]+)'
 
-job2q
------
-- Move PYTHONPATH and SPECPATH from bash section to python section in job2q
-
 console.py
 ----------
 - Seleccionar el scheduler interactivamente
