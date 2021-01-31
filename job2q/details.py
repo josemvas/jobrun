@@ -24,9 +24,9 @@ dictags = (
     'defaults',
     'versions',
     'optionargs',
-    'parametersets',
+    'parameters',
     'filekeys',
     'filevars',
-    'realfiles',
+    'fileopts',
 )
 

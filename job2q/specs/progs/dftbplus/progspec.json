@@ -35,7 +35,7 @@
    "filevars": {
       "dftbin": "dftb_in.hsd"
    },
-   "realfiles": {
+   "fileopts": {
       "charges": "charges.bin"
    },
    "inputfiles": [
@@ -67,7 +67,7 @@
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
    ],
-   "parametersets": [
+   "parameters": [
       "slako"
    ],
    "prescript": [

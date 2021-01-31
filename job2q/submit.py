@@ -9,7 +9,7 @@ from . import messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .bunches import sysinfo, envars, jobspecs, options, argfiles
+from .bunches import sysinfo, envars, jobspecs, options
 from .jobutils import InputFileException
 from .boolparse import BoolParser
 from .details import mpilibs
@@ -17,7 +17,7 @@ from .details import mpilibs
 
 def popfile():
 
-    filepath = argfiles.pop(0)
+    filepath = options.fileargs.pop(0)
     abspath = AbsPath(filepath, cwdir=getcwd())
     parentdir = abspath.parent()
     filename = abspath.name
@@ -44,8 +44,8 @@ def popfile():
         else:
             raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'no es un archivo regular')
 
-    for key in realfiles:
-        realfiles[key].linkto(buildpath(parentdir, (basename, jobspecs.realfiles[key])))
+    for key in fileopts:
+        fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
     return parentdir, basename
 
     filebools = {}
@@ -74,9 +74,9 @@ def setup():
         jobspecs.defaults.get('parameterset', None)
     
     if options.common.sort:
-        argfiles.sort(key=natural)
+        options.fileargs.sort(key=natural)
     elif options.common.sort_reverse:
-        argfiles.sort(key=natural, reverse=True)
+        options.fileargs.sort(key=natural, reverse=True)
     
     if 'wait' not in options.common:
         try:
@@ -126,8 +126,8 @@ def setup():
     if not jobspecs.progkey:
         messages.error('No se especificó la clave del programa', spec='progkey')
     
-    for key in options.parametersets:
-        if '/' in getattr(options.parametersets, key):
+    for key in options.parameters:
+        if '/' in getattr(options.parameters, key):
             messages.error(getattr(options.common, key), 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in jobspecs:
@@ -273,8 +273,8 @@ def setup():
 #TODO: Check if variables in parameter sets match filter groups
 #    if 'filter' in options.common:
 #        pattern = re.compile(options.common.filter)
-#        for item in jobspecs.parametersets + [i + '-path' for i in jobspecs.parametersets]:
-#            if item in options.parametersets or item in options.parameterpaths:
+#        for item in jobspecs.parameters + [i + '-path' for i in jobspecs.parameters]:
+#            if item in options.parameters or item in options.parameterpaths:
 #                for key in Formatter().parse(getattr(options.common, item)):
 #                    if key[1] is not None:
 #                        try:
@@ -293,22 +293,28 @@ def submit():
         if e: messages.failure(str(e))
         return
 
-    jobname = '.'.join(options.interpolation.prefix + [removesuffix(basename, '.' + jobspecs.progkey)] + options.common.suffix)
+    jobname = removesuffix(basename, '.' + jobspecs.progkey)
+
+    if 'molfile' in options.common:
+        jobname = options.common.molfile.stem + '.' + jobname
+
+    if 'suffix' in options.common:
+        jobname = jobname + '.' + options.common.suffix
 
 #TODO: Use filter matchings groups to build the parameter list
-#    for key in options.parametersets:
+#    for key in options.parameters:
 #        for var in getattr(options.common, key).split(','): 
 #            if var.startswith('%'):
 #                parameterlist.append(match.groups(var[1:]))
 #            else:
 #                parameterlist.append(var[1:])
 
-    for key in jobspecs.parametersets:
+    for key in jobspecs.parameters:
         if key + '-path' in options.parameterpaths:
             rootpath = AbsPath(getattr(options.common, key + '-path'), cwdir=getcwd())
 #       if key in jobspecs.defaults.parameterpath: (key and key-path options should not be exclusive)
         elif key in jobspecs.defaults.parameterpath:
-            if key in options.parametersets:
+            if key in options.parameters:
                 parameterlist = getattr(options.common, key).split(',')
             elif 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
                 if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
@@ -454,6 +460,6 @@ def submit():
                 f.write(jobid)
     
 parameterpaths = []
-realfiles = {}
+fileopts = {}
 script = Bunch()
 

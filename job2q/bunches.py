@@ -4,7 +4,6 @@ from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam
 from grp import getgrgid
-from argparse import Namespace
 from .specparse import SpecBunch
 from .utils import Bunch
 from .fileutils import AbsPath
@@ -12,21 +11,17 @@ from .chemistry import readxyz, readmol
 from os import getcwd
 
 class AttrDict(object):
-    def __init__(self, init=None):
-#        if init is not None:
-#            self.__dict__.update(init)
-        self.constant = {}
-        self.boolean = set()
-    def __setattr__(self, item, value):
-        if isinstance(value, Namespace):
-            self.__dict__[item] = Bunch(vars(value))
-            for key, value in self.__dict__[item].items():
+    def __init__(self):
+        self.__dict__['boolean'] = set()
+        self.__dict__['constant'] = dict()
+    def __setattr__(self, attr, attrval):
+        self.__dict__[attr] = attrval
+        if isinstance(attrval, Bunch):
+            for key, value in attrval.items():
                 if value is True:
                     self.__dict__['boolean'].add(key)
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
-        else:
-            self.__dict__[item] = value
     def __getattr__(self, item):
         if item == 'interpolation':
             if self.common.interpolate:
@@ -36,21 +31,9 @@ class AttrDict(object):
                 self.interpolation.prefix = self.common.prefix
                 self.interpolation.interpolate()
             elif 'molfile' in self.common or self.keywords:
-                messages.error('Se especificaron variables o coordenadas de interpolación pero no se incluyó la opción -i|--interpolate para realizarla')
+                messages.error('Se especificaron variables o coordenadas de interpolación pero no se especificó la opción -i|--interpolate')
             else:
                 self.interpolation = None
-#    def __getitem__(self, key):
-#        return self.__dict__[key]
-#    def __setitem__(self, key, value):
-#        self.__dict__[key] = value
-#    def __delitem__(self, key):
-#        del self.__dict__[key]
-#    def __contains__(self, key):
-#        return key in self.__dict__
-#    def __len__(self):
-#        return len(self.__dict__)
-#    def __repr__(self):
-#        return repr(self.__dict__)
     def appendto(self, extlist, item):
         if item in self.__dict__:
             if isinstance(item, (list, tuple)):
@@ -99,5 +82,5 @@ sysinfo.hostname = gethostname()
 envars = Bunch()
 options = AttrDict()
 jobspecs = SpecBunch()
-argfiles = []
+options.fileargs = []
 

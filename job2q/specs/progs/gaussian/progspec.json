@@ -23,7 +23,7 @@
       "fchk": "fchk",
       "oldchk": "oldchk"
    },
-   "realfiles": {
+   "fileopts": {
       "oldchk": "oldchk"
    },
    "inputfiles": [

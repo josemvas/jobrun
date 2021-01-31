@@ -18,7 +18,7 @@
       "pie": "deMon.pie",
       "bin": "deMon.bin"
    },
-   "realfiles": {
+   "fileopts": {
       "rst": "rst",
       "trj": "trj"
    },
@@ -45,7 +45,7 @@
       "charge",
       "spin"
    ],
-   "parametersets": [
+   "parameters": [
       "bases"
    ]
 }
