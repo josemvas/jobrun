@@ -82,6 +82,7 @@ try:
     group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
     group1.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
     group1.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
+    group1.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group1.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group1.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las opciones por defecto.')
     group1.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')

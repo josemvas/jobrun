@@ -295,8 +295,8 @@ def submit():
 
     jobname = removesuffix(basename, '.' + jobspecs.progkey)
 
-    if 'molfile' in options.common:
-        jobname = options.common.molfile.stem + '.' + jobname
+    if options.common.interpolate:
+        jobname = interpolation.prefix + '.' + jobname
 
     if 'suffix' in options.common:
         jobname = jobname + '.' + options.common.suffix

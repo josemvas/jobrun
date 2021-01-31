@@ -22,18 +22,6 @@ class AttrDict(object):
                     self.__dict__['boolean'].add(key)
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
-    def __getattr__(self, item):
-        if item == 'interpolation':
-            if self.common.interpolate:
-                self.interpolation = Interpolation()
-                self.interpolation.update(self.keywords)
-                self.interpolation.molfile = getattr(self.common, 'molfile', None)
-                self.interpolation.prefix = self.common.prefix
-                self.interpolation.interpolate()
-            elif 'molfile' in self.common or self.keywords:
-                messages.error('Se especificaron variables o coordenadas de interpolación pero no se especificó la opción -i|--interpolate')
-            else:
-                self.interpolation = None
     def appendto(self, extlist, item):
         if item in self.__dict__:
             if isinstance(item, (list, tuple)):
@@ -41,8 +29,16 @@ class AttrDict(object):
             else:
                 extlist.append(self.__dict__[item])
 
-
-class Interpolation(Bunch):
+class Interpolation():
+    def __init__(self, options):
+        if options.common.interpolate:
+            self.molfile = getattr(self.common, 'molfile', None)
+            self.prefix = self.common.prefix
+            self.interpolate()
+        elif 'molfile' in self.common or self.keywords:
+            messages.error('Se especificaron variables o coordenadas de interpolación pero no se especificó la opción -i|--interpolate')
+        else:
+            self.interpolation = None
     def interpolate(self):
         if self.molfile:
             self.parsemol()
@@ -68,7 +64,6 @@ class Interpolation(Bunch):
         else:
             messages.error('El archivo de coordenadas', molfile, 'no existe')
         self.molfile = molfile
-
 
 
 sysinfo = Bunch()
