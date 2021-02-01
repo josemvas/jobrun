@@ -40,8 +40,8 @@ try:
     parser = ArgumentParser(add_help=False)
     parser.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
     parser.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
-    parsed, remaining = parser.parse_known_args()
-    globals().update(vars(parsed))
+    parsedargs, remainingargs = parser.parse_known_args()
+    globals().update(vars(parsedargs))
     
     try:
         envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
@@ -68,17 +68,20 @@ try:
 
     parser = ArgumentParser(prog=program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.progname))
 
-    group1 = parser.add_argument_group('common')
+    group0 = parser.add_argument_group('Argumentos')
+    group0.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta al acrhivo de entrada.')
+
+    group1 = parser.add_argument_group('Opciones comunes')
+    group1.key = 'common'
     group1.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group1.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
-    group1.add_argument('-H', '--host', metavar='HOSTNAME', default=SUPPRESS, help='Procesar el trabajo en el host HOSTNAME.')
     group1.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group1.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group1.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
     group1.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     group1.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group1.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group1.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', default=SUPPRESS, help='Ruta del archivo de coordenadas para la interpolación.')
+    group1.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', default=SUPPRESS, help='Ruta al archivo de coordenadas para interpolar.')
     group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
     group1.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
     group1.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
@@ -90,47 +93,55 @@ try:
     group1.add_argument('-b', '--bare', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group1.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group1.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-    
+
     sortgroup = group1.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
     sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos de mayor a menor.')
-    
+
     yngroup = group1.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
-    
-    group2 = parser.add_argument_group('parameters')
+
+    group2 = parser.add_argument_group('Ejecución remota')
+    group2.key = 'remote'
+    group2.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
+
+    group3 = parser.add_argument_group('Conjuntos de parámetros')
+    group3.key = 'parameters'
     for key in jobspecs.parameters:
-        group2.add_argument('--' + key, metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
-    
-    group3 = parser.add_argument_group('fileopts')
+        group3.add_argument('--' + key, metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+
+    group4 = parser.add_argument_group('Archivos opcionales')
+    group4.key = 'fileopts'
     for key, value in jobspecs.fileopts.items():
-        group3.add_argument('--' + key, metavar='FILEPATH', default=SUPPRESS, help='Ruta del archivo {}.'.format(value))
-    
-    group4 = parser.add_argument_group('keywords')
+        group4.add_argument('--' + key, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+
+    group5 = parser.add_argument_group('Variables de interpolación')
+    group5.key = 'keywords'
     for key in jobspecs.keywords:
-        group4.add_argument('--' + key, metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
-    
-    parser.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta del archivo de entrada.')
+        group5.add_argument('--' + key, metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
 
-    parsed = parser.parse_args(remaining)
-    print(parsed)
+    parsedargs = parser.parse_args(remainingargs)
 
-    if parsed.fileargs:
-        options.fileargs = parsed.fileargs
+    if parsedargs.fileargs:
+        options.fileargs = parsedargs.fileargs
     else:
         messages.error('Debe especificar al menos un archivo de entrada')
 
     for group in parser._action_groups:
-        group_dict = {a.dest:getattr(parsed, a.dest) for a in group._group_actions if a.dest in parsed}
-        setattr(options, group.title, Bunch(**group_dict))
-    
+        if hasattr(group, 'key'):
+            group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
+            setattr(options, group.key, Bunch(**group_dict))
+
+    print(options.remote)
+    print(options.common)
+
     for key in options.fileopts:
         options.fileopts[key] = AbsPath(options.fileopts[key], cwdir=getcwd())
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
-    if options.common.host:
+    if options.remote.host:
 
         filelist = []
         remotejobs = []
