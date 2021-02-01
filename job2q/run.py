@@ -29,7 +29,7 @@ class LsOptions(Action):
                 else:
                     defaults = []
                 print('Conjuntos de parámetros', p(key))
-                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=getcwd()).setkeys(sysinfo).populate()
+                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key]).setkeys(sysinfo).populate()
                 findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
         if jobspecs.keywords:
             print('Variables de interpolación')
@@ -80,22 +80,22 @@ try:
     group1.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group1.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
     group1.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
+    group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
     group1.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group1.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
-    group1.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
-    group1.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
-    group1.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group1.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group1.add_argument('-D', '--no-defaults', action='store_true', help='Ignorar todos los valores por defecto.')
     group1.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
     group1.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group1.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
+    group1.add_argument('--cwd', metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
+    group1.add_argument('--outdir', metavar='OUTDIR', default=SUPPRESS, help='Guardar los archivos de salida en el directorio OUTDIR.')
+    group1.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
+    group1.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group1.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group1.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
     molgroup = group1.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--molfile', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
+    molgroup.add_argument('-m', '--mol', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
     molgroup.add_argument('-M', '--molfix', metavar='PREFIX', default=SUPPRESS, help='Prefijo del archivo interpolado.')
 
     sortgroup = group1.add_mutually_exclusive_group()
@@ -107,23 +107,22 @@ try:
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
 
     group2 = parser.add_argument_group('Ejecución remota')
-    group2.key = 'remote'
     group2.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group3 = parser.add_argument_group('Conjuntos de parámetros')
     group3.key = 'parameters'
     for key in jobspecs.parameters:
-        group3.add_argument('--' + key, metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+        group3.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
     group4 = parser.add_argument_group('Archivos opcionales')
     group4.key = 'fileopts'
     for key, value in jobspecs.fileopts.items():
-        group4.add_argument('--' + key, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+        group4.add_argument(o(key), metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group5 = parser.add_argument_group('Variables de interpolación')
     group5.key = 'keywords'
     for key in jobspecs.keywords:
-        group5.add_argument('--' + key, metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
+        group5.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
 
     parsedargs = parser.parse_args(remainingargs)
 
@@ -138,15 +137,15 @@ try:
         messages.error('Debe especificar al menos un archivo de entrada')
 
     for key in options.fileopts:
-        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=getcwd())
+        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.cwd)
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
-    if options.remote.host:
+    if parsedargs.host:
 
         filelist = []
         remotejobs = []
-        remotehost = options.remote.host
+        remotehost = parsedargs.host
         userhost = sysinfo.user + '@' + sysinfo.hostname
         remoteshare = '/test'
 #        #remoteshare = check_output(['ssh', remotehost, 'echo $JOBSHARE']).decode(sys.stdout.encoding).strip()
@@ -158,21 +157,30 @@ try:
 #            messages.error(error)
 #        if not remoteshare:
 #            messages.error('El servidor remoto no acepta trabajos de otro servidor')
-#        options.appendto(filelist, 'molfile')
-#        options.appendto(filelist, 'fileopts')
-#        filelist.append(options.common.molfile)
-#        filelist.extend(options.fileopts)
-        for parentdir, basename in arglist:
-            relparentdir = path.relpath(parentdir, sysinfo.home)
-            remotejobs.append(buildpath(remoteshare, userhost, relparentdir, basename))
-            for key in jobspecs.filekeys:
-                if path.isfile(buildpath(parentdir, (basename, key))):
-                    filelist.append(buildpath(sysinfo.home, '.', relparentdir, (basename, key)))
+        #TODO: Consider include common.mol path in fileopts
+        if 'mol' in options.common:
+            filelist.append(buildpath(sysinfo.home, '.', path.relpath(options.common.mol, sysinfo.home)))
+        #TODO: Make default empty dict for fileopts so no test is needed
+        if hasattr(options, 'fileopts'):
+            for item in options.fileopts.values():
+                filelist.append(buildpath(sysinfo.home, '.', path.relpath(item, sysinfo.home)))
+        for item in arglist:
+            if isinstance(item, tuple):
+                parentdir, basename = item
+                relparent = path.relpath(parentdir, sysinfo.home)
+                remotecwd = buildpath(remoteshare, userhost, relparent)
+                remotejobs.append(basename)
+                for key in jobspecs.filekeys:
+                    if path.isfile(buildpath(parentdir, (basename, key))):
+                        filelist.append(buildpath(sysinfo.home, '.', relparent, (basename, key)))
+            elif isinstance(item, InputFileError):
+                messages.failure(str(item))
         if remotejobs:
 #            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
 #            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--base'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
             options.boolean.add('base')
             options.boolean.add('delete')
+            options.constant.update({'cwd': remotecwd})
             call(['echo', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
         raise SystemExit()

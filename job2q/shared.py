@@ -6,7 +6,7 @@ from getpass import getuser
 from pwd import getpwnam
 from grp import getgrgid
 from .readspec import SpecBunch
-from .utils import Bunch, removesuffix
+from .utils import Bunch, removesuffix, q
 from .fileutils import AbsPath, buildpath
 from .jobutils import readcoords
 from .parsing import BoolParser
@@ -36,9 +36,9 @@ class ArgList:
             raise StopIteration
         if options.common.base:
             basename = self.current
-            parentdir = AbsPath(getcwd())
+            parentdir = AbsPath(options.common.cwd)
         else:
-            abspath = AbsPath(self.current, cwd=getcwd())
+            abspath = AbsPath(self.current, cwd=options.common.cwd)
             if not abspath.isfile():
                 if not abspath.exists():
                     return InputFileError('El archivo de entrada', abspath, 'no existe')
@@ -58,10 +58,10 @@ class ArgList:
             if not re.match(options.common.filter, basename):
                 return NonMatchingFile()
         #TODO: Check for optional files without linking first
-        for key in options.fileopts:
-            options.fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
         if 'filecheck' in jobspecs:
-            if not BoolParser(jobspecs.filecheck).ev({key:AbsPath(buildpath(parentdir, (basename, key))).isfile() for key in jobspecs.filekeys}):
+            if not BoolParser(jobspecs.filecheck).ev({
+            key : AbsPath(buildpath(parentdir, (basename, key))).isfile() or key in options.fileopts
+            for key in jobspecs.filekeys}):
                 return InputFileError('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
         return parentdir, basename
 
@@ -77,22 +77,16 @@ class OptDict:
                     self.__dict__['boolean'].add(key)
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
-    def appendto(self, extlist, item):
-        if item in self.__dict__:
-            if isinstance(item, (list, tuple)):
-                extlist.extend(self.__dict__[item])
-            else:
-                extlist.append(self.__dict__[item])
     def interpolate(self):
         if self.common.interpolate:
-            if 'molfile' in self.common:
-                molfile = AbsPath(self.common.molfile, cwd=getcwd())
+            if 'mol' in self.common:
+                molfile = AbsPath(self.common.mol, cwd=options.common.cwd)
                 for i, step in enumerate(readcoords(molfile), 1):
                     self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
                 self.common.molfix = molfile.stem
             elif not self.common.molfix:
                 messages.error('Para interpolar debe especificar un archivo de coordenadas o un prefijo de trabajo')
-        elif 'molfile' in self.common or self.keywords:
+        elif 'mol' in self.common or self.keywords:
             messages.error('Se especificaron variables o coordenadas de interpolación pero no se especificó la opción -i|--interpolate')
 
 sysinfo = Bunch()

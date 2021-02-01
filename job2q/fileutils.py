@@ -112,7 +112,6 @@ def buildpath(*args):
 
 def splitpath(path):
     if path:
-        print(path)
         path = os.path.normpath(path)
         if path == os.path.sep:
             return [os.path.sep]

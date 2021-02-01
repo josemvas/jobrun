@@ -53,8 +53,8 @@ def setup():
     if not 'scratchdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
-    if 'writedir' in options.common:
-        script.workdir = AbsPath(buildpath(options.common.writedir, jobspecs.qenv.jobid), cwd=getcwd())
+    if 'scratch' in options.common:
+        script.workdir = AbsPath(buildpath(options.common.scratch, jobspecs.qenv.jobid))
     else:
         try:
             script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)).setkeys(sysinfo).validate()
@@ -230,18 +230,6 @@ def setup():
 #                        except ValueError:
 #                            messages.error('El nombre o ruta', getattr(options.common, key), 'contiene referencias fuera de rango', option=key)
 
-
-
-def submit(parentdir, basename):
-
-    jobname = removesuffix(basename, '.' + jobspecs.progkey)
-
-    if options.common.interpolate:
-        jobname = options.common.molfix + '.' + jobname
-
-    if 'suffix' in options.common:
-        jobname = jobname + '.' + options.common.suffix
-
 #TODO: Use filter matchings groups to build the parameter list
 #    for key in options.parameters:
 #        for var in getattr(options.common, key).split(','): 
@@ -251,10 +239,10 @@ def submit(parentdir, basename):
 #                parameterlist.append(var[1:])
 
     for key in jobspecs.parameters:
-        if key + '-path' in options.parameterpaths:
-            rootpath = AbsPath(getattr(options.common, key + '-path'), cwd=getcwd())
-#       if key in jobspecs.defaults.parameterpath: (key and key-path options should not be exclusive)
-        elif key in jobspecs.defaults.parameterpath:
+#TODO: Replace --key-path options with single --addpath option
+#        if key + '-path' in options.parameterpaths:
+#            rootpath = AbsPath(getattr(options.common, key + '-path'), cwd=options.common.cwd)
+        if key in jobspecs.defaults.parameterpath:
             if key in options.parameters:
                 parameterlist = getattr(options.common, key).split(',')
             elif 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
@@ -264,22 +252,37 @@ def submit(parentdir, basename):
                     messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
             else:
                 parameterlist = []
-            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=getcwd()).setkeys(sysinfo).populate()
+            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.cwd).setkeys(sysinfo).populate()
             rootpath = AbsPath(next(pathcomponents))
             for component in pathcomponents:
                 try:
                     rootpath = rootpath.joinpath(component.format(*parameterlist))
                 except IndexError:
                     choices = diritems(rootpath, component)
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros para el trabajo', q(jobname), p(key), choices=choices)
+                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=choices)
                     rootpath = rootpath.joinpath(choice)
         else:
-            messages.error('Debe indicar la ruta al directorio de parámetros', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
+            messages.error('El conjunto de parámetros seleccionado no existe', spec='defaults.parameterpath[{}]'.format(key))
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
             messages.error('La ruta', rootpath, 'no existe', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
-    
+
+
+
+def submit(parentdir, basename):
+
+    for key in options.fileopts:
+        options.fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
+
+    jobname = removesuffix(basename, '.' + jobspecs.progkey)
+
+    if options.common.interpolate:
+        jobname = options.common.molfix + '.' + jobname
+
+    if 'suffix' in options.common:
+        jobname = jobname + '.' + options.common.suffix
+
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=parentdir)
     else:
