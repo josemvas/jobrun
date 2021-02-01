@@ -8,7 +8,7 @@ from os.path import isfile, isdir
 from . import dialogs
 from . import messages
 from .utils import natsort, q
-from .specparse import readspec
+from .readspec import readspec
 from .fileutils import AbsPath, NotAbsolutePath, mkdir, copyfile, link, symlink
 
 def setup(relpath=False):

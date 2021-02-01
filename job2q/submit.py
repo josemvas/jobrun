@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
 import sys
-from time import sleep
 from os import getcwd
 from string import Formatter
 from . import dialogs
@@ -9,55 +8,8 @@ from . import messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .bunches import sysinfo, envars, jobspecs, options
-from .jobutils import InputFileException
-from .boolparse import BoolParser
+from .shared import sysinfo, envars, jobspecs, options
 from .details import mpilibs
-
-
-def popfile():
-
-    filepath = options.fileargs.pop(0)
-    abspath = AbsPath(filepath, cwdir=getcwd())
-    parentdir = abspath.parent()
-    filename = abspath.name
-
-    if options.common.bare:
-        basename = filename
-    else:
-        for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
-            if filename.endswith('.' + key):
-                basename = removesuffix(filename, '.' + key)
-                break
-        else:
-            raise InputFileException('La extensión del archivo', q(filename), 'no está asociada a', jobspecs.progname)
-
-    if 'filter' in options.common:
-        if not re.match(options.common.filter, basename):
-            raise InputFileException()
-
-    if not abspath.isfile():
-        if not abspath.exists():
-            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'no existe')
-        elif abspath.isdir():
-            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'es un directorio')
-        else:
-            raise InputFileException('El trabajo', q(basename), 'no se envió porque el archivo de entrada', abspath, 'no es un archivo regular')
-
-    for key in fileopts:
-        fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
-    return parentdir, basename
-
-    filebools = {}
-
-    for key in jobspecs.filekeys:
-        filebools[key] = AbsPath(buildpath(parentdir, (basename, key))).isfile()
-
-    if 'filecheck' in jobspecs:
-        if BoolParser(jobspecs.filecheck).ev(filebools):
-            raise InputFileException('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos', p(jobspecs.filecheck))
-
-
 
 
 def setup():
@@ -69,14 +21,9 @@ def setup():
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.common.ignore_defaults:
+    if options.common.no_defaults:
         jobspecs.defaults.get('version', None)
         jobspecs.defaults.get('parameterset', None)
-    
-    if options.common.sort:
-        options.fileargs.sort(key=natural)
-    elif options.common.sort_reverse:
-        options.fileargs.sort(key=natural, reverse=True)
     
     if 'wait' not in options.common:
         try:
@@ -107,7 +54,7 @@ def setup():
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
     if 'writedir' in options.common:
-        script.workdir = AbsPath(buildpath(options.common.writedir, jobspecs.qenv.jobid), cwdir=getcwd())
+        script.workdir = AbsPath(buildpath(options.common.writedir, jobspecs.qenv.jobid), cwd=getcwd())
     else:
         try:
             script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)).setkeys(sysinfo).validate()
@@ -193,12 +140,12 @@ def setup():
     
     script.environ.extend(jobspecs.onscript)
 
-    for envar, filepath in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(filepath, cwdir=script.workdir).setkeys(sysinfo).validate()
+    for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
+        abspath = AbsPath(path, cwd=script.workdir).setkeys(sysinfo).validate()
         script.environ.append('export {}={}'.format(envar, abspath))
     
-    for filepath in jobspecs.source + jobspecs.versions[options.common.version].source:
-        script.environ.append('source {}'.format(AbsPath(filepath).setkeys(sysinfo).validate()))
+    for path in jobspecs.source + jobspecs.versions[options.common.version].source:
+        script.environ.append('source {}'.format(AbsPath(path).setkeys(sysinfo).validate()))
     
     for module in jobspecs.load + jobspecs.versions[options.common.version].load:
         script.environ.append('module load {}'.format(module))
@@ -285,18 +232,12 @@ def setup():
 
 
 
-def submit():
-
-    try:
-        parentdir, basename = popfile()
-    except InputFileException as e:
-        if e: messages.failure(str(e))
-        return
+def submit(parentdir, basename):
 
     jobname = removesuffix(basename, '.' + jobspecs.progkey)
 
     if options.common.interpolate:
-        jobname = interpolation.prefix + '.' + jobname
+        jobname = options.common.molfix + '.' + jobname
 
     if 'suffix' in options.common:
         jobname = jobname + '.' + options.common.suffix
@@ -311,7 +252,7 @@ def submit():
 
     for key in jobspecs.parameters:
         if key + '-path' in options.parameterpaths:
-            rootpath = AbsPath(getattr(options.common, key + '-path'), cwdir=getcwd())
+            rootpath = AbsPath(getattr(options.common, key + '-path'), cwd=getcwd())
 #       if key in jobspecs.defaults.parameterpath: (key and key-path options should not be exclusive)
         elif key in jobspecs.defaults.parameterpath:
             if key in options.parameters:
@@ -323,7 +264,7 @@ def submit():
                     messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
             else:
                 parameterlist = []
-            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwdir=getcwd()).setkeys(sysinfo).populate()
+            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=getcwd()).setkeys(sysinfo).populate()
             rootpath = AbsPath(next(pathcomponents))
             for component in pathcomponents:
                 try:
@@ -340,9 +281,9 @@ def submit():
             messages.error('La ruta', rootpath, 'no existe', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
     
     if 'outdir' in options.common:
-        outdir = AbsPath(options.common.outdir, cwdir=parentdir)
+        outdir = AbsPath(options.common.outdir, cwd=parentdir)
     else:
-        outdir = AbsPath(jobspecs.defaults.outdir, cwdir=parentdir).setkeys({'jobname':jobname}).validate()
+        outdir = AbsPath(jobspecs.defaults.outdir, cwd=parentdir).setkeys({'jobname':jobname}).validate()
 
 #TODO: Prepend program version to extension of output files if option is enabled
     progfix = jobspecs.progkey + '.'.join(options.common.version.split())
@@ -407,9 +348,9 @@ def submit():
         for key in item.split('|'):
             if AbsPath(buildpath(parentdir, (basename, key))).isfile():
                 with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
-                    if options.interpolation:
+                    if options.common.interpolate:
                         try:
-                            fw.write(fr.read().format(**options.interpolation))
+                            fw.write(fr.read().format(**options.keywords))
                         except KeyError as e:
                             messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                             return
@@ -460,6 +401,5 @@ def submit():
                 f.write(jobid)
     
 parameterpaths = []
-fileopts = {}
 script = Bunch()
 

@@ -3,7 +3,7 @@ import sys
 import os
 from re import search
 from subprocess import Popen, PIPE
-from .bunches import jobspecs
+from .shared import jobspecs
 
 def submitjob(jobscript):
     with open(jobscript, 'r') as fh:

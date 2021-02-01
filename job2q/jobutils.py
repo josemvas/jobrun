@@ -2,11 +2,8 @@
 from os import getcwd
 from . import messages
 from .utils import natsort
+from .readmol import readxyz, readmol
 from .fileutils import AbsPath, NotAbsolutePath, diritems
-
-class InputFileException(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
 
 def printchoices(choices, indent=1, default=None):
     for choice in natsort(choices):
@@ -30,3 +27,18 @@ def findparameters(rootpath, components, defaults, indent):
             for choice in choices:
                 findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
+def readcoords(molfile):
+    if molfile.isfile():
+        if molfile.hasext('.xyz'):
+            return(readxyz(molfile))
+        elif molfile.hasext('.mol'):
+            return(readmol(molfile))
+        else:
+            messages.error('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
+    elif molfile.isdir():
+        messages.error('El archivo de coordenadas', molfile, 'es un directorio')
+    elif molfile.exists():
+        messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
+    else:
+        messages.error('El archivo de coordenadas', molfile, 'no existe')
+

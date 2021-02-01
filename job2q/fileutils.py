@@ -18,11 +18,11 @@ class EmptyDirectoryError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, path, cwdir=None):
+    def __new__(cls, path, cwd=None):
         path = os.path.normpath(os.path.expanduser(path))
         if not os.path.isabs(path):
-            if isinstance(cwdir, str) and os.path.isabs(cwdir):
-                path = os.path.join(cwdir, path)
+            if isinstance(cwd, str) and os.path.isabs(cwd):
+                path = os.path.join(cwd, path)
             else:
                 raise NotAbsolutePath(path, 'is not an absolute path')
         obj = str.__new__(cls, path)

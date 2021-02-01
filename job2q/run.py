@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 import sys
+from time import sleep
 from os import path, listdir, environ, getcwd, execv
 from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import call, Popen, PIPE, check_output, CalledProcessError
 from . import messages
 from .utils import o, p, q, Bunch
-from .specparse import readspec
-from .bunches import sysinfo, envars, jobspecs, options
+from .readspec import readspec
 from .jobutils import printchoices, findparameters
+from .shared import ArgList, InputFileError, sysinfo, envars, jobspecs, options
 from .fileutils import AbsPath, NotAbsolutePath, buildpath
-from .submit import setup, submit, popfile
+from .submit import setup, submit 
 
 class LsOptions(Action):
     def __init__(self, nargs=0, **kwargs):
@@ -28,7 +29,7 @@ class LsOptions(Action):
                 else:
                     defaults = []
                 print('Conjuntos de parámetros', p(key))
-                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwdir=getcwd()).setkeys(sysinfo).populate()
+                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=getcwd()).setkeys(sysinfo).populate()
                 findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
         if jobspecs.keywords:
             print('Variables de interpolación')
@@ -81,18 +82,21 @@ try:
     group1.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     group1.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group1.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group1.add_argument('-m', '--mol', dest='molfile', metavar='MOLFILE', default=SUPPRESS, help='Ruta al archivo de coordenadas para interpolar.')
     group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
     group1.add_argument('--outdir', metavar='OUTPUTDIR', default=SUPPRESS, help='Usar OUTPUTDIR com directorio de salida.')
     group1.add_argument('--writedir', metavar='WRITEDIR', default=SUPPRESS, help='Usar WRITEDIR como directorio de escritura.')
     group1.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group1.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
-    group1.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las opciones por defecto.')
+    group1.add_argument('-D', '--no-defaults', action='store_true', help='Ignorar todos los valores por defecto.')
     group1.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
     group1.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-    group1.add_argument('-b', '--bare', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
+    group1.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group1.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group1.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+
+    molgroup = group1.add_mutually_exclusive_group()
+    molgroup.add_argument('-m', '--molfile', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
+    molgroup.add_argument('-M', '--molfix', metavar='PREFIX', default=SUPPRESS, help='Prefijo del archivo interpolado.')
 
     sortgroup = group1.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
@@ -123,21 +127,18 @@ try:
 
     parsedargs = parser.parse_args(remainingargs)
 
-    if parsedargs.fileargs:
-        options.fileargs = parsedargs.fileargs
-    else:
-        messages.error('Debe especificar al menos un archivo de entrada')
-
     for group in parser._action_groups:
         if hasattr(group, 'key'):
             group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
             setattr(options, group.key, Bunch(**group_dict))
 
-    print(options.remote)
-    print(options.common)
+    if parsedargs.fileargs:
+        arglist = ArgList(parsedargs.fileargs)
+    else:
+        messages.error('Debe especificar al menos un archivo de entrada')
 
     for key in options.fileopts:
-        options.fileopts[key] = AbsPath(options.fileopts[key], cwdir=getcwd())
+        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=getcwd())
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
@@ -145,7 +146,8 @@ try:
 
         filelist = []
         remotejobs = []
-        remotehost = options.common.host
+        remotehost = options.remote.host
+        userhost = sysinfo.user + '@' + sysinfo.hostname
         remoteshare = '/test'
 #        #remoteshare = check_output(['ssh', remotehost, 'echo $JOBSHARE']).decode(sys.stdout.encoding).strip()
 #        process = Popen(['ssh', remotehost, 'echo $JOBSHARE'], stdout=PIPE, stderr=PIPE, close_fds=True)
@@ -160,23 +162,16 @@ try:
 #        options.appendto(filelist, 'fileopts')
 #        filelist.append(options.common.molfile)
 #        filelist.extend(options.fileopts)
-        print(options.fileargs)
-        while options.fileargs:
-            try:
-                parentdir, basename = popfile()
-            except InputFileException as e:
-                if e: messages.failure(e)
-                break
+        for parentdir, basename in arglist:
             relparentdir = path.relpath(parentdir, sysinfo.home)
-            userhost = sysinfo.user + '@' + sysinfo.hostname
             remotejobs.append(buildpath(remoteshare, userhost, relparentdir, basename))
             for key in jobspecs.filekeys:
                 if path.isfile(buildpath(parentdir, (basename, key))):
                     filelist.append(buildpath(sysinfo.home, '.', relparentdir, (basename, key)))
         if remotejobs:
 #            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
-#            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--bare'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
-            options.boolean.add('bare')
+#            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--base'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
+            options.boolean.add('base')
             options.boolean.add('delete')
             call(['echo', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
@@ -185,10 +180,19 @@ try:
     else:
 
         setup()
-        submit()
-        while options.fileargs:
-            sleep(options.common.wait)
-            submit()
+        options.interpolate()
+
+        item = next(arglist)
+        if isinstance(item, tuple):
+            submit(*item)
+        elif isinstance(item, InputFileError):
+            messages.failure(str(item))
+        for item in arglist:
+            if isinstance(item, tuple):
+                sleep(options.common.wait)
+                submit(*item)
+            elif isinstance(item, InputFileError):
+                messages.failure(str(item))
     
 except KeyboardInterrupt:
     raise SystemExit(colors.red + 'Interrumpido por el usuario' + colors.default)
