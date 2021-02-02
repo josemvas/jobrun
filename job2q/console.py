@@ -16,8 +16,8 @@ def setup(relpath=False):
     libpath = []
     pyldpath = []
     configured = []
-    clusternames = {}
-    hostdirnames = {}
+    clusternames = []
+    clusterdirs = {}
     progdirnames = {}
     schedulers = {}
     prognames = {}
@@ -33,42 +33,42 @@ def setup(relpath=False):
     mkdir(specdir)
     
     sourcedir = AbsPath(__file__).parent()
-    platformspecs = path.join(sourcedir, 'specs', 'hosts')
-    
-    for spec in listdir(platformspecs):
-        if not path.isfile(path.join(platformspecs, spec, 'hostspec.json')):
+    hostspecdir = path.join(sourcedir, 'specs', 'hosts')
+
+    hostspec = readspec(path.join(sourcedir, 'specs', 'newhost', 'hostspec.json'))
+    clusterdirs[hostspec.clustername] = path.join(sourcedir, 'newhost')
+    clusternames.append(hostspec.clustername)
+    defaulthost = hostspec.clustername
+
+    for spec in listdir(hostspecdir):
+        if not path.isfile(path.join(hostspecdir, spec, 'hostspec.json')):
             messages.warning('El directorio', spec, 'no contiene ningún archivo de configuración')
-        hostspec = readspec(path.join(platformspecs, spec, 'hostspec.json'))
-        clusternames[spec] = hostspec.clustername
-        hostdirnames[hostspec.clustername] = spec
-        if hostspec.scheduler:
-            if hostspec.scheduler in listdir(path.join(sourcedir, 'specs', 'queue')):
-                schedulers[spec] = hostspec.scheduler
-            else:
-                messages.error('El gestor de trabajos', hostspec.scheduler, 'no está soportado')
+        hostspec = readspec(path.join(hostspecdir, spec, 'hostspec.json'))
+        clusternames.append(hostspec.clustername)
+        clusterdirs[hostspec.clustername] = path.join(hostspecdir, spec)
+        if hostspec.scheduler in listdir(path.join(sourcedir, 'specs', 'queue')):
+            schedulers[hostspec.clustername] = hostspec.scheduler
+        else:
+            messages.error('El gestor de trabajos', hostspec.scheduler, 'no está soportado')
 
-    if not clusternames:
-        messages.warning('No hay hosts configurados')
-        raise SystemExit()
-
-    defaulthost = '[otro]'
     if path.isfile(path.join(etcdir, 'hostspec.json')):
         clustername = readspec(path.join(etcdir, 'hostspec.json')).clustername
-        if clustername in clusternames.values():
+        if clustername in clusternames:
             defaulthost = clustername
 
-    selhostdir = hostdirnames[dialogs.chooseone('¿Qué clúster desea configurar?', choices=natsort(clusternames.values()), default=defaulthost)]
+    selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=clusternames, default=defaulthost)
+    selhostdir = clusterdirs[selhostname]
     
-    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(path.join(platformspecs, selhostdir, 'hostspec.json')) == readspec(path.join(etcdir, 'hostspec.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-        copyfile(path.join(platformspecs, selhostdir, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
+    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(path.join(selhostdir, 'hostspec.json')) == readspec(path.join(etcdir, 'hostspec.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        copyfile(path.join(selhostdir, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
 
-    if selhostdir in schedulers:
-        copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostdir], 'queuespec.json'), path.join(etcdir, 'queuespec.json'))
+    if selhostname in schedulers:
+        copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostname], 'queuespec.json'), path.join(etcdir, 'queuespec.json'))
     else:
         messages.warning('Especifique el gestor de trabajos en el archivo', path.join(etcdir, 'queuespec.json'), 'y ejecute otra vez este comando')
         return
          
-    for spec in listdir(path.join(platformspecs, selhostdir, 'progs')):
+    for spec in listdir(path.join(selhostdir, 'progs')):
         prognames[spec] = readspec(path.join(sourcedir, 'specs', 'progs', spec, 'progspec.json')).progname
         progdirnames[prognames[spec]] = spec
 
@@ -87,8 +87,8 @@ def setup(relpath=False):
         link(path.join(etcdir, 'queuespec.json'), path.join(specdir, progname, 'queuespec.json'))
         copyfile(path.join(sourcedir, 'specs', 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'progspec.json'))
         copypathspec = True
-        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(platformspecs, selhostdir, 'progs', progname, 'progspec.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
-            copyfile(path.join(platformspecs, selhostdir, 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
+        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(selhostdir, 'progs', progname, 'progspec.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+            copyfile(path.join(selhostdir, 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)

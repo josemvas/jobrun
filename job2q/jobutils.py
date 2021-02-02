@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from os import getcwd
 from . import messages
+from . import readmol
 from .utils import natsort
-from .readmol import readxyz, readmol
 from .fileutils import AbsPath, NotAbsolutePath, diritems
 
 def printchoices(choices, indent=1, default=None):
@@ -29,12 +29,14 @@ def findparameters(rootpath, components, defaults, indent):
             
 def readcoords(molfile):
     if molfile.isfile():
-        if molfile.hasext('.xyz'):
-            return(readxyz(molfile))
-        elif molfile.hasext('.mol'):
-            return(readmol(molfile))
+        if molfile.hasext('.mol'):
+            return(readmol.readmol(molfile))
+        elif molfile.hasext('.xyz'):
+            return(readmol.readxyz(molfile))
+        elif molfile.hasext('.log'):
+            return(readmol.readlog(molfile))
         else:
-            messages.error('Solamente están soportados archivos de coordenadas en formato XYZ o MOL')
+            messages.error('Solamente están soportados archivos de coordenadas en formato xyz, mol o log')
     elif molfile.isdir():
         messages.error('El archivo de coordenadas', molfile, 'es un directorio')
     elif molfile.exists():

@@ -5,7 +5,7 @@ def readxyz(path):
     optrj = []
     with open(path, mode='r') as fh:
         while True:
-            coords = [ ]
+            coords = []
             try:
                 natom = next(fh)
                 try:
@@ -28,9 +28,8 @@ def readxyz(path):
     return optrj
 
 def readmol(path):
-    optrj = []
     with open(path, mode='r') as fh:
-        coords = [ ]
+        coords = []
         try:
             title = next(fh)
             metadata = next(fh)
@@ -44,20 +43,33 @@ def readmol(path):
             for line in range(natom):
                 x, y, z, e, *_ = next(fh).split()
                 coords.append((e, float(x), float(y), float(z)))
-            optrj.append({'natom':natom, 'title':title, 'coords':coords})
             for line in range(nbond):
                 next(fh)
         except StopIteration:
             messages.error('¡El archivo de coordenadas', path, 'termina antes de lo esperado!')
         while True:
-            try:
-                prop = next(fh)
-                if prop.split()[0] != 'M':
-                    messages.error('¡El archivo de coordenadas', path, 'no tiene un formato válido!')
-            except StopIteration:
-                if prop.split() == [ 'M', 'END' ]:
-                    break
-                else:
-                    messages.error('¡El archivo de coordenadas', path, 'no tiene un formato válido!')
-    return optrj
+            prop = next(fh)
+            if prop.split()[0] != 'M':
+                messages.error('¡El archivo de coordenadas', path, 'no tiene un formato válido!')
+        if prop.split() != [ 'M', 'END' ]:
+            messages.error('¡El archivo de coordenadas', path, 'no tiene un formato válido!')
+    return [{'natom':natom, 'title':title, 'coords':coords}]
+
+def readlog(path):
+    try:
+        import cclib
+    except ImportError:
+        messages.error('Debe instalar cclib para poder leer el archivo', path)
+    print(path)
+    logfile = cclib.io.ccopen(path)
+    try:
+        data = logfile.parse()
+    except Exception:
+        messages.error('Ocurrió un error analizando el formato del archivo', path)
+    pt = cclib.parser.utils.PeriodicTable()
+    natom = len(data.atomcoords[-1])
+    title = data.scfenergies[-1]
+    coords = [(pt.element[data.atomnos[i]], e[0], e[1], e[2]) for i, e in enumerate(data.atomcoords[-1])]
+    return [{'natom':natom, 'title':title, 'coords':coords}]
+
 

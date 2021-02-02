@@ -39,6 +39,7 @@ class ArgList:
             parentdir = AbsPath(options.common.cwd)
         else:
             abspath = AbsPath(self.current, cwd=options.common.cwd)
+            #TODO: Move file checking to AbsPath class
             if not abspath.isfile():
                 if not abspath.exists():
                     return InputFileError('El archivo de entrada', abspath, 'no existe')
