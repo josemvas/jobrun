@@ -1,6 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 exec env \
 LD_LIBRARY_PATH={pyldpath} \
 PYTHONPATH={modulepath} \
 '{python}' -m job2q.run "$@" --specdir='{specdir}' --program="$(basename "$0")"
-
