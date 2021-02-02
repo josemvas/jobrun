@@ -1,35 +1,30 @@
 #!/bin/bash
 
-delete () {
-    read -sn 1 -p "${yellow}No hay archivos nuevos que sincronizar ¿$1 (s/n)?: ${normal}" answer
-    echo
-    case "$answer" in
-      s|y)
-        echo -e "${yellow}Los siguientes archivos serán borrados de $host:${normal}\n$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')" | more
-        while true; do
-            read -p "${yellow}Escriba \"ok\" para proceder o presione ENTER para cancelar: ${normal}" answer
-            case "$answer" in
-              ok|OK)
-                echo -n ${yellow}Borrando los archivos sincronizados... ${normal}
-                echo "$2" | rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p'
-                echo Hecho
-                echo
-                break;;
-              ?*) echo Escriba \"ok\" si desea borrar los archivos;;
-              *) break;;
-            esac
-        done;;
-      *) :;;
-    esac
+delete_remote_files () {
+    filelist=$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')
+    { echo "${yellow}Los siguientes archivos $1 serán borrados de $host:${normal}"; echo "$filelist"; } | less -FXr
+    while true; do
+        read -p "${yellow}Escriba \"ok\" para proceder o presione ENTER para cancelar: ${normal}" answer
+        case "$answer" in
+          [oO][kK])
+            echo -n ${yellow}Borrando los archivos $1... ${normal}
+            echo "$2" | rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p'
+            echo Hecho
+            break;;
+          ?*) echo Escriba \"ok\" si desea borrar los archivos o presione ENTER para cancelar;;
+          *) break;;
+        esac
+    done
 }
 
-options=$(getopt -n "$0" -o '' -l force,exclude: -- "$@") || exit
+options=$(getopt -n "$0" -o '' -l force,delete,exclude: -- "$@") || exit
 
 eval "set -- $options"
 
 while (( $# )); do
   case "$1" in
     --force) force=; shift;;
+    --delete) delete=; shift;;
     --exclude) expat=$2; shift 2;;
     --) shift; break;;
      *) echo Unknown option: $1; exit 1
@@ -73,11 +68,22 @@ if [[ -n $unsynced || -n $conflicting ]]; then
             echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
         fi
     fi
-elif [[ -n $synced ]]; then
-    delete "desea borrar los archivos redundantes" "$synced"
-elif [[ -n $excluded ]]; then
-    delete "desea borrar los archivos excluidos de $host" "$synced"
 else
     echo ${yellow}No hay archivos nuevos que sincronizar${normal}
+fi
+
+if [[ -n ${delete+?} ]]; then 
+    if [[ -n $synced ]]; then
+        delete_remote_files "redundantes" "$synced"
+    elif [[ -n $excluded ]]; then
+        delete_remote_files "excluidos" "$synced"
+    fi
+else
+    if [[ -n $synced ]]; then
+        echo "Hay archivos redundantes en $host que fueron sincronizados con anterioridad, use la opción --delete para eliminarlos"
+    fi
+    if [[ -n $excluded ]]; then
+        echo "Hay archivos en $host que fueron excluidos de la sincronización, use las opciones --exclude=$expat y --delete para eliminarlos"
+    fi
 fi
 
