@@ -3,7 +3,7 @@ import sys
 from time import sleep
 from os import path, listdir, environ, getcwd, execv
 from argparse import ArgumentParser, Action, SUPPRESS
-from subprocess import call, Popen, PIPE, check_output, CalledProcessError
+from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
 from .utils import o, p, q, Bunch
 from .readspec import readspec
@@ -13,11 +13,11 @@ from .fileutils import AbsPath, NotAbsolutePath, buildpath
 from .submit import setup, submit 
 
 class LsOptions(Action):
-    def __init__(self, nargs=0, **kwargs):
-        super().__init__(nargs=nargs, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         if jobspecs.versions:
-            print('Versiones del programa')
+            print('Versiones del programa:')
             printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
         for key in jobspecs.parameters:
             if key in jobspecs.defaults.parameterpath:
@@ -28,13 +28,19 @@ class LsOptions(Action):
                         messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
                 else:
                     defaults = []
-                print('Conjuntos de parámetros', p(key))
+                print('Conjuntos de parámetros:', p(key))
                 pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key]).setkeys(sysinfo).populate()
                 findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
         if jobspecs.keywords:
-            print('Variables de interpolación')
+            print('Variables de interpolación:')
             printchoices(choices=jobspecs.keywords)
         raise SystemExit()
+
+class SetCwd(Action):
+    def __init__(self, **kwargs):
+        super().__init__(nargs=1, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, AbsPath(values[0], cwd=getcwd()))
 
 try:
 
@@ -72,42 +78,42 @@ try:
     group0 = parser.add_argument_group('Argumentos')
     group0.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta al acrhivo de entrada.')
 
-    group1 = parser.add_argument_group('Opciones comunes')
-    group1.key = 'common'
-    group1.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-    group1.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
-    group1.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
-    group1.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
-    group1.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
-    group1.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
-    group1.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
-    group1.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    group1.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group1.add_argument('-D', '--no-defaults', action='store_true', help='Ignorar todos los valores por defecto.')
-    group1.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group1.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-    group1.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
-    group1.add_argument('--cwd', metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
-    group1.add_argument('--outdir', metavar='OUTDIR', default=SUPPRESS, help='Guardar los archivos de salida en el directorio OUTDIR.')
-    group1.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
-    group1.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
-    group1.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
-    group1.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    group1 = parser.add_argument_group('Ejecución remota')
+    group1.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
-    molgroup = group1.add_mutually_exclusive_group()
+    group2 = parser.add_argument_group('Opciones comunes')
+    group2.key = 'common'
+    group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
+    group2.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
+    group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
+    group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
+    group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
+    group2.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
+    group2.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
+    group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
+    group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+    group2.add_argument('-D', '--no-defaults', action='store_true', help='Ignorar todos los valores por defecto.')
+    group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
+    group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
+    group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
+    group2.add_argument('--outdir', metavar='OUTDIR', default=SUPPRESS, help='Guardar los archivos de salida en el directorio OUTDIR.')
+    group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
+    group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
+    group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
+    group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+
+    molgroup = group2.add_mutually_exclusive_group()
     molgroup.add_argument('-m', '--mol', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
     molgroup.add_argument('-M', '--molfix', metavar='PREFIX', default=SUPPRESS, help='Prefijo del archivo interpolado.')
 
-    sortgroup = group1.add_mutually_exclusive_group()
+    sortgroup = group2.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
     sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos de mayor a menor.')
 
-    yngroup = group1.add_mutually_exclusive_group()
+    yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
-
-    group2 = parser.add_argument_group('Ejecución remota')
-    group2.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group3 = parser.add_argument_group('Conjuntos de parámetros')
     group3.key = 'parameters'
@@ -147,16 +153,13 @@ try:
         remotejobs = []
         remotehost = parsedargs.host
         userhost = sysinfo.user + '@' + sysinfo.hostname
-        remoteshare = '/test'
-#        #remoteshare = check_output(['ssh', remotehost, 'echo $JOBSHARE']).decode(sys.stdout.encoding).strip()
-#        process = Popen(['ssh', remotehost, 'echo $JOBSHARE'], stdout=PIPE, stderr=PIPE, close_fds=True)
-#        output, error = process.communicate()
-#        remoteshare = output.decode(sys.stdout.encoding).strip()
-#        error = error.decode(sys.stdout.encoding).strip()
-#        if process.returncode != 0:
-#            messages.error(error)
-#        if not remoteshare:
-#            messages.error('El servidor remoto no acepta trabajos de otro servidor')
+        try:
+            output = check_output(['ssh', remotehost, 'echo $JOBSHARE'], stderr=STDOUT)
+        except CalledProcessError as exc:
+            messages.error(exc.output.decode(sys.stdout.encoding).strip())
+        remoteshare = output.decode(sys.stdout.encoding).strip()
+        if not remoteshare:
+            messages.error('El servidor remoto no acepta trabajos de otro servidor')
         #TODO: Consider include common.mol path in fileopts
         if 'mol' in options.common:
             filelist.append(buildpath(sysinfo.home, '.', path.relpath(options.common.mol, sysinfo.home)))
@@ -176,13 +179,14 @@ try:
             elif isinstance(item, InputFileError):
                 messages.failure(str(item))
         if remotejobs:
-#            call(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
-#            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + ['--base'] + ['--delete'] + [o(option) if value is True else o(option, value) for option, value in options.collection.items()] + remotejobs)
             options.boolean.add('base')
             options.boolean.add('delete')
             options.constant.update({'cwd': remotecwd})
-            call(['echo', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
-            execv('/bin/echo', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
+            try:
+                check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
+            except CalledProcessError as exc:
+                messages.error(exc.output.decode(sys.stdout.encoding).strip())
+            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
         raise SystemExit()
 
     else:
