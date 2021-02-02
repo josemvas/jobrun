@@ -28,15 +28,17 @@ def findparameters(rootpath, components, defaults, indent):
                 findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
 def readcoords(molfile):
+    if molfile.hasext('.mol'):
+        reader = readmol.readmol
+    elif molfile.hasext('.xyz'):
+        reader = readmol.readxyz
+    elif molfile.hasext('.log'):
+        reader = readmol.readlog
+    else:
+        messages.error('Solamente se pueden leer archivos mol, xyz y log')
     if molfile.isfile():
-        if molfile.hasext('.mol'):
-            return(readmol.readmol(molfile))
-        elif molfile.hasext('.xyz'):
-            return(readmol.readxyz(molfile))
-        elif molfile.hasext('.log'):
-            return(readmol.readlog(molfile))
-        else:
-            messages.error('Solamente están soportados archivos de coordenadas en formato xyz, mol o log')
+        with open(molfile, mode='r') as fh:
+            return reader(fh)
     elif molfile.isdir():
         messages.error('El archivo de coordenadas', molfile, 'es un directorio')
     elif molfile.exists():
