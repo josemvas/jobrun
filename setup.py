@@ -17,7 +17,7 @@ import os
 from glob import glob
 #from shutil import rmtree
 
-# Custom rmtree to delete files generated after setup only
+# Custom rmtree to only delete files generated after setup
 def rmtree(path):
     def delete_newer(node, time, delete):
         if os.path.getctime(node) > time:
