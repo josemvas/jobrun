@@ -182,3 +182,16 @@ def symlink(source, dest):
     except PermissionError:
         messages.error('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
+# Custom rmtree to only delete files modified after date
+def rmtree(path, date):
+    def delete_newer(node, date, delete):
+        if os.path.getmtime(node) > date:
+            try: delete(node)
+            except OSError as e: print(e)
+    for root, dirs, files in os.walk(path, topdown=False):
+        for f in files:
+            delete_newer(os.path.join(root, f), date, os.remove)
+        for d in dirs:
+            delete_newer(os.path.join(root, d), date, os.rmdir)
+    delete_newer(path, date, os.rmdir)
+
