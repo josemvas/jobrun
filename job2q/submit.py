@@ -21,7 +21,7 @@ def setup():
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.common.no_defaults:
+    if options.common.defaults:
         jobspecs.defaults.get('version', None)
         jobspecs.defaults.get('parameterset', None)
     
@@ -277,7 +277,7 @@ def submit(parentdir, basename):
 
     jobname = removesuffix(basename, '.' + jobspecs.progkey)
 
-    if options.common.interpolate:
+    if options.interpolation:
         jobname = options.common.molfix + '.' + jobname
 
     if 'suffix' in options.common:
@@ -351,7 +351,7 @@ def submit(parentdir, basename):
         for key in item.split('|'):
             if AbsPath(buildpath(parentdir, (basename, key))).isfile():
                 with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
-                    if options.common.interpolate:
+                    if options.interpolation:
                         try:
                             fw.write(fr.read().format(**options.keywords))
                         except KeyError as e:

@@ -92,8 +92,7 @@ try:
     group2.add_argument('--nodes', metavar='NODENAME', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group2.add_argument('-D', '--no-defaults', action='store_true', help='Ignorar todos los valores por defecto.')
-    group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    group2.add_argument('-d', '--defaults', action='store_true', help='Omitir los valores por defecto de todas las opciones.')
     group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
@@ -102,10 +101,8 @@ try:
     group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-
-    molgroup = group2.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--mol', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
-    molgroup.add_argument('-M', '--molfix', metavar='PREFIX', default=SUPPRESS, help='Prefijo del archivo interpolado.')
+    group2.add_argument('-m', '--mol', metavar='FILE', default=SUPPRESS, help='Ruta al archivo de coordenadas de interpolación.')
+    group2.add_argument('-M', '--molfix', metavar='PREFIX', default=SUPPRESS, help='Prefijo del archivo interpolado.')
 
     sortgroup = group2.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')

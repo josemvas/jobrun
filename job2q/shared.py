@@ -79,16 +79,17 @@ class OptDict:
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
     def interpolate(self):
-        if self.common.interpolate:
-            if 'mol' in self.common:
-                molfile = AbsPath(self.common.mol, cwd=options.common.cwd)
-                for i, step in enumerate(readcoords(molfile), 1):
-                    self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+        if 'mol' in self.common:
+            self.interpolation = True
+            molfile = AbsPath(self.common.mol, cwd=options.common.cwd)
+            for i, step in enumerate(readcoords(molfile), 1):
+                self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+            if not 'molfix' in self.common:
                 self.common.molfix = molfile.stem
-            elif not self.common.molfix:
-                messages.error('Para interpolar debe especificar un archivo de coordenadas o un prefijo de trabajo')
-        elif 'mol' in self.common or self.keywords:
-            messages.error('Se especificaron variables o coordenadas de interpolación pero no se especificó la opción -i|--interpolate')
+        elif 'molfix' in self.common:
+            self.interpolation = True
+        elif self.keywords:
+            messages.error('Se especificaron variables de interpolación sin la opción -m|--mol y/o -M|--molfix')
 
 sysinfo = Bunch()
 sysinfo.user = getuser()
