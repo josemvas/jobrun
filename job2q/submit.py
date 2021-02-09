@@ -74,8 +74,8 @@ def setup():
         messages.error('No se especificó la clave del programa', spec='progkey')
     
     for key in options.parameters:
-        if '/' in getattr(options.parameters, key):
-            messages.error(getattr(options.common, key), 'no puede ser una ruta', option=key)
+        if '/' in options.parameters[key]:
+            messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in jobspecs:
         try: jobspecs.mpilaunch = boolstrs[jobspecs.mpilaunch]
@@ -222,17 +222,17 @@ def setup():
 #        pattern = re.compile(options.common.filter)
 #        for item in jobspecs.parameters + [i + '-path' for i in jobspecs.parameters]:
 #            if item in options.parameters or item in options.parameterpaths:
-#                for key in Formatter().parse(getattr(options.common, item)):
+#                for key in Formatter().parse(getattr(options.parameters, item)):
 #                    if key[1] is not None:
 #                        try:
 #                            if int(key[1]) not in range(pattern.groups()):
-#                                messages.error('El nombre o ruta', getattr(options.common, key), 'contiene referencias no numéricas', option=key)
+#                                messages.error('El nombre o ruta', getattr(options.parameters, key), 'contiene referencias no numéricas', option=key)
 #                        except ValueError:
-#                            messages.error('El nombre o ruta', getattr(options.common, key), 'contiene referencias fuera de rango', option=key)
+#                            messages.error('El nombre o ruta', getattr(options.parameters, key), 'contiene referencias fuera de rango', option=key)
 
 #TODO: Use filter matchings groups to build the parameter list
 #    for key in options.parameters:
-#        for var in getattr(options.common, key).split(','): 
+#        for var in getattr(options.parameters, key).split(','): 
 #            if var.startswith('%'):
 #                parameterlist.append(match.groups(var[1:]))
 #            else:
@@ -241,10 +241,10 @@ def setup():
     for key in jobspecs.parameters:
 #TODO: Replace --key-path options with single --addpath option
 #        if key + '-path' in options.parameterpaths:
-#            rootpath = AbsPath(getattr(options.common, key + '-path'), cwd=options.common.cwd)
+#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.cwd)
         if key in jobspecs.defaults.parameterpath:
             if key in options.parameters:
-                parameterlist = getattr(options.common, key).split(',')
+                parameterlist = options.parameters[key].split(',')
             elif 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
                 if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
                     parameterlist = jobspecs.defaults.parameterset[key]
