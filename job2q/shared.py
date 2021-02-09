@@ -90,6 +90,8 @@ class OptDict:
             self.interpolation = True
         elif self.keywords:
             messages.error('Se especificaron variables de interpolación sin la opción -m|--mol y/o -M|--molfix')
+        else:
+            self.interpolation = False
 
 sysinfo = Bunch()
 sysinfo.user = getuser()
