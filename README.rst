@@ -1,7 +1,7 @@
-Submit any job to any queue
-###########################
+Job To Queue
+############
 
-job2q (Job to Queue) is a python module and command line utility to submit jobs to HPC
+job2q is a python module and command line utility to submit jobs to HPC
 clusters. It is compatible with PBS, LSF and Slurm schedulers and currently supports the
 following simulation packages:
 
