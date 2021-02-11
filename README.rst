@@ -1,4 +1,4 @@
-Job to Queue: Submit any job to any queue
+Submit any job to any queue
 #########################################
 
 **job2q** is a python module and command line utility to submit simulation jobs to HPC
