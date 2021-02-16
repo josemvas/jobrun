@@ -204,5 +204,5 @@ try:
                 messages.failure(str(item))
     
 except KeyboardInterrupt:
-    raise SystemExit(colors.red + 'Interrumpido por el usuario' + colors.default)
+    messages.error('Interrumpido por el usuario')
 
