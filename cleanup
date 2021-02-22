@@ -8,5 +8,5 @@ find tests -mindepth 2 -type f -delete
 find tests -mindepth 2 -type l -delete
 find tests -mindepth 1 -type d -delete
 
-rm -r build
-rm -r job2q.egg-info
+rm -rf build
+rm -rf job2q.egg-info
