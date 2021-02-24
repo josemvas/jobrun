@@ -349,16 +349,17 @@ def submit(parentdir, basename):
     
     for item in jobspecs.inputfiles:
         for key in item.split('|'):
-            if AbsPath(buildpath(parentdir, (basename, key))).isfile():
-                with open(buildpath(parentdir, (basename, key)), 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
-                    if options.interpolation:
+            inputpath = AbsPath(buildpath(parentdir, (basename, key)))
+            if inputpath.isfile():
+                if options.interpolation:
+                    with open(inputpath, 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
                         try:
                             fw.write(fr.read().format(**options.keywords))
                         except KeyError as e:
                             messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                             return
-                    else:
-                        fw.write(fr.read())
+                else:
+                    inputpath.copyto(buildpath(hiddendir, jobspecs.filekeys[key]))
                 if options.common.delete:
                     remove(buildpath(parentdir, (basename, key)))
         

@@ -36,7 +36,7 @@ def setup(relpath=False):
     hostspecdir = path.join(sourcedir, 'specs', 'hosts')
 
     hostspec = readspec(path.join(sourcedir, 'specs', 'newhost', 'hostspec.json'))
-    clusterdirs[hostspec.clustername] = path.join(sourcedir, 'newhost')
+    clusterdirs[hostspec.clustername] = path.join(sourcedir, 'specs', 'newhost')
     clusternames.append(hostspec.clustername)
     defaulthost = hostspec.clustername
 
