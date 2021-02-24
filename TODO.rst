@@ -1,5 +1,6 @@
 General
 -------
+- Usar "template strings" en vez de "format strings" para las interpolaciones
 - Mantener la carpeta de salida en el scratch si falla la copia al home
 - Ignorar el known_hosts de los usuarios
 - Trap para SIGINT y SIGTERM enviados por bkill
@@ -10,6 +11,8 @@ General
 - Agregar opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Presentar la lista de parámetros una sola vez (o no preguntar si hay default o se obtienen del filtro)
 - Permitir obntener los conjuntos de parámetros del filtro e independizar las rutas de parámetros de los conjuntos de parámetros, por ejemplo: autodock --addpath=$HOME/autodock/{version}/ligands/{ligand}.pdbqt --addpath=$HOME/autodock/{version}/receptors/{receptor} --version 1.1 --ligand=%1 --receptor=%2 --filter '([^_]+)_([^_]+)'
+- Considerar quitar el operador '|' de las especificaciones de los archivos de entrada y salida
+- Agregar en las especificaciones de los trabajos un diccionario con las condiciones lógicas de los archivos de entrada y el mensaje de error si no se cumplen
 
 console.py
 ----------

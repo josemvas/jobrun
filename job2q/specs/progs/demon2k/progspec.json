@@ -36,6 +36,9 @@
       "pie",
       "bin"
    ],
+   "interpolable": [
+      "inp"
+   ],
    "keywords": [
       "title",
       "method",

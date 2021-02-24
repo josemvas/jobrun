@@ -351,7 +351,7 @@ def submit(parentdir, basename):
         for key in item.split('|'):
             inputpath = AbsPath(buildpath(parentdir, (basename, key)))
             if inputpath.isfile():
-                if options.interpolation:
+                if options.interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                     with open(inputpath, 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
                         try:
                             fw.write(fr.read().format(**options.keywords))

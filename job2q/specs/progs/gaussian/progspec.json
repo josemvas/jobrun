@@ -38,6 +38,10 @@
       "wfn",
       "cub"
    ],
+   "interpolable": [
+      "gjf",
+      "com"
+   ],
    "positionargs": [
       "gjf|com"
    ],
