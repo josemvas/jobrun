@@ -49,7 +49,7 @@ class ArgList:
                     return InputFileError('El archivo de entrada', abspath, 'no es un archivo regular')
             parentdir = abspath.parent()
             filename = abspath.name
-            for key in (k for i in jobspecs.inputfiles for k in i.split('|')):
+            for key in jobspecs.inputfiles:
                 if filename.endswith('.' + key):
                     basename = removesuffix(filename, '.' + key)
                     break

@@ -27,11 +27,13 @@
       "oldchk": "oldchk"
    },
    "inputfiles": [
-      "gjf|com",
+      "gjf",
+      "com",
       "oldchk"
    ],
    "outputfiles": [
-      "gjf|com",
+      "gjf",
+      "com",
       "log",
       "chk",
       "fchk",
