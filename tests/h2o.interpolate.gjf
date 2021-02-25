@@ -1,8 +1,8 @@
 # HF/3-21G opt
 
-/home/jmvasquez/coding/job-to-queue/tests/h2o.xyz
+interpolate charge and multiplicity
 
-{charge}, {spin}
+$charge, $spin
  O     0.0000     0.0000     0.0000
  H     0.0000     0.7593     0.5960
  H     0.0000    -0.7593     0.5960

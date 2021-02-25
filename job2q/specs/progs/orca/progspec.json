@@ -6,7 +6,7 @@
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {
-      "outdir": "{jobname}"
+      "jobdir": "{jobname}"
    },
    "filekeys": {
       "inp": "job.inp",

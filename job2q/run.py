@@ -96,7 +96,7 @@ try:
     group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
-    group2.add_argument('--outdir', metavar='OUTDIR', default=SUPPRESS, help='Guardar los archivos de salida en el directorio OUTDIR.')
+    group2.add_argument('--jobdir', metavar='JOBDIR', default=SUPPRESS, help='Copiar los archivos de entrada/salida al directorio JOBDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
     group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')

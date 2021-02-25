@@ -1,7 +1,7 @@
 # HF/3-21G opt
 
-interpolated gaussian input
+interpolate coordinates
 
-$charge, 1
+0, 1
 $mol1
 

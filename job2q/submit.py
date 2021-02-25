@@ -43,8 +43,8 @@ def setup():
             messages.failure = join_args(TkDialogs().message)
             messages.success = join_args(TkDialogs().message)
 
-    if not 'outdir' in jobspecs.defaults:
-        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.outdir')
+    if not 'jobdir' in jobspecs.defaults:
+        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')
 
     if not 'scratchdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
@@ -205,7 +205,7 @@ def setup():
     elif jobspecs.hostcopy == 'remote':
         script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; ssh $head rm "\'{0}\'"; done'.format
+        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
@@ -277,22 +277,22 @@ def submit(parentdir, basename):
     if 'suffix' in options.common:
         jobname = jobname + '.' + options.common.suffix
 
-    if 'outdir' in options.common:
-        outdir = AbsPath(options.common.outdir, cwd=parentdir)
+    if 'jobdir' in options.common:
+        jobdir = AbsPath(options.common.jobdir, cwd=parentdir)
     else:
-        outdir = AbsPath(jobspecs.defaults.outdir, cwd=parentdir).setkeys({'jobname':jobname}).validate()
+        jobdir = AbsPath(jobspecs.defaults.jobdir, cwd=parentdir).setkeys({'jobname':jobname}).validate()
 
 #TODO: Prepend program version to extension of output files if option is enabled
     progfix = jobspecs.progkey + '.'.join(options.common.version.split())
 
-    hiddendir = AbsPath(buildpath(outdir, '.' + progfix))
+    hiddendir = AbsPath(buildpath(jobdir, '.' + progfix))
 
     inputfiles = []
     inputdirs = []
 
     for key in jobspecs.inputfiles:
         if AbsPath(buildpath(parentdir, (basename, key))).isfile():
-            inputfiles.append(((buildpath(hiddendir, jobspecs.filekeys[key])), buildpath(script.workdir, jobspecs.filekeys[key])))
+            inputfiles.append((buildpath(jobdir, (jobname, key)), buildpath(script.workdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
@@ -303,9 +303,9 @@ def submit(parentdir, basename):
     outputfiles = []
 
     for key in jobspecs.outputfiles:
-        outputfiles.append((buildpath(script.workdir, jobspecs.filekeys[key]), buildpath(outdir, (jobname, key))))
+        outputfiles.append((buildpath(script.workdir, jobspecs.filekeys[key]), buildpath(jobdir, (jobname, key))))
     
-    if outdir.isdir():
+    if jobdir.isdir():
         if hiddendir.isdir():
             try:
                 with open(buildpath(hiddendir, 'jobid'), 'r') as f:
@@ -321,34 +321,34 @@ def submit(parentdir, basename):
             return
         else:
             makedirs(hiddendir)
-        if not set(outdir.listdir()).isdisjoint(buildpath((jobname, k)) for k in jobspecs.outputfiles):
-            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+        if not set(jobdir.listdir()).isdisjoint(buildpath((jobname, k)) for k in jobspecs.outputfiles):
+            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', jobdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in jobspecs.outputfiles:
-            remove(buildpath(outdir, (jobname, key)))
-        if parentdir != outdir:
+            remove(buildpath(jobdir, (jobname, key)))
+        if parentdir != jobdir:
             for key in jobspecs.inputfiles:
-                remove(buildpath(outdir, (jobname, key)))
-    elif outdir.exists():
-        messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
+                remove(buildpath(jobdir, (jobname, key)))
+    elif jobdir.exists():
+        messages.failure('No se puede crear la carpeta', jobdir, 'porque hay un archivo con ese mismo nombre')
         return
     else:
-        makedirs(outdir)
+        makedirs(jobdir)
         makedirs(hiddendir)
     
     for key in jobspecs.inputfiles:
         inputpath = AbsPath(buildpath(parentdir, (basename, key)))
         if inputpath.isfile():
             if options.interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
-                with open(inputpath, 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
+                with open(inputpath, 'r') as fr, open(buildpath(jobdir, (jobname, key)), 'w') as fw:
                     try:
                         fw.write(Template(fr.read()).substitute(options.keywords))
                     except KeyError as e:
                         messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                         return
             else:
-                inputpath.copyto(buildpath(hiddendir, jobspecs.filekeys[key]))
+                inputpath.copyto(buildpath(jobdir, (jobname, key)))
             if options.common.delete:
                 remove(buildpath(parentdir, (basename, key)))
         
