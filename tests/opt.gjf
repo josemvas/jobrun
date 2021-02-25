@@ -2,6 +2,6 @@
 
 interpolated gaussian input
 
-{charge}, 1
-{mol1}
+$charge, 1
+$mol1
 

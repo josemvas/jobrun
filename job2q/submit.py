@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-import re
-import sys
-from os import getcwd
-from string import Formatter
-from . import dialogs
-from . import messages
+from string import Template
+from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
@@ -354,7 +350,7 @@ def submit(parentdir, basename):
                 if options.interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                     with open(inputpath, 'r') as fr, open(buildpath(hiddendir, jobspecs.filekeys[key]), 'w') as fw:
                         try:
-                            fw.write(fr.read().format(**options.keywords))
+                            fw.write(Template(fr.read()).substitute(options.keywords))
                         except KeyError as e:
                             messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
                             return
