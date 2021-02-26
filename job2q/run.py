@@ -79,7 +79,7 @@ try:
     group0.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta al acrhivo de entrada.')
 
     group1 = parser.add_argument_group('Ejecución remota')
-    group1.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
+    group1.add_argument('-H', '--remotehost', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group2 = parser.add_argument_group('Opciones comunes')
     group2.key = 'common'
@@ -87,9 +87,7 @@ try:
     group2.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
-    group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=SUPPRESS, help='Número de núcleos de procesador requeridos.')
-    group2.add_argument('-N', '--nhost', type=int, metavar='#HOSTS', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
-    group2.add_argument('--nodes', metavar='NODELIST', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
+    group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-d', '--nodefaults', action='store_true', help='No usar los valores por defecto de ninguna de las opciones.')
@@ -103,6 +101,10 @@ try:
     group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+
+    hostgroup = group2.add_mutually_exclusive_group()
+    hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
+    hostgroup.add_argument('--hosts', metavar='NODELIST', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
 
     sortgroup = group2.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
@@ -144,11 +146,11 @@ try:
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
-    if parsedargs.host:
+    if parsedargs.remotehost:
 
         filelist = []
         remotejobs = []
-        remotehost = parsedargs.host
+        remotehost = parsedargs.remotehost
         userhost = sysinfo.user + '@' + sysinfo.hostname
         try:
             output = check_output(['ssh', remotehost, 'echo $JOBSHARE'], stderr=STDOUT)

@@ -1,5 +1,6 @@
 General
 -------
+- Restringir los valores permitidos de nhost/hosts
 - Usar "template strings" en vez de "format strings" para las interpolaciones
 - Mantener la carpeta de salida en el scratch si falla la copia al home
 - Ignorar el known_hosts de los usuarios

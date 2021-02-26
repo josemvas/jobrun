@@ -4,17 +4,19 @@
    "jobidex": "?",
 
    "qctrl": [
-      "#PBS -N '{name}'",
-      "#PBS -W label='{label}'",
-      ! Serial job
+      "#PBS -N '{jobname}'",
+      "#PBS -W label='{progname}'",
+      // Serial job
+      "#PBS -l 'nodes=1:ppn=1'",
+      // Parallel job on single host
       "#PBS -l 'nodes=1:ppn={nproc}'",
-      ! Number of nodes
+      // Parallel job on multiple hosts
       "#PBS -l 'nodes={nhost}:ppn={nproc}'",
-      ! List of node names
-      "#PBS -l 'nodes={nodes}:ppn={nproc}'",
+      // Parallel job on requested hosts
+      "#PBS -l 'nodes={hosts}:ppn={nproc}'",
       "#PBS -q '{queue}'",
-      "#PBS -o '{output}/%J.out'",
-      "#PBS -e '{error}/%J.err'"
+      "#PBS -o '{logdir}/%J.out'",
+      "#PBS -e '{logdir}/%J.err'"
     ],
     
    "qenv": {

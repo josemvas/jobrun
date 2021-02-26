@@ -27,9 +27,6 @@ def setup():
         except AttributeError:
             options.common.wait = 0
     
-    if 'nproc' not in options.common:
-        options.common.nproc = 1
-    
     if 'nhost' not in options.common:
         options.common.nhost = 1
 
@@ -154,8 +151,8 @@ def setup():
     script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
     script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
     
-    if 'nodes' in options.common:
-        script.qctrl.append(jobspecs.qctrl.nodes.format(options.common.nodes))
+    if 'hosts' in options.common:
+        script.qctrl.append(jobspecs.qctrl.hosts.format(options.common.hosts))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + sysinfo.headname)

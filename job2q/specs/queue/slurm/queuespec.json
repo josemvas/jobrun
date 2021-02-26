@@ -4,14 +4,14 @@
    "jobidex": " ([0-9]+)$",
 
    "qctrl": {
-       "name": "#SBATCH -J '{}'",
-       "label": "#SBATCH --comment='{}'",
-       "nodes": "#SBATCH -w '{}'",
-       "nproc": "#SBATCH -n '{}'",
-       "nhost": "#SBATCH -N '{}'",
-       "queue": "#SBATCH -p '{}'",
-       "output": "#SBATCH -o '{}/%A.out'",
-       "error": "#SBATCH -e '{}/%A.err'"
+       "title": "#SBATCH -J '{jobname}'",
+       "label": "#SBATCH --comment='{progname}'",
+       "nproc": "#SBATCH -n '{nproc}'",
+       "nhost": "#SBATCH -N '{nhost}'",
+       "hosts": "#SBATCH -w '{hosts}'",
+       "queue": "#SBATCH -p '{queue}'",
+       "output": "#SBATCH -o '{logdir}/%A.out'",
+       "error": "#SBATCH -e '{logdir}/%A.err'"
    },
    
    "qenv": {

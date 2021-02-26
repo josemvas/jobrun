@@ -4,14 +4,14 @@
    "jobidex": "<([0-9]+)>",
 
    "qctrl": {
-      "name": "#BSUB -J '{}'",
-      "label": "#BSUB -P '{}'",
-      "nodes": "#BSUB -m '{}'",
-      "nproc": "#BSUB -n '{}'",
-      "nhost": "#BSUB -R 'span[hosts={}]'",
-      "queue": "#BSUB -q '{}'",
-      "output": "#BSUB -o '{}/%J.out'",
-      "error": "#BSUB -e '{}/%J.err'"
+      "title": "#BSUB -J '{jobname}'",
+      "label": "#BSUB -P '{progname}'",
+      "nproc": "#BSUB -n '{nproc}'",
+      "nhost": "#BSUB -R 'span[hosts={nhost}]'",
+      "hosts": "#BSUB -m '{hosts}'",
+      "queue": "#BSUB -q '{queue}'",
+      "output": "#BSUB -o '{logdir}/%J.out'",
+      "error": "#BSUB -e '{logdir}/%J.err'"
     },
     
    "qenv": {
