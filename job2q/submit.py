@@ -4,7 +4,7 @@ from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .shared import sysinfo, envars, jobspecs, options
+from .shared import sysinfo, envars, jobspecs, options, interpolation
 from .details import mpilibs
 
 
@@ -17,9 +17,9 @@ def setup():
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.common.defaults:
-        jobspecs.defaults.get('version', None)
-        jobspecs.defaults.get('parameterset', None)
+    if options.common.nodefaults:
+        jobspecs.defaults.pop('version', None)
+        jobspecs.defaults.pop('parameterset', None)
     
     if 'wait' not in options.common:
         try:
@@ -271,8 +271,11 @@ def submit(parentdir, basename):
 
     jobname = removesuffix(basename, '.' + jobspecs.progkey)
 
-    if options.interpolation:
-        jobname = options.common.molfix + '.' + jobname
+    if 'prefix' in interpolation:
+        jobname = interpolation.prefix + '.' + jobname
+
+    if 'suffix' in interpolation:
+        jobname = jobname + '.' + interpolation.suffix
 
     if 'suffix' in options.common:
         jobname = jobname + '.' + options.common.suffix
@@ -340,13 +343,19 @@ def submit(parentdir, basename):
     for key in jobspecs.inputfiles:
         inputpath = AbsPath(buildpath(parentdir, (basename, key)))
         if inputpath.isfile():
-            if options.interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
-                with open(inputpath, 'r') as fr, open(buildpath(jobdir, (jobname, key)), 'w') as fw:
-                    try:
-                        fw.write(Template(fr.read()).substitute(options.keywords))
-                    except KeyError as e:
-                        messages.failure('No se definieron todas las variables de interpolación del archivo', buildpath([basename, key]), option=o(e.args[0]))
-                        return
+            if interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
+                with open(inputpath, 'r') as fr:
+                    template = fr.read()
+                try:
+                    substituted = Template(template).substitute(options.keywords)
+                except ValueError:
+                    messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', buildpath((basename, key)))
+                    return
+                except KeyError as e:
+                    messages.failure('Hay variables de interpolación indefinidas en el archivo de entrada', buildpath((basename, key)), option=o(e.args[0]))
+                    return
+                with open(buildpath(jobdir, (jobname, key)), 'w') as fw:
+                    fw.write(substituted)
             else:
                 inputpath.copyto(buildpath(jobdir, (jobname, key)))
             if options.common.delete:

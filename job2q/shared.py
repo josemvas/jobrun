@@ -79,19 +79,18 @@ class OptDict:
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
     def interpolate(self):
-        if 'mol' in self.common:
-            self.interpolation = True
-            molfile = AbsPath(self.common.mol, cwd=options.common.cwd)
+        if 'mol_interpolate' in self.common:
+            molfile = AbsPath(self.common.mol_interpolate, cwd=options.common.cwd)
             for i, step in enumerate(readcoords(molfile), 1):
                 self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
-            if not 'molfix' in self.common:
-                self.common.molfix = molfile.stem
-        elif 'molfix' in self.common:
-            self.interpolation = True
+            if 'interpolate' in self.common:
+                interpolation.suffix = self.common.interpolate 
+            else:
+                interpolation.prefix = molfile.stem
+        elif 'interpolate' in self.common:
+            interpolation.suffix = self.common.interpolate
         elif self.keywords:
-            messages.error('Se especificaron variables de interpolación sin la opción -m|--mol y/o -M|--molfix')
-        else:
-            self.interpolation = False
+            messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 sysinfo = Bunch()
 sysinfo.user = getuser()
@@ -104,4 +103,5 @@ sysinfo.hostname = gethostname()
 envars = Bunch()
 options = OptDict()
 jobspecs = SpecBunch()
+interpolation = Bunch()
 
