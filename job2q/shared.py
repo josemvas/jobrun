@@ -60,9 +60,9 @@ class ArgList:
                 return NonMatchingFile()
         #TODO: Check for optional files without linking first
         if 'filecheck' in jobspecs:
-            if not BoolParser(jobspecs.filecheck).ev({
-            key : AbsPath(buildpath(parentdir, (basename, key))).isfile() or key in options.fileopts
-            for key in jobspecs.filekeys}):
+            if not BoolParser(jobspecs.filecheck).evaluate(
+                {key:AbsPath(buildpath(parentdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
+            ):
                 return InputFileError('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
         return parentdir, basename
 

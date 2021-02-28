@@ -5,7 +5,7 @@ from os import path, getcwd
 from glob import glob
 from . import messages
 from .fileutils import AbsPath, NotAbsolutePath
-from .utils import override_function, catch_keyboard_interrupt, join_args, wordseps
+from .utils import override_function, join_args, wordseps
 
 try:
     import bulletin
@@ -30,7 +30,6 @@ class tabCompleter(object):
             return [i + ' ' for i in self.choices if i.startswith(text) and i not in completed][n]
 
 @join_args
-@catch_keyboard_interrupt
 def inputpath(prompt='', check=lambda _:True):
     while True:
         readline.set_completer(tabCompleter().tcpath)
@@ -43,7 +42,6 @@ def inputpath(prompt='', check=lambda _:True):
                 print('Por favor indique una ruta válida')
 
 @join_args
-@catch_keyboard_interrupt
 def yesno(prompt='', default=None):
     while True:
         readline.set_completer(tabCompleter(['yes', 'si', 'no']).tclist)
@@ -62,7 +60,6 @@ def yesno(prompt='', default=None):
                 return default
 
 @join_args
-@catch_keyboard_interrupt
 @override_function(dialogs)
 def chooseone(prompt='', choices=[], default=None):
     readline.set_completer(tabCompleter(choices).tclist)
@@ -77,7 +74,6 @@ def chooseone(prompt='', choices=[], default=None):
             messages.warning('Elección inválida, intente de nuevo')
 
 @join_args
-@catch_keyboard_interrupt
 @override_function(dialogs)
 def choosemany(prompt='', choices=[], default=[]):
     readline.set_completer(tabCompleter(choices, maxtcs=None).tclist)

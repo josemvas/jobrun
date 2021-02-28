@@ -30,15 +30,16 @@ def setup():
     if 'nhost' not in options.common:
         options.common.nhost = 1
 
-    if options.common.xdialog:
-        try:
-            from bulletin import TkDialogs
-        except ImportError:
-            raise SystemExit()
-        else:
-            dialogs.yesno = join_args(TkDialogs().yesno)
-            messages.failure = join_args(TkDialogs().message)
-            messages.success = join_args(TkDialogs().message)
+#TODO: Add suport for dialog boxes
+#    if options.common.xdialog:
+#        try:
+#            from bulletin import TkDialogs
+#        except ImportError:
+#            raise SystemExit()
+#        else:
+#            dialogs.yesno = join_args(TkDialogs().yesno)
+#            messages.failure = join_args(TkDialogs().message)
+#            messages.success = join_args(TkDialogs().message)
 
     if not 'jobdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')

@@ -29,13 +29,13 @@ class Node:
         a+=')'
         return a
 
-    def ev(self, values):
+    def evaluate(self, values):
         if self.name=='not':
-            return not self.right.ev(values)
+            return not self.right.evaluate(values)
         elif self.name=='and':
-            return self.left.ev(values) and self.right.ev(values)
+            return self.left.evaluate(values) and self.right.evaluate(values)
         elif self.name=='or':
-            return self.left.ev(values) or self.right.ev(values)
+            return self.left.evaluate(values) or self.right.evaluate(values)
         elif self.name in values:
             return values[self.name]
         else:
@@ -51,8 +51,8 @@ class BoolParser:
     def pr(self):
         return self.etree.pr()
 
-    def ev(self, values):
-        return self.etree.ev(values)
+    def evaluate(self, values):
+        return self.etree.evaluate(values)
 
     def accept(self, c):
         if self.current == c:

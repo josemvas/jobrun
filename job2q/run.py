@@ -91,7 +91,7 @@ try:
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-d', '--nodefaults', action='store_true', help='No usar los valores por defecto de ninguna de las opciones.')
-    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
+#    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', metavar='PREFIX', default=SUPPRESS, help='Interpolar los archivos de entrada.')
     group2.add_argument('-m', '--mol-interpolate', metavar='MOLFILE', default=SUPPRESS, help='Interpolar los archivos de entrada usando un archivo de coordenadas.')
