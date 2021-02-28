@@ -3,28 +3,55 @@
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "jobidex": "<([0-9]+)>",
 
-   "qctrl": {
-      "title": "#BSUB -J '{jobname}'",
-      "label": "#BSUB -P '{progname}'",
-      "nproc": "#BSUB -n '{nproc}'",
-      "nhost": "#BSUB -R 'span[hosts={nhost}]'",
-      "hosts": "#BSUB -m '{hosts}'",
-      "queue": "#BSUB -q '{queue}'",
-      "output": "#BSUB -o '{logdir}/%J.out'",
-      "error": "#BSUB -e '{logdir}/%J.err'"
-    },
+   "serial": [
+      "#BSUB -q '{queue.serial}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'",
+      "#BSUB -m '{hosts}'"
+   ],
+
+   "parallel": [
+      "#BSUB -q '{queue.parallel}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'",
+      "#BSUB -m '{hosts}'"
+   ],
+
+   "parallelin": [
+      "#BSUB -q '{queue.parallel}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'",
+      "#BSUB -m '{hosts}'"
+   ],
+
+   "parallelat": [
+      "#BSUB -q '{queue.parallel}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'",
+      "#BSUB -m '{hosts}'"
+   ],
+
+   "metadata": [
+      "#BSUB -J '{jobname}'",
+      "#BSUB -P '{progname}'"
+   ],
+
+   "logging": [
+      "#BSUB -o '{logdir}/%J.out'",
+      "#BSUB -e '{logdir}/%J.err'"
+   ],
     
    "qenv": {
       "jobid": "$LSB_JOBID",
       "nproc": "$(echo $LSB_HOSTS | wc -w)",
       "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
-    },
+   },
     
    "mpilauncher": {
       "openmpi": "openmpi-mpirun",
       "intelmpi": "impi-mpirun",
       "mpich": "mpich-mpirun"
-    },
+   },
     
    "blocking_states": {
       "PEND": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
@@ -32,11 +59,11 @@
       "PSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
       "USUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
       "SSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}"
-    },
+   },
     
    "ready_states": [
       "DONE",
       "EXIT"
-    ]
+   ]
 }
 

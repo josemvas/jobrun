@@ -3,16 +3,43 @@
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
    "jobidex": " ([0-9]+)$",
 
-   "qctrl": {
-       "title": "#SBATCH -J '{jobname}'",
-       "label": "#SBATCH --comment='{progname}'",
-       "nproc": "#SBATCH -n '{nproc}'",
-       "nhost": "#SBATCH -N '{nhost}'",
-       "hosts": "#SBATCH -w '{hosts}'",
-       "queue": "#SBATCH -p '{queue}'",
-       "output": "#SBATCH -o '{logdir}/%A.out'",
-       "error": "#SBATCH -e '{logdir}/%A.err'"
-   },
+   "serial": [
+       "#SBATCH -p '{queue.serial}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -N '{nhost}'",
+       "#SBATCH -w '{hosts}'"
+   ],
+
+   "parallel": [
+       "#SBATCH -p '{queue.parallel}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -N '{nhost}'",
+       "#SBATCH -w '{hosts}'"
+   ],
+
+   "parallelin": [
+       "#SBATCH -p '{queue.parallel}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -N '{nhost}'",
+       "#SBATCH -w '{hosts}'"
+   ],
+
+   "parallelat": [
+       "#SBATCH -p '{queue.parallel}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -N '{nhost}'",
+       "#SBATCH -w '{hosts}'"
+   ],
+
+   "metadata": [
+       "#SBATCH -J '{jobname}'",
+       "#SBATCH --comment='{progname}'"
+   ],
+
+   "logging": [
+       "#SBATCH -o '{logdir}/%A.out'",
+       "#SBATCH -e '{logdir}/%A.err'"
+   ],
    
    "qenv": {
        "jobid": "$SLURM_JOB_ID",
