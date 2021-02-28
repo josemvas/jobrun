@@ -4,7 +4,7 @@ from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .shared import sysinfo, envars, jobspecs, options, interpolation
+from .shared import sysinfo, environ, jobspecs, options, interpolation
 from .details import mpilibs
 
 
@@ -12,7 +12,7 @@ def setup():
 
     script.environ = []
     script.command = []
-    script.qctrl = []
+    script.control = []
 
     if not jobspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
@@ -48,10 +48,10 @@ def setup():
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
     if 'scratch' in options.common:
-        script.workdir = AbsPath(buildpath(options.common.scratch, jobspecs.qenv.jobid))
+        script.workdir = AbsPath(buildpath(options.common.scratch, queuespecs.envars.jobid))
     else:
         try:
-            script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, jobspecs.qenv.jobid)).setkeys(sysinfo).validate()
+            script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, queuespecs.envars.jobid)).setkeys(sysinfo).validate()
         except NotAbsolutePath:
             messages.error(jobspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
@@ -96,18 +96,23 @@ def setup():
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.common.nhost))
+            for item in queuespecs.serial:
+                script.control.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() == 'openmp':
-            script.qctrl.append(jobspecs.qctrl.nproc.format(options.common.nproc))
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.common.nhost))
+            for item in queuespecs.parallelin:
+                script.control.append(item.format(**options.common))
             script.command.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif jobspecs.parallelib.lower() in mpilibs:
             if not 'mpilaunch' in jobspecs:
                 messages.error('No se especificó si el programa debe ser ejecutado por mpirun', spec='mpilaunch')
-            script.qctrl.append(jobspecs.qctrl.nproc.format(options.common.nproc))
-            script.qctrl.append(jobspecs.qctrl.nhost.format(options.common.nhost))
+            for item in queuespecs.parallel:
+                script.control.append(item.format(**options.common))
             if jobspecs.mpilaunch:
-                script.command.append(jobspecs.mpilauncher[jobspecs.parallelib])
+                script.command.append(queuespecs.mpilauncher[jobspecs.parallelib])
+        # Parallel at requested hosts
+#        elif 'hosts' in options.common:
+#            for item in queuespecs.parallelat:
+#                script.control.append(item.format(**options.common))
         else:
             messages.error('El tipo de paralelización', jobspecs.parallelib, 'no está soportado', spec='parallelib')
     else:
@@ -147,17 +152,13 @@ def setup():
     except NotAbsolutePath:
         script.command.append(jobspecs.versions[options.common.version].executable)
 
-    script.qctrl.append(jobspecs.qctrl.label.format(jobspecs.progname))
-    script.qctrl.append(jobspecs.qctrl.queue.format(options.common.queue))
-    script.qctrl.append(jobspecs.qctrl.output.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
-    script.qctrl.append(jobspecs.qctrl.error.format(AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()))
-    
-    if 'hosts' in options.common:
-        script.qctrl.append(jobspecs.qctrl.hosts.format(options.common.hosts))
+    logdir = AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()
+    for item in queuespecs.logging:
+        script.control.append(item.format(logdir=logdir))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + sysinfo.headname)
-    script.environ.extend('='.join(i) for i in jobspecs.qenv.items())
+    script.environ.extend('='.join(i) for i in queuespecs.envars.items())
     script.environ.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     script.environ.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     script.environ.append("jobram=$(($nproc*$totalram/$(nproc --all)))")
@@ -359,13 +360,14 @@ def submit(parentdir, basename):
             if options.common.delete:
                 remove(buildpath(parentdir, (basename, key)))
         
-    script.qctrl.append(jobspecs.qctrl.name.format(jobname))
+    for item in queuespecs.naming:
+        script.control.append(item.format(jobname=jobname, progname=jobspecs.progname))
 
     offscript = []
 
     for line in jobspecs.offscript:
         try:
-           offscript.append(line.format(jobname=jobname, clustername=sysinfo.clustername, **envars))
+           offscript.append(line.format(jobname=jobname, clustername=sysinfo.clustername, **environ))
         except KeyError:
            pass
 
@@ -373,7 +375,7 @@ def submit(parentdir, basename):
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
-        f.write(''.join(i + '\n' for i in script.qctrl))
+        f.write(''.join(i + '\n' for i in script.control))
         f.write(''.join(i + '\n' for i in script.environ))
         f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.mkdir(script.workdir) + '\n')

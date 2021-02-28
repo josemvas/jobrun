@@ -8,7 +8,7 @@ from . import messages
 from .utils import o, p, q, Bunch
 from .readspec import readspec
 from .jobutils import printchoices, findparameters
-from .shared import ArgList, InputFileError, sysinfo, envars, jobspecs, options
+from .shared import ArgList, InputFileError, sysinfo, environ, jobspecs, options
 from .fileutils import AbsPath, NotAbsolutePath, buildpath
 from .submit import setup, submit 
 
@@ -51,7 +51,7 @@ try:
     globals().update(vars(parsedargs))
     
     try:
-        envars.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
+        environ.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
     
@@ -185,7 +185,7 @@ try:
                 check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             except CalledProcessError as exc:
                 messages.error(exc.output.decode(sys.stdout.encoding).strip())
-            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in envars.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
+            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
         raise SystemExit()
 
     else:

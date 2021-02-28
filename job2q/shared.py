@@ -100,7 +100,7 @@ sysinfo.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 sysinfo.home = expanduser('~')
 sysinfo.hostname = gethostname()
 
-envars = Bunch()
+environ = Bunch()
 options = OptDict()
 jobspecs = SpecBunch()
 interpolation = Bunch()

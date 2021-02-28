@@ -1,7 +1,16 @@
 {
-   "sbmtcmd": [ "qsub" ],
+   "submitcmd": [ "qsub" ],
    "statcmd": [ "qstat", "?" ],
-   "jobidex": "?",
+   "idregex": "?",
+
+   "naming": [
+      "#PBS -N '{jobname}'",
+   ],
+
+   "logging": [
+      "#PBS -o '{logdir}/%J.out'",
+      "#PBS -e '{logdir}/%J.err'"
+   ],
 
    // Serial job
    "serial": [
@@ -27,16 +36,7 @@
       "#PBS -l 'nodes={hosts}:ppn={nproc}'"
    ],
 
-   "metadata": [
-      "#PBS -N '{jobname}'",
-   ],
-    
-   "logging": [
-      "#PBS -o '{logdir}/%J.out'",
-      "#PBS -e '{logdir}/%J.err'"
-   ],
-    
-   "qenv": {
+   "envars": {
       "jobid": "$PBS_JOBID",
       "nproc": "$(echo $PBS_NODEFILE | wc -w)",
       "hosts": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"

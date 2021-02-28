@@ -1,7 +1,17 @@
 {
-   "sbmtcmd": [ "sbatch" ],
+   "submitcmd": [ "sbatch" ],
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
-   "jobidex": " ([0-9]+)$",
+   "idregex": " ([0-9]+)$",
+
+   "naming": [
+       "#SBATCH -J '{jobname}'",
+       "#SBATCH --comment='{progname}'"
+   ],
+
+   "logging": [
+       "#SBATCH -o '{logdir}/%A.out'",
+       "#SBATCH -e '{logdir}/%A.err'"
+   ],
 
    "serial": [
        "#SBATCH -p '{queue.serial}'",
@@ -31,17 +41,7 @@
        "#SBATCH -w '{hosts}'"
    ],
 
-   "metadata": [
-       "#SBATCH -J '{jobname}'",
-       "#SBATCH --comment='{progname}'"
-   ],
-
-   "logging": [
-       "#SBATCH -o '{logdir}/%A.out'",
-       "#SBATCH -e '{logdir}/%A.err'"
-   ],
-   
-   "qenv": {
+   "envars": {
        "jobid": "$SLURM_JOB_ID",
        "nproc": "$SLURM_NTASKS",
        "hosts": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"

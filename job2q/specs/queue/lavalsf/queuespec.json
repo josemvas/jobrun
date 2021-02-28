@@ -1,7 +1,17 @@
 {
-   "sbmtcmd": [ "bsub" ],
+   "submitcmd": [ "bsub" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
-   "jobidex": "<([0-9]+)>",
+   "idregex": "<([0-9]+)>",
+
+   "naming": [
+      "#BSUB -J '{jobname}'",
+      "#BSUB -P '{progname}'"
+   ],
+
+   "logging": [
+      "#BSUB -o '{logdir}/%J.out'",
+      "#BSUB -e '{logdir}/%J.err'"
+   ],
 
    "serial": [
       "#BSUB -q '{queue.serial}'",
@@ -31,17 +41,7 @@
       "#BSUB -m '{hosts}'"
    ],
 
-   "metadata": [
-      "#BSUB -J '{jobname}'",
-      "#BSUB -P '{progname}'"
-   ],
-
-   "logging": [
-      "#BSUB -o '{logdir}/%J.out'",
-      "#BSUB -e '{logdir}/%J.err'"
-   ],
-    
-   "qenv": {
+   "envars": {
       "jobid": "$LSB_JOBID",
       "nproc": "$(echo $LSB_HOSTS | wc -w)",
       "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
