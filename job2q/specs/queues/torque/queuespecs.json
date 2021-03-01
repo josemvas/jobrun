@@ -1,0 +1,65 @@
+{
+   "submitcmd": [ "qsub" ],
+   "statcmd": [ "qstat", "?" ],
+   "idregex": "?",
+
+   "naming": [
+      "#PBS -N '{jobname}'",
+   ],
+
+   "logging": [
+      "#PBS -o '{logdir}/%J.out'",
+      "#PBS -e '{logdir}/%J.err'"
+   ],
+
+   // Serial job
+   "serial": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes=1:ppn=1'"
+   ],
+
+   // Parallel job
+   "parallel": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes={nhost}:ppn={nproc}'",
+   ],
+
+   // Parallel job on single host
+   "parallelin": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes=1:ppn={nproc}'",
+   ],
+
+   // Parallel job on requested hosts
+   "parallelat": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes={hosts}:ppn={nproc}'"
+   ],
+
+   "envars": {
+      "jobid": "$PBS_JOBID",
+      "nproc": "$(echo $PBS_NODEFILE | wc -w)",
+      "hosts": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"
+   },
+    
+   "mpilauncher": {
+      "openmpi": "mpirun",
+      "intelmpi": "mpirun",
+      "mpich": "mpirun"
+   },
+    
+   "blocking_states": {
+      "Q": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
+      "R": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
+      "H": "El trabajo {name} no se envió porque está retenido con número de trabajo {id}",
+      "S": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
+      "W": "El trabajo {name} no se envió porque está esperando a ser ejecutado con número de trabajo {id}",
+      "T": "El trabajo {name} no se envió porque está siendo movido a otro host con número de trabajo {id}"
+   },
+    
+   "ready_states": [
+      "C",
+      "E"
+   ]
+}
+

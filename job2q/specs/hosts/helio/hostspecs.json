@@ -1,0 +1,15 @@
+{
+   "clustername" : "Helio",
+   "headname": "{hostname}",
+   "scheduler": "lavalsf",
+   "filesync": "remote",
+   "logdir": "/home/{user}/.jobs",
+   "defaults": {
+      "queue": "auto",
+      "scratchdir": "/scratch",
+      "wait": "1"
+   },
+   "offscript": [
+      "curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id={TELEGRAM_CHAT_ID} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {clustername} ha finalizado'"
+   ]
+}

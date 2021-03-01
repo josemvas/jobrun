@@ -1,0 +1,18 @@
+{
+   "clustername" : "Nuevo",
+   "headname": "{hostname}",
+   "scheduler": "",
+   "filesync": "remote",
+   "logdir": "/home/{user}/.jobs",
+   "onscript": [
+      "module purge"
+   ],
+   "defaults": {
+      "queue": "",
+      "scratchdir": "/scratch",
+      "wait": "1"
+   },
+   "offscript": [
+      "curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id={TELEGRAM_CHAT_ID} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {clustername} ha finalizado'"
+   ]
+}

@@ -46,7 +46,7 @@ def setup(relpath=False):
         hostspecs = readspec(path.join(hostspecdir, spec, 'hostspecs.json'))
         clusternames.append(hostspecs.clustername)
         clusterdirs[hostspecs.clustername] = path.join(hostspecdir, spec)
-        if hostspecs.scheduler in listdir(path.join(sourcedir, 'specs', 'queue')):
+        if hostspecs.scheduler in listdir(path.join(sourcedir, 'specs', 'queues')):
             schedulers[hostspecs.clustername] = hostspecs.scheduler
         else:
             messages.error('El gestor de trabajos', hostspecs.scheduler, 'no está soportado')
@@ -63,7 +63,7 @@ def setup(relpath=False):
         copyfile(path.join(selhostdir, 'hostspecs.json'), path.join(etcdir, 'hostspecs.json'))
 
     if selhostname in schedulers:
-        copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostname], 'queuespecs.json'), path.join(etcdir, 'queuespecs.json'))
+        copyfile(path.join(sourcedir, 'specs', 'queues', schedulers[selhostname], 'queuespecs.json'), path.join(etcdir, 'queuespecs.json'))
     else:
         messages.warning('Especifique el gestor de trabajos en el archivo', path.join(etcdir, 'queuespecs.json'), 'y ejecute otra vez este comando')
         return

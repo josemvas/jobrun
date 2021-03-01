@@ -1,0 +1,11 @@
+{
+   "defaults": {
+      "version": "4.2.6"
+   },
+   "versions": {
+      "4.2.6": {
+         "executable": "/opt/binaries/autodock/autodocksuite-4.2.6-src/autodock/x86_64/autodock4"
+      }
+   }
+}
+

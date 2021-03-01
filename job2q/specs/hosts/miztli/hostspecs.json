@@ -1,0 +1,18 @@
+{
+   "clustername" : "Miztli",
+   "headname": "{hostname}",
+   "scheduler": "platformlsf",
+   "filesync": "remote",
+   "logdir": "/home/{group}/{user}/.jobs",
+   "onscript": [
+      "module purge"
+   ],
+   "defaults": {
+      "queue": "q_htc",
+      "scratchdir": "/tmpu/{group}/{user}",
+      "wait": "3"
+   },
+   "offscript": [
+      "curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id={TELEGRAM_CHAT_ID} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {clustername} ha finalizado'"
+   ]
+}
