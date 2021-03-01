@@ -55,9 +55,9 @@ try:
     except KeyError:
         pass
     
-    jobspecs.merge(readspec(path.join(specdir, program, 'hostspec.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'queuespec.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'progspec.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'hostspecs.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'queuespecs.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'jobspecs.json')))
     jobspecs.merge(readspec(path.join(specdir, program, 'hostprogspec.json')))
     
     userspecdir = path.join(sysinfo.home, '.jobspecs', program + '.json')
@@ -65,11 +65,11 @@ try:
     if path.isfile(userspecdir):
         jobspecs.merge(readspec(userspecdir))
     
-    try: sysinfo.clustername = jobspecs.clustername
+    try: sysinfo.clustername = hostspecs.clustername
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='clustername')
 
-    try: sysinfo.headname = jobspecs.headname.format(**sysinfo)
+    try: sysinfo.headname = hostspecs.headname.format(**sysinfo)
     except AttributeError:
         messages.error('No se definió el nombre del nodo maestro', spec='headname')
 

@@ -14,7 +14,7 @@ def setup():
     script.command = []
     script.control = []
 
-    if not jobspecs.scheduler:
+    if not hostspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
     if options.common.nodefaults:
@@ -23,7 +23,7 @@ def setup():
     
     if 'wait' not in options.common:
         try:
-            options.common.wait = float(jobspecs.defaults.waitime)
+            options.common.wait = float(hostspecs.defaults.wait)
         except AttributeError:
             options.common.wait = 0
     
@@ -41,32 +41,32 @@ def setup():
 #            messages.failure = join_args(TkDialogs().message)
 #            messages.success = join_args(TkDialogs().message)
 
-    if not 'jobdir' in jobspecs.defaults:
-        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')
-
-    if not 'scratchdir' in jobspecs.defaults:
+    if not 'scratchdir' in hostspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
     if 'scratch' in options.common:
-        script.workdir = AbsPath(buildpath(options.common.scratch, queuespecs.envars.jobid))
+        script.workdir = AbsPath(buildpath(options.common.scratch, hostspecs.envars.jobid))
     else:
         try:
-            script.workdir = AbsPath(buildpath(jobspecs.defaults.scratchdir, queuespecs.envars.jobid)).setkeys(sysinfo).validate()
+            script.workdir = AbsPath(buildpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(sysinfo).validate()
         except NotAbsolutePath:
-            messages.error(jobspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
+            messages.error(hostspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
     if 'queue' not in options.common:
-        if jobspecs.defaults.queue:
-            options.common.queue = jobspecs.defaults.queue
+        if hostspecs.defaults.queue:
+            options.common.queue = hostspecs.defaults.queue
         else:
             messages.error('No se especificó la cola por defecto', spec='defaults.queue')
     
-    if not jobspecs.progname:
+    if not 'progname' in jobspecs:
         messages.error('No se especificó el nombre del programa', spec='progname')
     
-    if not jobspecs.progkey:
+    if not 'progkey' in jobspecs:
         messages.error('No se especificó la clave del programa', spec='progkey')
     
+    if not 'jobdir' in jobspecs.defaults:
+        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')
+
     for key in options.parameters:
         if '/' in options.parameters[key]:
             messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
@@ -96,22 +96,22 @@ def setup():
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            for item in queuespecs.serial:
+            for item in hostspecs.serial:
                 script.control.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() == 'openmp':
-            for item in queuespecs.parallelin:
+            for item in hostspecs.parallelin:
                 script.control.append(item.format(**options.common))
             script.command.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif jobspecs.parallelib.lower() in mpilibs:
             if not 'mpilaunch' in jobspecs:
                 messages.error('No se especificó si el programa debe ser ejecutado por mpirun', spec='mpilaunch')
-            for item in queuespecs.parallel:
+            for item in hostspecs.parallel:
                 script.control.append(item.format(**options.common))
             if jobspecs.mpilaunch:
-                script.command.append(queuespecs.mpilauncher[jobspecs.parallelib])
+                script.command.append(hostspecs.mpilauncher[jobspecs.parallelib])
         # Parallel at requested hosts
 #        elif 'hosts' in options.common:
-#            for item in queuespecs.parallelat:
+#            for item in hostspecs.parallelat:
 #                script.control.append(item.format(**options.common))
         else:
             messages.error('El tipo de paralelización', jobspecs.parallelib, 'no está soportado', spec='parallelib')
@@ -135,7 +135,7 @@ def setup():
     if not jobspecs.versions[options.common.version].executable:
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
-    script.environ.extend(jobspecs.onscript)
+    script.environ.extend(hostspecs.onscript)
 
     for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
         abspath = AbsPath(path, cwd=script.workdir).setkeys(sysinfo).validate()
@@ -152,13 +152,13 @@ def setup():
     except NotAbsolutePath:
         script.command.append(jobspecs.versions[options.common.version].executable)
 
-    logdir = AbsPath(jobspecs.logdir).setkeys(sysinfo).validate()
-    for item in queuespecs.logging:
+    logdir = AbsPath(hostspecs.logdir).setkeys(sysinfo).validate()
+    for item in hostspecs.logging:
         script.control.append(item.format(logdir=logdir))
     
     script.environ.append("shopt -s nullglob extglob")
     script.environ.append("head=" + sysinfo.headname)
-    script.environ.extend('='.join(i) for i in queuespecs.envars.items())
+    script.environ.extend('='.join(i) for i in hostspecs.envars.items())
     script.environ.append("freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')")
     script.environ.append("totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')")
     script.environ.append("jobram=$(($nproc*$totalram/$(nproc --all)))")
@@ -195,20 +195,20 @@ def setup():
     
     script.chdir = 'cd "{}"'.format
     script.runathead = 'ssh $head "{}"'.format
-    if jobspecs.hostcopy == 'local':
+    if hostspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         script.fetch = 'mv "{}" "{}"'.format
         script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
-    elif jobspecs.hostcopy == 'remote':
+    elif hostspecs.filesync == 'remote':
         script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(jobspecs.hostcopy), 'no es válido', spec='hostcopy')
+        messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
 
 #TODO: Check if variables in parameter sets match filter groups
 #    if 'filter' in options.common:
@@ -360,12 +360,12 @@ def submit(parentdir, basename):
             if options.common.delete:
                 remove(buildpath(parentdir, (basename, key)))
         
-    for item in queuespecs.naming:
+    for item in hostspecs.naming:
         script.control.append(item.format(jobname=jobname, progname=jobspecs.progname))
 
     offscript = []
 
-    for line in jobspecs.offscript:
+    for line in hostspecs.offscript:
         try:
            offscript.append(line.format(jobname=jobname, clustername=sysinfo.clustername, **environ))
         except KeyError:

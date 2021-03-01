@@ -35,41 +35,41 @@ def setup(relpath=False):
     sourcedir = AbsPath(__file__).parent()
     hostspecdir = path.join(sourcedir, 'specs', 'hosts')
 
-    hostspec = readspec(path.join(sourcedir, 'specs', 'newhost', 'hostspec.json'))
-    clusterdirs[hostspec.clustername] = path.join(sourcedir, 'specs', 'newhost')
-    clusternames.append(hostspec.clustername)
-    defaulthost = hostspec.clustername
+    hostspecs = readspec(path.join(sourcedir, 'specs', 'newhost', 'hostspecs.json'))
+    clusterdirs[hostspecs.clustername] = path.join(sourcedir, 'specs', 'newhost')
+    clusternames.append(hostspecs.clustername)
+    defaulthost = hostspecs.clustername
 
     for spec in listdir(hostspecdir):
-        if not path.isfile(path.join(hostspecdir, spec, 'hostspec.json')):
+        if not path.isfile(path.join(hostspecdir, spec, 'hostspecs.json')):
             messages.warning('El directorio', spec, 'no contiene ningún archivo de configuración')
-        hostspec = readspec(path.join(hostspecdir, spec, 'hostspec.json'))
-        clusternames.append(hostspec.clustername)
-        clusterdirs[hostspec.clustername] = path.join(hostspecdir, spec)
-        if hostspec.scheduler in listdir(path.join(sourcedir, 'specs', 'queue')):
-            schedulers[hostspec.clustername] = hostspec.scheduler
+        hostspecs = readspec(path.join(hostspecdir, spec, 'hostspecs.json'))
+        clusternames.append(hostspecs.clustername)
+        clusterdirs[hostspecs.clustername] = path.join(hostspecdir, spec)
+        if hostspecs.scheduler in listdir(path.join(sourcedir, 'specs', 'queue')):
+            schedulers[hostspecs.clustername] = hostspecs.scheduler
         else:
-            messages.error('El gestor de trabajos', hostspec.scheduler, 'no está soportado')
+            messages.error('El gestor de trabajos', hostspecs.scheduler, 'no está soportado')
 
-    if path.isfile(path.join(etcdir, 'hostspec.json')):
-        clustername = readspec(path.join(etcdir, 'hostspec.json')).clustername
+    if path.isfile(path.join(etcdir, 'hostspecs.json')):
+        clustername = readspec(path.join(etcdir, 'hostspecs.json')).clustername
         if clustername in clusternames:
             defaulthost = clustername
 
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=clusternames, default=defaulthost)
     selhostdir = clusterdirs[selhostname]
     
-    if not path.isfile(path.join(etcdir, 'hostspec.json')) or readspec(path.join(selhostdir, 'hostspec.json')) == readspec(path.join(etcdir, 'hostspec.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-        copyfile(path.join(selhostdir, 'hostspec.json'), path.join(etcdir, 'hostspec.json'))
+    if not path.isfile(path.join(etcdir, 'hostspecs.json')) or readspec(path.join(selhostdir, 'hostspecs.json')) == readspec(path.join(etcdir, 'hostspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        copyfile(path.join(selhostdir, 'hostspecs.json'), path.join(etcdir, 'hostspecs.json'))
 
     if selhostname in schedulers:
-        copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostname], 'queuespec.json'), path.join(etcdir, 'queuespec.json'))
+        copyfile(path.join(sourcedir, 'specs', 'queue', schedulers[selhostname], 'queuespecs.json'), path.join(etcdir, 'queuespecs.json'))
     else:
-        messages.warning('Especifique el gestor de trabajos en el archivo', path.join(etcdir, 'queuespec.json'), 'y ejecute otra vez este comando')
+        messages.warning('Especifique el gestor de trabajos en el archivo', path.join(etcdir, 'queuespecs.json'), 'y ejecute otra vez este comando')
         return
          
-    for spec in listdir(path.join(selhostdir, 'progs')):
-        prognames[spec] = readspec(path.join(sourcedir, 'specs', 'progs', spec, 'progspec.json')).progname
+    for spec in listdir(path.join(selhostdir, 'packages')):
+        prognames[spec] = readspec(path.join(sourcedir, 'specs', 'packages', spec, 'jobspecs.json')).progname
         progdirnames[prognames[spec]] = spec
 
     if not prognames:
@@ -83,12 +83,12 @@ def setup(relpath=False):
 
     for progname in selprogdirs:
         mkdir(path.join(specdir, progname))
-        link(path.join(etcdir, 'hostspec.json'), path.join(specdir, progname, 'hostspec.json'))
-        link(path.join(etcdir, 'queuespec.json'), path.join(specdir, progname, 'queuespec.json'))
-        copyfile(path.join(sourcedir, 'specs', 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'progspec.json'))
+        link(path.join(etcdir, 'hostspecs.json'), path.join(specdir, progname, 'hostspecs.json'))
+        link(path.join(etcdir, 'queuespecs.json'), path.join(specdir, progname, 'queuespecs.json'))
+        copyfile(path.join(sourcedir, 'specs', 'packages', progname, 'jobspecs.json'), path.join(specdir, progname, 'jobspecs.json'))
         copypathspec = True
-        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(selhostdir, 'progs', progname, 'progspec.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
-            copyfile(path.join(selhostdir, 'progs', progname, 'progspec.json'), path.join(specdir, progname, 'hostprogspec.json'))
+        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(selhostdir, 'packages', progname, 'jobspecs.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+            copyfile(path.join(selhostdir, 'packages', progname, 'jobspecs.json'), path.join(specdir, progname, 'hostprogspec.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)

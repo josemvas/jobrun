@@ -1,5 +1,6 @@
 General
 -------
+- Move sysinfo attributes to hostspecs
 - Add suport for dialog boxes (-X/--xdialog option)
 - Restringir los valores permitidos de nhost/hosts
 - Usar "template strings" en vez de "format strings" para las interpolaciones
