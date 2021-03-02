@@ -1,0 +1,16 @@
+{
+   "defaults": {
+      "version": "09"
+   },
+   "versions": {
+      "09": {
+         "executable": "g09",
+         "export": {
+            "g09root": "/home/{user}/share/G09E01"
+         },
+         "source": [
+            "/home/{user}/share/G09E01/g09/bsd/g09.profile"
+         ]
+      }
+   }
+}

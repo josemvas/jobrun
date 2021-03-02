@@ -1,0 +1,18 @@
+{
+   "defaults": {
+      "parameterpath": {
+         "slako": "/tmpu/{group}/{user}/share/parameters/DFTB+/slako/{0}"
+      }
+   },
+   "versions": {
+      "17.1": {
+         "executable": "/tmpu/{group}/{user}/share/dftbplus-17.1.x86_64-linux/bin/dftb+"
+      },
+      "18.2": {
+         "executable": "/tmpu/{group}/{user}/share/dftbplus-18.2.x86_64-linux/bin/dftb+"
+      },
+      "19.1": {
+         "executable": "/tmpu/{group}/{user}/share/dftbplus-19.1.x86_64-linux/bin/dftb+"
+      }
+   }
+}

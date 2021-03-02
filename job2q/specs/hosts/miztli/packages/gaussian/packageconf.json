@@ -1,0 +1,19 @@
+{
+   "defaults": {
+      "version": "09"
+   },
+   "versions": {
+      "09": {
+         "load": [
+            "gaussian/G09-E.01"
+         ],
+         "executable": "g09"
+      },
+      "16": {
+         "load": [
+            "gaussian/2016.03"
+         ],
+         "executable": "g16"
+      }
+   }
+}

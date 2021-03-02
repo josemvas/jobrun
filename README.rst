@@ -1,9 +1,7 @@
 Submit any job to any queue
 ############################
 
-**job2q** is a collection of Python modules and command line utilities to submit
-simulation jobs to HPC clusters. It is compatible with PBS, LSF and Slurm schedulers
-and currently supports the following simulation packages:
+**job2q** is a collection of Python modules and command line utilities to submit simulation jobs to HPC clusters. It is compatible with PBS, LSF and Slurm schedulers and currently supports the following simulation packages:
 
 - Autodock
 - deMon2k
