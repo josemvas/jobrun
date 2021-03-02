@@ -4,7 +4,7 @@ from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .shared import sysinfo, environ, jobspecs, options, interpolation
+from .shared import sysinfo, environ, hostspecs, jobspecs, options, interpolation
 from .details import mpilibs
 
 
@@ -17,7 +17,7 @@ def setup():
     if not hostspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.common.nodefaults:
+    if options.common.ignore_defaults:
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('parameterset', None)
     
@@ -58,11 +58,11 @@ def setup():
         else:
             messages.error('No se especificó la cola por defecto', spec='defaults.queue')
     
-    if not 'progname' in jobspecs:
-        messages.error('No se especificó el nombre del programa', spec='progname')
+    if not 'packagename' in jobspecs:
+        messages.error('No se especificó el nombre del programa', spec='packagename')
     
-    if not 'progkey' in jobspecs:
-        messages.error('No se especificó la clave del programa', spec='progkey')
+    if not 'packagefix' in jobspecs:
+        messages.error('No se especificó el sufijo del programa', spec='packagefix')
     
     if not 'jobdir' in jobspecs.defaults:
         messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')
@@ -92,7 +92,11 @@ def setup():
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
-    
+
+    if 'metadata' in hostspecs:
+        for item in hostspecs.metadata:
+            script.control.append(item.format(**jobspecs))
+
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
@@ -268,7 +272,7 @@ def submit(parentdir, basename):
     for key in options.fileopts:
         options.fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
 
-    jobname = removesuffix(basename, '.' + jobspecs.progkey)
+    jobname = removesuffix(basename, '.' + jobspecs.packagefix)
 
     if 'prefix' in interpolation:
         jobname = interpolation.prefix + '.' + jobname
@@ -285,7 +289,7 @@ def submit(parentdir, basename):
         jobdir = AbsPath(jobspecs.defaults.jobdir, cwd=parentdir).setkeys({'jobname':jobname}).validate()
 
 #TODO: Prepend program version to extension of output files if option is enabled
-    progfix = jobspecs.progkey + '.'.join(options.common.version.split())
+    progfix = jobspecs.packagefix + '.'.join(options.common.version.split())
 
     hiddendir = AbsPath(buildpath(jobdir, '.' + progfix))
 
@@ -359,9 +363,8 @@ def submit(parentdir, basename):
                 inputpath.copyto(buildpath(jobdir, (jobname, key)))
             if options.common.delete:
                 remove(buildpath(parentdir, (basename, key)))
-        
-    for item in hostspecs.naming:
-        script.control.append(item.format(jobname=jobname, progname=jobspecs.progname))
+
+    script.control.append(hostspecs.title.format(jobname))
 
     offscript = []
 

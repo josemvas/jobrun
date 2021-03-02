@@ -8,7 +8,7 @@ from . import messages
 from .utils import o, p, q, Bunch
 from .readspec import readspec
 from .jobutils import printchoices, findparameters
-from .shared import ArgList, InputFileError, sysinfo, environ, jobspecs, options
+from .shared import ArgList, InputFileError, sysinfo, environ, hostspecs, jobspecs, options
 from .fileutils import AbsPath, NotAbsolutePath, buildpath
 from .submit import setup, submit 
 
@@ -55,10 +55,11 @@ try:
     except KeyError:
         pass
     
-    jobspecs.merge(readspec(path.join(specdir, program, 'hostspecs.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'queuespecs.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'jobspecs.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'hostprogspec.json')))
+    hostspecs.merge(readspec(path.join(specdir, program, 'hostspecs.json')))
+    hostspecs.merge(readspec(path.join(specdir, program, 'queuespecs.json')))
+
+    jobspecs.merge(readspec(path.join(specdir, program, 'packagespecs.json')))
+    jobspecs.merge(readspec(path.join(specdir, program, 'packageconf.json')))
     
     userspecdir = path.join(sysinfo.home, '.jobspecs', program + '.json')
     
@@ -73,7 +74,7 @@ try:
     except AttributeError:
         messages.error('No se definió el nombre del nodo maestro', spec='headname')
 
-    parser = ArgumentParser(prog=program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.progname))
+    parser = ArgumentParser(prog=program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 
     group0 = parser.add_argument_group('Argumentos')
     group0.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta al acrhivo de entrada.')
@@ -90,11 +91,11 @@ try:
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group2.add_argument('-d', '--nodefaults', action='store_true', help='No usar los valores por defecto de ninguna de las opciones.')
+    group2.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', metavar='PREFIX', default=SUPPRESS, help='Interpolar los archivos de entrada.')
-    group2.add_argument('-m', '--mol-interpolate', metavar='MOLFILE', default=SUPPRESS, help='Interpolar los archivos de entrada usando un archivo de coordenadas.')
+    group2.add_argument('-m', '--molinterpolate', metavar='MOLFILE', default=SUPPRESS, action='append', help='Interpolar los archivos de entrada usando un archivo de coordenadas.')
     group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
     group2.add_argument('--jobdir', metavar='JOBDIR', default=SUPPRESS, help='Copiar los archivos de entrada/salida al directorio JOBDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')

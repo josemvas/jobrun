@@ -2,10 +2,10 @@
    "submitcmd": [ "sbatch" ],
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
    "idregex": " ([0-9]+)$",
+   "title": "#SBATCH -J '{jobname}'",
 
-   "naming": [
-       "#SBATCH -J '{jobname}'",
-       "#SBATCH --comment='{progname}'"
+   "metadata": [
+       "#SBATCH --comment='{packagename}'"
    ],
 
    "logging": [

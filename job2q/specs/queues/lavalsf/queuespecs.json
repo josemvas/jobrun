@@ -2,10 +2,10 @@
    "submitcmd": [ "bsub" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "idregex": "<([0-9]+)>",
+   "title": "#BSUB -J '{}'",
 
-   "naming": [
-      "#BSUB -J '{jobname}'",
-      "#BSUB -P '{progname}'"
+   "metadata": [
+      "#BSUB -P '{packagename}'"
    ],
 
    "logging": [
@@ -15,23 +15,20 @@
 
    "serial": [
       "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -n '1'",
+      "#BSUB -R 'span[hosts=1]'"
    ],
 
    "parallel": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -R 'span[hosts={nhost}]'"
    ],
 
    "parallelin": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -R 'span[hosts=1]'"
    ],
 
    "parallelat": [

@@ -18,9 +18,9 @@ def setup(relpath=False):
     configured = []
     clusternames = []
     clusterdirs = {}
-    progdirnames = {}
+    pkgdirlist = {}
     schedulers = {}
-    prognames = {}
+    packagename = {}
     defaults = {}
     
     rootdir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
@@ -69,26 +69,26 @@ def setup(relpath=False):
         return
          
     for spec in listdir(path.join(selhostdir, 'packages')):
-        prognames[spec] = readspec(path.join(sourcedir, 'specs', 'packages', spec, 'jobspecs.json')).progname
-        progdirnames[prognames[spec]] = spec
+        packagename[spec] = readspec(path.join(sourcedir, 'specs', 'packages', spec, 'packagespecs.json')).packagename
+        pkgdirlist[packagename[spec]] = spec
 
-    if not prognames:
+    if not packagename:
         messages.warning('No hay programas configurados para este host')
         raise SystemExit()
 
     for spec in listdir(specdir):
         configured.append(spec)
 
-    selprogdirs = [progdirnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=natsort(prognames.values()), default=[prognames[i] for i in configured])]
+    selpkgdirlist = [pkgdirlist[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=natsort(packagename.values()), default=[packagename[i] for i in configured])]
 
-    for progname in selprogdirs:
-        mkdir(path.join(specdir, progname))
-        link(path.join(etcdir, 'hostspecs.json'), path.join(specdir, progname, 'hostspecs.json'))
-        link(path.join(etcdir, 'queuespecs.json'), path.join(specdir, progname, 'queuespecs.json'))
-        copyfile(path.join(sourcedir, 'specs', 'packages', progname, 'jobspecs.json'), path.join(specdir, progname, 'jobspecs.json'))
+    for pkgdir in selpkgdirlist:
+        mkdir(path.join(specdir, pkgdir))
+        link(path.join(etcdir, 'hostspecs.json'), path.join(specdir, pkgdir, 'hostspecs.json'))
+        link(path.join(etcdir, 'queuespecs.json'), path.join(specdir, pkgdir, 'queuespecs.json'))
+        copyfile(path.join(sourcedir, 'specs', 'packages', pkgdir, 'packagespecs.json'), path.join(specdir, pkgdir, 'packagespecs.json'))
         copypathspec = True
-        if progname not in configured or not path.isfile(path.join(specdir, progname, 'hostprogspec.json')) or readspec(path.join(selhostdir, 'packages', progname, 'jobspecs.json')) == readspec(path.join(specdir, progname, 'hostprogspec.json')) or dialogs.yesno('La configuración local del programa', q(prognames[progname]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
-            copyfile(path.join(selhostdir, 'packages', progname, 'jobspecs.json'), path.join(specdir, progname, 'hostprogspec.json'))
+        if pkgdir not in configured or not path.isfile(path.join(specdir, pkgdir, 'packageconf.json')) or readspec(path.join(selhostdir, 'packages', pkgdir, 'packageconf.json')) == readspec(path.join(specdir, pkgdir, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagename[pkgdir]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+            copyfile(path.join(selhostdir, 'packages', pkgdir, 'packageconf.json'), path.join(specdir, pkgdir, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)

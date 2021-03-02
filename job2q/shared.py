@@ -54,7 +54,7 @@ class ArgList:
                     basename = removesuffix(filename, '.' + key)
                     break
             else:
-                return InputFileError('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.progname)
+                return InputFileError('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.packagename)
         if 'filter' in options.common:
             if not re.match(options.common.filter, basename):
                 return NonMatchingFile()
@@ -79,14 +79,17 @@ class OptDict:
                 elif value is not False:
                     self.__dict__['constant'].update({key:value})
     def interpolate(self):
-        if 'mol_interpolate' in self.common:
-            molfile = AbsPath(self.common.mol_interpolate, cwd=options.common.cwd)
-            for i, step in enumerate(readcoords(molfile), 1):
-                self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in step['coords'])
+        if 'molinterpolate' in self.common:
+            prefix = []
+            for i, path in enumerate(self.common.molinterpolate, 1):
+                path = AbsPath(path, cwd=options.common.cwd)
+                coords = readcoords(path)['coords']
+                self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in coords)
+                prefix.append(path.stem)
             if 'interpolate' in self.common:
-                interpolation.suffix = self.common.interpolate 
+                interpolation.suffix = self.common.interpolate
             else:
-                interpolation.prefix = molfile.stem
+                interpolation.prefix = ''.join(prefix)
         elif 'interpolate' in self.common:
             interpolation.suffix = self.common.interpolate
         elif self.keywords:
@@ -102,6 +105,7 @@ sysinfo.hostname = gethostname()
 
 environ = Bunch()
 options = OptDict()
+hostspecs = SpecBunch()
 jobspecs = SpecBunch()
 interpolation = Bunch()
 
