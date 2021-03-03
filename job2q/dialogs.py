@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 import readline
-from os import path, getcwd
 from glob import glob
 from . import messages
 from .fileutils import AbsPath, NotAbsolutePath
@@ -23,7 +23,7 @@ class tabCompleter(object):
         self.maxtcs = maxtcs
         return
     def tcpath(self, text, n):
-        return [i + '/' if path.isdir(i) else i + ' ' for i in glob(path.expanduser(text) + '*')][n]
+        return [i + '/' if os.path.isdir(i) else i + ' ' for i in glob(path.expanduser(text) + '*')][n]
     def tclist(self, text, n):
         completed = readline.get_line_buffer().split()[:-1]
         if self.maxtcs is None or len(completed) < int(self.maxtcs):
@@ -35,7 +35,7 @@ def inputpath(prompt='', check=lambda _:True):
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            anspath = AbsPath(answer, cwd=getcwd())
+            anspath = AbsPath(answer, cwd=os.getcwd())
             if check(anspath):
                 return anspath
             else:

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from os import getcwd
-from os.path import expanduser
+import os
 from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam
@@ -95,13 +94,10 @@ class OptDict:
         elif self.keywords:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
-sysinfo = Bunch()
-sysinfo.user = getuser()
-sysinfo.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-# Python 3.5+ with pathlib
-#sysinfo.home = Path.home()
-sysinfo.home = expanduser('~')
-sysinfo.hostname = gethostname()
+names = Bunch()
+names.user = getuser()
+names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+names.host = gethostname()
 
 environ = Bunch()
 options = OptDict()

@@ -9,7 +9,7 @@
       "scratchdir": "/scratch",
       "wait": "1"
    },
-   "offscript": [
-      "curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id={TELEGRAM_CHAT_ID} --data-urlencode text='Tu cálculo \\\"{jobname}\\\" en {clustername} ha finalizado'"
+   "headscript": [
+      "test -n $TELEGRAM_CHAT_ID && curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text='Tu cálculo \\\"$jobname\\\" en $cluster ha finalizado'"
    ]
 }

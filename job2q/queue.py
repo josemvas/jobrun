@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
 from re import search
 from subprocess import Popen, PIPE
 from .shared import hostspecs, jobspecs

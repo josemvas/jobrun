@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 from time import sleep
-from os import path, listdir, environ, getcwd, execv
 from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
 from .utils import o, p, q, Bunch
 from .readspec import readspec
 from .jobutils import printchoices, findparameters
-from .shared import ArgList, InputFileError, sysinfo, environ, hostspecs, jobspecs, options
+from .shared import ArgList, InputFileError, names, environ, hostspecs, jobspecs, options
 from .fileutils import AbsPath, NotAbsolutePath, buildpath
 from .submit import setup, submit 
 
@@ -29,7 +29,7 @@ class LsOptions(Action):
                 else:
                     defaults = []
                 print('Conjuntos de parámetros:', p(key))
-                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key]).setkeys(sysinfo).populate()
+                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key]).setkeys(names).populate()
                 findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
         if jobspecs.keywords:
             print('Variables de interpolación:')
@@ -40,10 +40,11 @@ class SetCwd(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], cwd=getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
 try:
 
+    homedir = os.expanduser('~')
     parser = ArgumentParser(add_help=False)
     parser.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
     parser.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
@@ -51,26 +52,26 @@ try:
     globals().update(vars(parsedargs))
     
     try:
-        environ.TELEGRAM_CHAT_ID = environ['TELEGRAM_CHAT_ID']
+        environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
     
-    hostspecs.merge(readspec(path.join(specdir, program, 'hostspecs.json')))
-    hostspecs.merge(readspec(path.join(specdir, program, 'queuespecs.json')))
+    hostspecs.merge(readspec(buildpath(specdir, program, 'hostspecs.json')))
+    hostspecs.merge(readspec(buildpath(specdir, program, 'queuespecs.json')))
 
-    jobspecs.merge(readspec(path.join(specdir, program, 'packagespecs.json')))
-    jobspecs.merge(readspec(path.join(specdir, program, 'packageconf.json')))
+    jobspecs.merge(readspec(buildpath(specdir, program, 'packagespecs.json')))
+    jobspecs.merge(readspec(buildpath(specdir, program, 'packageconf.json')))
     
-    userspecdir = path.join(sysinfo.home, '.jobspecs', program + '.json')
+    userspecdir = buildpath(homedir, '.jobspecs', program + '.json')
     
-    if path.isfile(userspecdir):
+    if os.path.isfile(userspecdir):
         jobspecs.merge(readspec(userspecdir))
     
-    try: sysinfo.clustername = hostspecs.clustername
+    try: names.cluster = hostspecs.clustername
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='clustername')
 
-    try: sysinfo.headname = hostspecs.headname.format(**sysinfo)
+    try: names.head = hostspecs.headname.format(**names)
     except AttributeError:
         messages.error('No se definió el nombre del nodo maestro', spec='headname')
 
@@ -96,7 +97,7 @@ try:
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', metavar='PREFIX', default=SUPPRESS, help='Interpolar los archivos de entrada.')
     group2.add_argument('-m', '--molinterpolate', metavar='MOLFILE', default=SUPPRESS, action='append', help='Interpolar los archivos de entrada usando un archivo de coordenadas.')
-    group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
+    group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=os.getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
     group2.add_argument('--jobdir', metavar='JOBDIR', default=SUPPRESS, help='Copiar los archivos de entrada/salida al directorio JOBDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
     group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
@@ -152,7 +153,7 @@ try:
         filelist = []
         remotejobs = []
         remotehost = parsedargs.remotehost
-        userhost = sysinfo.user + '@' + sysinfo.hostname
+        userhost = names.user + '@' + names.host
         try:
             output = check_output(['ssh', remotehost, 'echo $JOBSHARE'], stderr=STDOUT)
         except CalledProcessError as exc:
@@ -162,20 +163,20 @@ try:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
         #TODO: Consider include common.mol path in fileopts
         if 'mol' in options.common:
-            filelist.append(buildpath(sysinfo.home, '.', path.relpath(options.common.mol, sysinfo.home)))
+            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.mol, homedir)))
         #TODO: Make default empty dict for fileopts so no test is needed
         if hasattr(options, 'fileopts'):
             for item in options.fileopts.values():
-                filelist.append(buildpath(sysinfo.home, '.', path.relpath(item, sysinfo.home)))
+                filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
         for item in arglist:
             if isinstance(item, tuple):
                 parentdir, basename = item
-                relparent = path.relpath(parentdir, sysinfo.home)
+                relparent = os.path.relpath(parentdir, homedir)
                 remotecwd = buildpath(remoteshare, userhost, relparent)
                 remotejobs.append(basename)
                 for key in jobspecs.filekeys:
-                    if path.isfile(buildpath(parentdir, (basename, key))):
-                        filelist.append(buildpath(sysinfo.home, '.', relparent, (basename, key)))
+                    if os.path.isfile(buildpath(parentdir, (basename, key))):
+                        filelist.append(buildpath(homedir, '.', relparent, (basename, key)))
             elif isinstance(item, InputFileError):
                 messages.failure(str(item))
         if remotejobs:
@@ -186,7 +187,7 @@ try:
                 check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             except CalledProcessError as exc:
                 messages.error(exc.output.decode(sys.stdout.encoding).strip())
-            execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
+            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
         raise SystemExit()
 
     else:

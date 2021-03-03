@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-import re
+import os
 import sys
-from subprocess import check_output, DEVNULL
-from os import path, listdir, chmod, pathsep
+import re
 from argparse import ArgumentParser
-from os.path import isfile, isdir
+from subprocess import check_output, DEVNULL
 from . import dialogs
 from . import messages
 from .utils import natsort, q
 from .readspec import readspec
-from .fileutils import AbsPath, NotAbsolutePath, mkdir, copyfile, link, symlink
+from .fileutils import AbsPath, NotAbsolutePath, buildpath, mkdir, copyfile, link, symlink
 
 def setup(relpath=False):
 
@@ -23,72 +22,72 @@ def setup(relpath=False):
     packagename = {}
     defaults = {}
     
-    rootdir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=isdir)
-    bindir = path.join(rootdir, 'bin')
-    etcdir = path.join(rootdir, 'etc')
-    specdir = path.join(etcdir, 'jobspecs')
+    rootdir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=os.path.isdir)
+    bindir = buildpath(rootdir, 'bin')
+    etcdir = buildpath(rootdir, 'etc')
+    specdir = buildpath(etcdir, 'jobspecs')
 
     mkdir(bindir)
     mkdir(etcdir)
     mkdir(specdir)
     
     sourcedir = AbsPath(__file__).parent()
-    hostspecdir = path.join(sourcedir, 'specs', 'hosts')
+    hostspecdir = buildpath(sourcedir, 'specs', 'hosts')
 
-    hostspecs = readspec(path.join(sourcedir, 'specs', 'newhost', 'hostspecs.json'))
-    clusterdirs[hostspecs.clustername] = path.join(sourcedir, 'specs', 'newhost')
+    hostspecs = readspec(buildpath(sourcedir, 'specs', 'newhost', 'hostspecs.json'))
+    clusterdirs[hostspecs.clustername] = buildpath(sourcedir, 'specs', 'newhost')
     clusternames.append(hostspecs.clustername)
     defaulthost = hostspecs.clustername
 
-    for spec in listdir(hostspecdir):
-        if not path.isfile(path.join(hostspecdir, spec, 'hostspecs.json')):
+    for spec in os.listdir(hostspecdir):
+        if not os.path.isfile(buildpath(hostspecdir, spec, 'hostspecs.json')):
             messages.warning('El directorio', spec, 'no contiene ningún archivo de configuración')
-        hostspecs = readspec(path.join(hostspecdir, spec, 'hostspecs.json'))
+        hostspecs = readspec(buildpath(hostspecdir, spec, 'hostspecs.json'))
         clusternames.append(hostspecs.clustername)
-        clusterdirs[hostspecs.clustername] = path.join(hostspecdir, spec)
-        if hostspecs.scheduler in listdir(path.join(sourcedir, 'specs', 'queues')):
+        clusterdirs[hostspecs.clustername] = buildpath(hostspecdir, spec)
+        if hostspecs.scheduler in os.listdir(buildpath(sourcedir, 'specs', 'queues')):
             schedulers[hostspecs.clustername] = hostspecs.scheduler
         else:
             messages.error('El gestor de trabajos', hostspecs.scheduler, 'no está soportado')
 
-    if path.isfile(path.join(etcdir, 'hostspecs.json')):
-        clustername = readspec(path.join(etcdir, 'hostspecs.json')).clustername
+    if os.path.isfile(buildpath(etcdir, 'hostspecs.json')):
+        clustername = readspec(buildpath(etcdir, 'hostspecs.json')).clustername
         if clustername in clusternames:
             defaulthost = clustername
 
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=clusternames, default=defaulthost)
     selhostdir = clusterdirs[selhostname]
     
-    if not path.isfile(path.join(etcdir, 'hostspecs.json')) or readspec(path.join(selhostdir, 'hostspecs.json')) == readspec(path.join(etcdir, 'hostspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-        copyfile(path.join(selhostdir, 'hostspecs.json'), path.join(etcdir, 'hostspecs.json'))
+    if not os.path.isfile(buildpath(etcdir, 'hostspecs.json')) or readspec(buildpath(selhostdir, 'hostspecs.json')) == readspec(buildpath(etcdir, 'hostspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        copyfile(buildpath(selhostdir, 'hostspecs.json'), buildpath(etcdir, 'hostspecs.json'))
 
     if selhostname in schedulers:
-        copyfile(path.join(sourcedir, 'specs', 'queues', schedulers[selhostname], 'queuespecs.json'), path.join(etcdir, 'queuespecs.json'))
+        copyfile(buildpath(sourcedir, 'specs', 'queues', schedulers[selhostname], 'queuespecs.json'), buildpath(etcdir, 'queuespecs.json'))
     else:
-        messages.warning('Especifique el gestor de trabajos en el archivo', path.join(etcdir, 'queuespecs.json'), 'y ejecute otra vez este comando')
+        messages.warning('Especifique el gestor de trabajos en el archivo', buildpath(etcdir, 'queuespecs.json'), 'y ejecute otra vez este comando')
         return
          
-    for spec in listdir(path.join(selhostdir, 'packages')):
-        packagename[spec] = readspec(path.join(sourcedir, 'specs', 'packages', spec, 'packagespecs.json')).packagename
+    for spec in os.listdir(buildpath(selhostdir, 'packages')):
+        packagename[spec] = readspec(buildpath(sourcedir, 'specs', 'packages', spec, 'packagespecs.json')).packagename
         pkgdirlist[packagename[spec]] = spec
 
     if not packagename:
         messages.warning('No hay programas configurados para este host')
         raise SystemExit()
 
-    for spec in listdir(specdir):
+    for spec in os.listdir(specdir):
         configured.append(spec)
 
     selpkgdirlist = [pkgdirlist[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=natsort(packagename.values()), default=[packagename[i] for i in configured])]
 
     for pkgdir in selpkgdirlist:
-        mkdir(path.join(specdir, pkgdir))
-        link(path.join(etcdir, 'hostspecs.json'), path.join(specdir, pkgdir, 'hostspecs.json'))
-        link(path.join(etcdir, 'queuespecs.json'), path.join(specdir, pkgdir, 'queuespecs.json'))
-        copyfile(path.join(sourcedir, 'specs', 'packages', pkgdir, 'packagespecs.json'), path.join(specdir, pkgdir, 'packagespecs.json'))
+        mkdir(buildpath(specdir, pkgdir))
+        link(buildpath(etcdir, 'hostspecs.json'), buildpath(specdir, pkgdir, 'hostspecs.json'))
+        link(buildpath(etcdir, 'queuespecs.json'), buildpath(specdir, pkgdir, 'queuespecs.json'))
+        copyfile(buildpath(sourcedir, 'specs', 'packages', pkgdir, 'packagespecs.json'), buildpath(specdir, pkgdir, 'packagespecs.json'))
         copypathspec = True
-        if pkgdir not in configured or not path.isfile(path.join(specdir, pkgdir, 'packageconf.json')) or readspec(path.join(selhostdir, 'packages', pkgdir, 'packageconf.json')) == readspec(path.join(specdir, pkgdir, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagename[pkgdir]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
-            copyfile(path.join(selhostdir, 'packages', pkgdir, 'packageconf.json'), path.join(specdir, pkgdir, 'packageconf.json'))
+        if pkgdir not in configured or not os.path.isfile(buildpath(specdir, pkgdir, 'packageconf.json')) or readspec(buildpath(selhostdir, 'packages', pkgdir, 'packageconf.json')) == readspec(buildpath(specdir, pkgdir, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagename[pkgdir]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+            copyfile(buildpath(selhostdir, 'packages', pkgdir, 'packageconf.json'), buildpath(specdir, pkgdir, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'^([^\t]+):$', line)
@@ -99,25 +98,25 @@ def setup(relpath=False):
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.search(r'=> (.+) \(0x', line)
         if match:
-            libdir = path.dirname(match.group(1))
+            libdir = os.path.dirname(match.group(1))
             if libdir not in libpath and libdir not in pyldpath:
                 pyldpath.append(libdir)
 
-    modulepath = path.dirname(sourcedir)
+    modulepath = os.path.dirname(sourcedir)
 
-    with open(path.join(sourcedir, 'bin', 'job2q'), 'r') as fr, open(path.join(bindir, 'job2q'), 'w') as fw:
+    with open(buildpath(sourcedir, 'bin', 'job2q'), 'r') as fr, open(buildpath(bindir, 'job2q'), 'w') as fw:
         fw.write(fr.read().format(
             python=sys.executable,
-            pyldpath=pathsep.join(pyldpath),
+            pyldpath=os.pathsep.join(pyldpath),
             modulepath=modulepath,
             specdir=specdir
         ))
 
-    for spec in listdir(specdir):
-        symlink(path.join(bindir, 'job2q'), path.join(bindir, spec))
+    for spec in os.listdir(specdir):
+        symlink(buildpath(bindir, 'job2q'), buildpath(bindir, spec))
 
-    copyfile(path.join(sourcedir, 'bin','jobsync'), path.join(bindir, 'jobsync'))
+    copyfile(buildpath(sourcedir, 'bin','jobsync'), buildpath(bindir, 'jobsync'))
 
-    chmod(path.join(bindir, 'jobsync'), 0o755)
-    chmod(path.join(bindir, 'job2q'), 0o755)
+    os.chmod(buildpath(bindir, 'jobsync'), 0o755)
+    os.chmod(buildpath(bindir, 'job2q'), 0o755)
 

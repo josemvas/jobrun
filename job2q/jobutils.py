@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from os import getcwd
 from . import messages
 from . import readmol
 from .utils import natsort

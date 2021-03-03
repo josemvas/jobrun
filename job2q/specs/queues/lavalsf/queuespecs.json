@@ -49,7 +49,7 @@
       "intelmpi": "impi-mpirun",
       "mpich": "mpich-mpirun"
    },
-    
+
    "blocking_states": {
       "PEND": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
       "RUN": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
@@ -57,7 +57,7 @@
       "USUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
       "SSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}"
    },
-    
+
    "ready_states": [
       "DONE",
       "EXIT"
