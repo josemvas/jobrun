@@ -5,7 +5,7 @@
    "mpilaunch": "True",
    "filecheck": "inp",
    "defaults" : {
-      "jobdir": "{jobname}"
+      "jobdir": "{job}"
    },
    "filekeys": {
       "inp": "deMon.inp",

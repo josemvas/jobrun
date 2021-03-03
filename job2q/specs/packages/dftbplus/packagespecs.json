@@ -5,7 +5,7 @@
    "filecheck": "dftb_in.hsd",
    "stdoutput": "dftb_out.log",
    "defaults": {
-      "jobdir": "{jobname}"
+      "jobdir": "{job}"
    },
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",

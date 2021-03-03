@@ -23,7 +23,7 @@ class tabCompleter(object):
         self.maxtcs = maxtcs
         return
     def tcpath(self, text, n):
-        return [i + '/' if os.path.isdir(i) else i + ' ' for i in glob(path.expanduser(text) + '*')][n]
+        return [i + '/' if os.path.isdir(i) else i + ' ' for i in glob(os.path.expanduser(text) + '*')][n]
     def tclist(self, text, n):
         completed = readline.get_line_buffer().split()[:-1]
         if self.maxtcs is None or len(completed) < int(self.maxtcs):

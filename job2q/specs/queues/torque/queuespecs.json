@@ -2,7 +2,7 @@
    "submitcmd": [ "qsub" ],
    "statcmd": [ "qstat", "?" ],
    "idregex": "?",
-   "title": "#PBS -N '{jobname}'",
+   "title": "#PBS -N '{job}'",
 
    "logging": [
       "#PBS -o '{logdir}/%J.out'",

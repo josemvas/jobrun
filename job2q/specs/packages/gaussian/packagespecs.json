@@ -4,7 +4,7 @@
    "parallelib": "openmp",
    "filecheck": "(gjf and not com) or (com and not gjf)",
    "defaults" : {
-      "jobdir": "{jobname}"
+      "jobdir": "{job}"
    },
    "filekeys": {
       "com": "job.com",

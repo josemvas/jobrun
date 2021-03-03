@@ -165,7 +165,7 @@ def setup():
 
     script.setup.append("shopt -s nullglob extglob")
 
-    script.setenv = '{}="{}"'.format()
+    script.setenv = '{}="{}"'.format
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
@@ -373,14 +373,14 @@ def submit(parentdir, basename):
     jobscript = buildpath(hiddendir, 'jobscript')
 
     for line in hostspecs.headscript:
-        script.exit.append = 'ssh $head "{}"'.format(line)
+        script.exit.append('ssh $head "{}"'.format(line))
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
         f.write(''.join(i + '\n' for i in script.header))
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
-        f.write(script.setenv(jobname ,names.job) + '\n')
+        f.write(script.setenv('job', names.job) + '\n')
         f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.mkdir(script.workdir) + '\n')
         f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))

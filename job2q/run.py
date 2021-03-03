@@ -44,7 +44,7 @@ class SetCwd(Action):
 
 try:
 
-    homedir = os.expanduser('~')
+    homedir = os.path.expanduser('~')
     parser = ArgumentParser(add_help=False)
     parser.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
     parser.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
@@ -71,9 +71,9 @@ try:
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='clustername')
 
-    try: names.head = hostspecs.headname.format(**names)
+    try: names.head = hostspecs.headname
     except AttributeError:
-        messages.error('No se definió el nombre del nodo maestro', spec='headname')
+        messages.error('No se definió el nombre del nodo maestro', spec='clustername')
 
     parser = ArgumentParser(prog=program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 

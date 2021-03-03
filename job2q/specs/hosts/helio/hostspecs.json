@@ -1,6 +1,6 @@
 {
    "clustername" : "Helio",
-   "headname": "{hostname}",
+   "headname": "helio",
    "scheduler": "lavalsf",
    "filesync": "remote",
    "logdir": "/home/{user}/.jobs",
@@ -10,6 +10,6 @@
       "wait": "1"
    },
    "headscript": [
-      "test -n $TELEGRAM_CHAT_ID && curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text='Tu cálculo \\\"$jobname\\\" en $cluster ha finalizado'"
+      "test -n $TELEGRAM_CHAT_ID && curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text='Tu cálculo \\\"$job\\\" en $cluster ha finalizado'"
    ]
 }
