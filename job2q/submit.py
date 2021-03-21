@@ -4,7 +4,7 @@ from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
-from .shared import names, environ, hostspecs, jobspecs, options, interpolation
+from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
 
 
@@ -242,7 +242,7 @@ def setup():
     for key in jobspecs.parameters:
 #TODO: Replace --key-path options with single --addpath option
 #        if key + '-path' in options.parameterpaths:
-#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.cwd)
+#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.workdir)
         if key in jobspecs.defaults.parameterpath:
             if key in options.parameters:
                 parameterlist = options.parameters[key].split(',')
@@ -253,7 +253,7 @@ def setup():
                     messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
             else:
                 parameterlist = []
-            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.cwd).setkeys(names).populate()
+            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.workdir).setkeys(names).populate()
             rootpath = AbsPath(next(pathcomponents))
             for component in pathcomponents:
                 try:
@@ -278,11 +278,8 @@ def submit(parentdir, basename):
 
     names.job = removesuffix(basename, '.' + jobspecs.packagefix)
 
-    if 'prefix' in interpolation:
-        names.job = interpolation.prefix + '.' + names.job
-
-    if 'suffix' in interpolation:
-        names.job = names.job + '.' + interpolation.suffix
+    if 'prefix' in options.common:
+        names.job = options.common.prefix + '.' + names.job
 
     if 'suffix' in options.common:
         names.job = names.job + '.' + options.common.suffix
@@ -350,7 +347,7 @@ def submit(parentdir, basename):
     for key in jobspecs.inputfiles:
         inputpath = AbsPath(buildpath(parentdir, (basename, key)))
         if inputpath.isfile():
-            if interpolation and 'interpolable' in jobspecs and key in jobspecs.interpolable:
+            if options.common.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(inputpath, 'r') as fr:
                     template = fr.read()
                 try:

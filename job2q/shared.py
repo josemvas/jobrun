@@ -20,10 +20,11 @@ class InputFileError(Exception):
 class ArgList:
     def __init__(self, args):
         self.current = None
-        if options.common.sort:
-            self.args = sort(args, key=natural)
-        elif options.common.sort_reverse:
-            self.args = sort(args, key=natural, reverse=True)
+        if 'sort' in options.common:
+            if options.common.sort == 'natural':
+                self.args = sort(args, key=natural)
+            elif options.common.sort == 'reverse':
+                self.args = sort(args, key=natural, reverse=True)
         else:
             self.args = args
     def __iter__(self):
@@ -35,9 +36,9 @@ class ArgList:
             raise StopIteration
         if options.common.base:
             basename = self.current
-            parentdir = AbsPath(options.common.cwd)
+            parentdir = AbsPath(options.common.workdir)
         else:
-            abspath = AbsPath(self.current, cwd=options.common.cwd)
+            abspath = AbsPath(self.current, cwd=options.common.workdir)
             #TODO: Move file checking to AbsPath class
             if not abspath.isfile():
                 if not abspath.exists():
@@ -67,31 +68,30 @@ class ArgList:
 
 class OptDict:
     def __init__(self):
-        self.__dict__['boolean'] = set()
-        self.__dict__['constant'] = dict()
+        self.__dict__['switch'] = set()
+        self.__dict__['argument'] = dict()
     def __setattr__(self, attr, attrval):
         self.__dict__[attr] = attrval
         if isinstance(attrval, Bunch):
             for key, value in attrval.items():
                 if value is True:
-                    self.__dict__['boolean'].add(key)
+                    self.__dict__['switch'].add(key)
                 elif value is not False:
-                    self.__dict__['constant'].update({key:value})
+                    self.__dict__['argument'].update({key:value})
     def interpolate(self):
-        if 'molinterpolate' in self.common:
-            prefix = []
-            for i, path in enumerate(self.common.molinterpolate, 1):
-                path = AbsPath(path, cwd=options.common.cwd)
-                coords = readcoords(path)['coords']
-                self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in coords)
-                prefix.append(path.stem)
-            if 'interpolate' in self.common:
-                interpolation.suffix = self.common.interpolate
-            else:
-                interpolation.prefix = ''.join(prefix)
-        elif 'interpolate' in self.common:
-            interpolation.suffix = self.common.interpolate
-        elif self.keywords:
+        if self.common.interpolate:
+            if 'mol' in self.common:
+                prefix = []
+                for i, path in enumerate(self.common.mol, 1):
+                    path = AbsPath(path, cwd=options.common.workdir)
+                    coords = readcoords(path)['coords']
+                    self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in coords)
+                    prefix.append(path.stem)
+                if not 'prefix' in self.common:
+                    self.common.prefix = ''.join(prefix)
+            elif not 'prefix' in self.common and not 'suffix' in self.common:
+                messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin coordenadas')
+        elif 'mol' in self.common or self.keywords:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 names = Bunch()
@@ -103,5 +103,4 @@ environ = Bunch()
 options = OptDict()
 hostspecs = SpecBunch()
 jobspecs = SpecBunch()
-interpolation = Bunch()
 

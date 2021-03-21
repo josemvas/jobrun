@@ -95,22 +95,20 @@ try:
     group2.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
-    group2.add_argument('-i', '--interpolate', metavar='PREFIX', default=SUPPRESS, help='Interpolar los archivos de entrada.')
-    group2.add_argument('-m', '--molinterpolate', metavar='MOLFILE', default=SUPPRESS, action='append', help='Interpolar los archivos de entrada usando un archivo de coordenadas.')
-    group2.add_argument('--cwd', action=SetCwd, metavar='WORKDIR', default=os.getcwd(), help='Buscar los archivos de entrada en el drectorio WORKDIR.')
+    group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    group2.add_argument('-m', '--mol', metavar='MOLFILE', default=SUPPRESS, action='append', help='Archivo de coordenadas de interpolación.')
+    group2.add_argument('-p', '--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    group2.add_argument('-s', '--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
+    group2.add_argument('-S', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
+    group2.add_argument('--workdir', action=SetCwd, metavar='WORKDIR', default=os.getcwd(), help='Buscar los archivos de entrada en el directorio WORKDIR.')
     group2.add_argument('--jobdir', metavar='JOBDIR', default=SUPPRESS, help='Copiar los archivos de entrada/salida al directorio JOBDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
-    group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     hostgroup.add_argument('--hosts', metavar='NODELIST', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
-
-    sortgroup = group2.add_mutually_exclusive_group()
-    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos de menor a mayor.')
-    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos de mayor a menor.')
 
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
@@ -144,7 +142,7 @@ try:
         messages.error('Debe especificar al menos un archivo de entrada')
 
     for key in options.fileopts:
-        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.cwd)
+        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.workdir)
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
@@ -180,14 +178,14 @@ try:
             elif isinstance(item, InputFileError):
                 messages.failure(str(item))
         if remotejobs:
-            options.boolean.add('base')
-            options.boolean.add('delete')
-            options.constant.update({'cwd': remotecwd})
+            options.switch.add('base')
+            options.switch.add('delete')
+            options.argument.update({'workdir': remotecwd})
             try:
                 check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             except CalledProcessError as exc:
                 messages.error(exc.output.decode(sys.stdout.encoding).strip())
-            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.boolean] + [o(option, value) for option, value in options.constant.items()] + remotejobs)
+            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.switch] + [o(option, value) for option, value in options.argument.items()] + remotejobs)
         raise SystemExit()
 
     else:
