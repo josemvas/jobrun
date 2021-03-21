@@ -15,14 +15,7 @@ class SpecList(list):
                 self.append(item)
     def merge(self, other):
         for i in other:
-            if i in self:
-                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
-                    self[i].merge(other[i])
-                elif other[i] == self[i]:
-                    pass
-                else:
-                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
-            else:
+            if i not in self:
                 self.append(i)
 
 class SpecBunch(Bunch):
@@ -44,12 +37,15 @@ class SpecBunch(Bunch):
     def merge(self, other):
         for i in other:
             if i in self:
-                if hasattr(self[i], 'merge') and type(other[i]) is type(self[i]):
-                    self[i].merge(other[i])
-                elif other[i] == self[i]:
-                    pass
+                if type(other[i]) is type(self[i]):
+                    if hasattr(self[i], 'merge'):
+                        self[i].merge(other[i])
+                    elif self[i] != other[i]:
+                        # Overwrite value if differ
+                        self[i] = other[i]
+                # Raise exception if type conflicts
                 else:
-                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
+                   raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self[i] = other[i]
 

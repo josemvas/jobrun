@@ -12,7 +12,7 @@ listags = (
     'inputfiles',
     'outputfiles',
     'positionargs',
-    'headscript',
+    'offscript',
     'prescript',
     'postscript',
     'keywords',

@@ -38,3 +38,7 @@ AbsPath
 jobsync
 -------
 - List redundant files with less and ask only once to delete
+
+readspec.py
+-----------
+- Revisar el método merge de SpecList porque no puede ser igual que el de SpecBunch

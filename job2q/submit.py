@@ -14,7 +14,6 @@ def setup():
     script.setup = []
     script.envars = []
     script.main = []
-    script.exit = []
 
     if not hostspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
@@ -203,6 +202,7 @@ def setup():
             messages.error('La clave', q(jobspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
+    script.execute = 'ssh $head "{}"'.format
     if hostspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
@@ -365,16 +365,12 @@ def submit(parentdir, basename):
             if options.common.delete:
                 remove(buildpath(parentdir, (basename, key)))
 
-    script.header.append(hostspecs.title.format(names.job))
-
     jobscript = buildpath(hiddendir, 'jobscript')
-
-    for line in hostspecs.headscript:
-        script.exit.append('ssh $head "{}"'.format(line))
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
         f.write(''.join(i + '\n' for i in script.header))
+        f.write(hostspecs.title.format(names.job) + '\n')
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('job', names.job) + '\n')
@@ -388,7 +384,7 @@ def submit(parentdir, basename):
         f.write(''.join(i + '\n' for i in jobspecs.postscript))
         f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
         f.write(script.rmdir(script.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in script.exit))
+        f.write(''.join(i + '\n' for i in hostspecs.offscript))
 
     if options.common.dry:
         messages.success('Se procesó el trabajo', q(names.job), 'y se generaron los archivos para el envío en', hiddendir, option='--dry')
