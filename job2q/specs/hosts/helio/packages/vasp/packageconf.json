@@ -7,7 +7,7 @@
          "source": [
             "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
          ],
-         "executable": "/opt/binaries/vasp/vasp.5.4.4.pl2-ic17/bin/vasp_std"
+         "executable": "/opt/packages/VASP/vasp.5.4.4.pl2-ic17/bin/vasp_std"
       }
    }
 }

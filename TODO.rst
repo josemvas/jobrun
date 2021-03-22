@@ -16,6 +16,7 @@ General
 - Permitir obntener los conjuntos de parámetros del filtro e independizar las rutas de parámetros de los conjuntos de parámetros, por ejemplo: autodock --addpath=$HOME/autodock/{version}/ligands/{ligand}.pdbqt --addpath=$HOME/autodock/{version}/receptors/{receptor} --version 1.1 --ligand=%1 --receptor=%2 --filter '([^_]+)_([^_]+)'
 - Considerar quitar el operador '|' de las especificaciones de los archivos de entrada y salida
 - Agregar en las especificaciones de los trabajos un diccionario con las condiciones lógicas de los archivos de entrada y el mensaje de error si no se cumplen
+- Considerar usar una carpeta oculta ".jobscripts" pra guardar los scripts de envío y renombrarlos con el número de trabajo después de enviarlos
 
 console.py
 ----------

@@ -46,10 +46,10 @@ def setup():
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
     if 'scratch' in options.common:
-        script.workdir = AbsPath(buildpath(options.common.scratch, hostspecs.envars.jobid))
+        script.scrdir = AbsPath(buildpath(options.common.scratch, hostspecs.envars.jobid))
     else:
         try:
-            script.workdir = AbsPath(buildpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(names).validate()
+            script.scrdir = AbsPath(buildpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(names).validate()
         except NotAbsolutePath:
             messages.error(hostspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
@@ -141,8 +141,12 @@ def setup():
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
     for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(path, cwd=script.workdir).setkeys(names).validate()
-        script.setup.append('export {}={}'.format(envar, abspath))
+        abspath = AbsPath(path, cwd=script.scrdir).setkeys(names).validate()
+        script.setup.append('export {0}={1}'.format(envar, abspath))
+
+    for envar, path in jobspecs.append.items() | jobspecs.versions[options.common.version].append.items():
+        abspath = AbsPath(path, cwd=script.scrdir).setkeys(names).validate()
+        script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
     for path in jobspecs.source + jobspecs.versions[options.common.version].source:
         script.setup.append('source {}'.format(AbsPath(path).setkeys(names).validate()))
@@ -166,14 +170,14 @@ def setup():
 
     script.setenv = '{}="{}"'.format
 
+    script.envars.extend(names.items())
+    script.envars.extend(hostspecs.envars.items())
+    script.envars.extend((i, jobspecs.filekeys[i]) for i in jobspecs.filevars)
+
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
     script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
 
-    script.envars.extend(names.items())
-    script.envars.extend(hostspecs.envars.items())
-    script.envars.extend((i, jobspecs.filekeys[i]) for i in jobspecs.filevars)
-    
     for key in jobspecs.optionargs:
         if not jobspecs.optionargs[key] in jobspecs.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optionargs')
@@ -299,18 +303,18 @@ def submit(parentdir, basename):
 
     for key in jobspecs.inputfiles:
         if AbsPath(buildpath(parentdir, (basename, key))).isfile():
-            inputfiles.append((buildpath(jobdir, (names.job, key)), buildpath(script.workdir, jobspecs.filekeys[key])))
+            inputfiles.append((buildpath(jobdir, (names.job, key)), buildpath(script.scrdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
-            inputfiles.append((path, buildpath(script.workdir, path.name)))
+            inputfiles.append((path, buildpath(script.scrdir, path.name)))
         elif path.isdir():
-            inputdirs.append((buildpath(path), script.workdir))
+            inputdirs.append((buildpath(path), script.scrdir))
 
     outputfiles = []
 
     for key in jobspecs.outputfiles:
-        outputfiles.append((buildpath(script.workdir, jobspecs.filekeys[key]), buildpath(jobdir, (names.job, key))))
+        outputfiles.append((buildpath(script.scrdir, jobspecs.filekeys[key]), buildpath(jobdir, (names.job, key))))
     
     if jobdir.isdir():
         if hiddendir.isdir():
@@ -375,15 +379,15 @@ def submit(parentdir, basename):
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('job', names.job) + '\n')
         f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
-        f.write(script.mkdir(script.workdir) + '\n')
+        f.write(script.mkdir(script.scrdir) + '\n')
         f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
         f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
-        f.write(script.chdir(script.workdir) + '\n')
+        f.write(script.chdir(script.scrdir) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.prescript))
         f.write(' '.join(script.main) + '\n')
         f.write(''.join(i + '\n' for i in jobspecs.postscript))
         f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
-        f.write(script.rmdir(script.workdir) + '\n')
+        f.write(script.rmdir(script.scrdir) + '\n')
         f.write(''.join(i + '\n' for i in hostspecs.offscript))
 
     if options.common.dry:

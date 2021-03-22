@@ -1,13 +1,14 @@
 {
    "defaults": {
-      "version": "4.0.1"
+      "version": "4.1.2"
    },
    "versions": {
-      "4.0.1": {
-         "source": [
-            "/opt/openmpi/2.0.2/mpivars.sh"
-         ],
-         "executable": "/opt/binaries/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca"
+      "4.1.2": {
+         "append": {
+            "PATH": "/opt/openmpi/2.1.6/bin",
+            "LD_LIBRARY_PATH": "/opt/openmpi/2.1.6/lib"
+         },
+         "executable": "/opt/packages/ORCA/orca_4_2_1_linux_x86-64_openmpi216/orca"
       }
    }
 }

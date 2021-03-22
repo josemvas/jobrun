@@ -20,6 +20,7 @@ listags = (
 
 dictags = (
     'export',
+    'append',
     'defaults',
     'versions',
     'optionargs',
