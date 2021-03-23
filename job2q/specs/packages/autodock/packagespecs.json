@@ -4,16 +4,16 @@
    "parallelib": "None",
    "filecheck": "dpf",
    "defaults" : {
-      "jobdir": "."
+      "outdir": "."
    },
    "filekeys": {
       "dpf": "job.dpf",
       "dlg": "job.dlg"
    },
-   "inputfiles": [
+   "infiles": [
       "dpf"
    ],
-   "outputfiles": [
+   "outfiles": [
       "dlg"
    ],
    "optionargs": {

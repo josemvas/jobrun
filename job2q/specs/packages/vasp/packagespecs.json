@@ -6,7 +6,7 @@
    "filecheck": "INCAR and POSCAR and POTCAR",
    "stdoutput": "log",
    "defaults" : {
-      "jobdir": "{job}"
+      "outdir": "{job}"
    },
    "filekeys": {
       "INCAR": "INCAR",
@@ -39,7 +39,7 @@
       "xml": "vasprun.xml",
       "log": "logfile"
    },
-   "inputfiles": [
+   "infiles": [
       "INCAR",
       "POSCAR",
       "KPOINTS",
@@ -47,7 +47,7 @@
       "CHGCAR",
       "WAVECAR"
    ],
-   "outputfiles": [
+   "outfiles": [
       "CHG",
       "CHGCAR",
       "CONTCAR",

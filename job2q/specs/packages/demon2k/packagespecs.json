@@ -5,12 +5,14 @@
    "mpilaunch": "True",
    "filecheck": "inp",
    "defaults" : {
-      "jobdir": "{job}"
+      "outdir": "{job}"
    },
    "filekeys": {
       "inp": "deMon.inp",
+      "modinp": "deMon.inp",
       "rst": "deMon.rst",
       "trj": "deMon.trj",
+      "oldtrj": "deMon.trj",
       "out": "deMon.out",
       "mol": "deMon.mol",
       "new": "deMon.new",
@@ -19,15 +21,16 @@
       "bin": "deMon.bin"
    },
    "fileopts": {
-      "rst": "rst",
-      "trj": "trj"
+      "rstfile": "rst",
+      "trjfile": "oldtrj"
    },
-   "inputfiles": [
+   "infiles": [
       "inp",
       "rst",
-      "trj"
+      "oldtrj"
    ],
-   "outputfiles": [
+   "outfiles": [
+      "modinp",
       "trj",
       "out",
       "mol",

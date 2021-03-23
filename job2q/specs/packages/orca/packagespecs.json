@@ -6,7 +6,7 @@
    "filecheck": "inp",
    "stdoutput": "out",
    "defaults" : {
-      "jobdir": "{job}"
+      "outdir": "{job}"
    },
    "filekeys": {
       "inp": "job.inp",
@@ -22,13 +22,13 @@
    "filevars": {
       "inp": "inp"
    },
-   "inputfiles": [
+   "infiles": [
       "inp"
    ],
    "positionargs": [
       "inp"
    ],
-   "outputfiles": [
+   "outfiles": [
       "inp",
       "gbw",
       "out",

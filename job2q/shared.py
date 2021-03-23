@@ -36,9 +36,9 @@ class ArgList:
             raise StopIteration
         if options.common.base:
             basename = self.current
-            parentdir = AbsPath(options.common.workdir)
+            rootdir = AbsPath(options.common.root)
         else:
-            abspath = AbsPath(self.current, cwd=options.common.workdir)
+            abspath = AbsPath(self.current, cwd=options.common.root)
             #TODO: Move file checking to AbsPath class
             if not abspath.isfile():
                 if not abspath.exists():
@@ -47,9 +47,9 @@ class ArgList:
                     return InputFileError('El archivo de entrada', abspath, 'es un directorio')
                 else:
                     return InputFileError('El archivo de entrada', abspath, 'no es un archivo regular')
-            parentdir = abspath.parent()
+            rootdir = abspath.parent()
             filename = abspath.name
-            for key in jobspecs.inputfiles:
+            for key in jobspecs.infiles:
                 if filename.endswith('.' + key):
                     basename = removesuffix(filename, '.' + key)
                     break
@@ -61,10 +61,10 @@ class ArgList:
         #TODO: Check for optional files without linking first
         if 'filecheck' in jobspecs:
             if not BoolParser(jobspecs.filecheck).evaluate(
-                {key:AbsPath(buildpath(parentdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
+                {key:AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
             ):
                 return InputFileError('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
-        return parentdir, basename
+        return rootdir, basename
 
 class OptDict:
     def __init__(self):
@@ -83,9 +83,9 @@ class OptDict:
             if 'mol' in self.common:
                 prefix = []
                 for i, path in enumerate(self.common.mol, 1):
-                    path = AbsPath(path, cwd=options.common.workdir)
+                    path = AbsPath(path, cwd=options.common.root)
                     coords = readcoords(path)['coords']
-                    self.keywords['mol' + str(i)] = '\n'.join('{0:>2s}  {1:9.4f}  {2:9.4f}  {3:9.4f}'.format(*atom) for atom in coords)
+                    self.keywords['mol' + str(i)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
                     prefix.append(path.stem)
                 if not 'prefix' in self.common:
                     self.common.prefix = ''.join(prefix)

@@ -93,6 +93,7 @@ try:
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
+    group2.add_argument('-o', '--outdir', metavar='JOBDIR', default=SUPPRESS, help='Escribir los archivos de salida en el directorio JOBDIR.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
@@ -100,9 +101,8 @@ try:
     group2.add_argument('-p', '--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group2.add_argument('-s', '--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('-S', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
-    group2.add_argument('--workdir', action=SetCwd, metavar='WORKDIR', default=os.getcwd(), help='Buscar los archivos de entrada en el directorio WORKDIR.')
-    group2.add_argument('--jobdir', metavar='JOBDIR', default=SUPPRESS, help='Copiar los archivos de entrada/salida al directorio JOBDIR.')
-    group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los acrchivos temporales en el directorio SCRDIR.')
+    group2.add_argument('--root', action=SetCwd, metavar='ROOTDIR', default=os.getcwd(), help='Usar rutas relativas al directorio ROOTDIR.')
+    group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los archivos temporales en el directorio SCRDIR.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
@@ -142,7 +142,7 @@ try:
         messages.error('Debe especificar al menos un archivo de entrada')
 
     for key in options.fileopts:
-        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.workdir)
+        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.root)
         if not options.fileopts[key].isfile():
             messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
 
@@ -168,19 +168,19 @@ try:
                 filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
         for item in arglist:
             if isinstance(item, tuple):
-                parentdir, basename = item
-                relparent = os.path.relpath(parentdir, homedir)
+                rootdir, basename = item
+                relparent = os.path.relpath(rootdir, homedir)
                 remotecwd = buildpath(remoteshare, userhost, relparent)
                 remotejobs.append(basename)
                 for key in jobspecs.filekeys:
-                    if os.path.isfile(buildpath(parentdir, (basename, key))):
+                    if os.path.isfile(buildpath(rootdir, (basename, key))):
                         filelist.append(buildpath(homedir, '.', relparent, (basename, key)))
             elif isinstance(item, InputFileError):
                 messages.failure(str(item))
         if remotejobs:
             options.switch.add('base')
             options.switch.add('delete')
-            options.argument.update({'workdir': remotecwd})
+            options.argument.update({'root': remotecwd})
             try:
                 check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             except CalledProcessError as exc:

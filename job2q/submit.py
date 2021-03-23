@@ -34,13 +34,13 @@ def setup():
 #TODO: Add suport for dialog boxes
 #    if options.common.xdialog:
 #        try:
-#            from bulletin import TkDialogs
+#            from tkdialog import TkDialog
 #        except ImportError:
 #            raise SystemExit()
 #        else:
-#            dialogs.yesno = join_args(TkDialogs().yesno)
-#            messages.failure = join_args(TkDialogs().message)
-#            messages.success = join_args(TkDialogs().message)
+#            dialogs.yesno = join_args(TkDialog().yesno)
+#            messages.failure = join_args(TkDialog().message)
+#            messages.success = join_args(TkDialog().message)
 
     if not 'scratchdir' in hostspecs.defaults:
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
@@ -65,8 +65,8 @@ def setup():
     if not 'packagefix' in jobspecs:
         messages.error('No se especificó el sufijo del programa', spec='packagefix')
     
-    if not 'jobdir' in jobspecs.defaults:
-        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.jobdir')
+    if not 'outdir' in jobspecs.defaults:
+        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.outdir')
 
     for key in options.parameters:
         if '/' in options.parameters[key]:
@@ -80,19 +80,19 @@ def setup():
     if not jobspecs.filekeys:
         messages.error('La lista de archivos del programa no existe o está vacía', spec='filekeys')
     
-    if jobspecs.inputfiles:
-        for key in jobspecs.inputfiles:
+    if jobspecs.infiles:
+        for key in jobspecs.infiles:
             if not key in jobspecs.filekeys:
-                messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='inputfiles')
+                messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='infiles')
     else:
-        messages.error('La lista de archivos de entrada no existe o está vacía', spec='inputfiles')
+        messages.error('La lista de archivos de entrada no existe o está vacía', spec='infiles')
     
-    if jobspecs.outputfiles:
-        for key in jobspecs.outputfiles:
+    if jobspecs.outfiles:
+        for key in jobspecs.outfiles:
             if not key in jobspecs.filekeys:
-                messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
+                messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outfiles')
     else:
-        messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
+        messages.error('La lista de archivos de salida no existe o está vacía', spec='outfiles')
 
     if 'metadata' in hostspecs:
         for item in hostspecs.metadata:
@@ -246,7 +246,7 @@ def setup():
     for key in jobspecs.parameters:
 #TODO: Replace --key-path options with single --addpath option
 #        if key + '-path' in options.parameterpaths:
-#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.workdir)
+#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.root)
         if key in jobspecs.defaults.parameterpath:
             if key in options.parameters:
                 parameterlist = options.parameters[key].split(',')
@@ -257,7 +257,7 @@ def setup():
                     messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
             else:
                 parameterlist = []
-            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.workdir).setkeys(names).populate()
+            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.root).setkeys(names).populate()
             rootpath = AbsPath(next(pathcomponents))
             for component in pathcomponents:
                 try:
@@ -275,10 +275,10 @@ def setup():
 
 
 
-def submit(parentdir, basename):
+def submit(rootdir, basename):
 
     for key in options.fileopts:
-        options.fileopts[key].linkto(buildpath(parentdir, (basename, jobspecs.fileopts[key])))
+        options.fileopts[key].linkto(buildpath(rootdir, (basename, jobspecs.fileopts[key])))
 
     names.job = removesuffix(basename, '.' + jobspecs.packagefix)
 
@@ -288,22 +288,22 @@ def submit(parentdir, basename):
     if 'suffix' in options.common:
         names.job = names.job + '.' + options.common.suffix
 
-    if 'jobdir' in options.common:
-        jobdir = AbsPath(options.common.jobdir, cwd=parentdir)
+    if 'outdir' in options.common:
+        outdir = AbsPath(options.common.outdir, cwd=rootdir)
     else:
-        jobdir = AbsPath(jobspecs.defaults.jobdir, cwd=parentdir).setkeys(names).validate()
+        outdir = AbsPath(jobspecs.defaults.outdir, cwd=rootdir).setkeys(names).validate()
 
 #TODO: Prepend program version to extension of output files if option is enabled
     progfix = jobspecs.packagefix + '.'.join(options.common.version.split())
 
-    hiddendir = AbsPath(buildpath(jobdir, '.' + progfix))
+    hiddendir = AbsPath(buildpath(outdir, '.' + progfix))
 
     inputfiles = []
     inputdirs = []
 
-    for key in jobspecs.inputfiles:
-        if AbsPath(buildpath(parentdir, (basename, key))).isfile():
-            inputfiles.append((buildpath(jobdir, (names.job, key)), buildpath(script.scrdir, jobspecs.filekeys[key])))
+    for key in jobspecs.infiles:
+        if AbsPath(buildpath(rootdir, (basename, key))).isfile():
+            inputfiles.append((buildpath(outdir, (names.job, key)), buildpath(script.scrdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
@@ -313,10 +313,10 @@ def submit(parentdir, basename):
 
     outputfiles = []
 
-    for key in jobspecs.outputfiles:
-        outputfiles.append((buildpath(script.scrdir, jobspecs.filekeys[key]), buildpath(jobdir, (names.job, key))))
+    for key in jobspecs.outfiles:
+        outputfiles.append((buildpath(script.scrdir, jobspecs.filekeys[key]), buildpath(outdir, (names.job, key))))
     
-    if jobdir.isdir():
+    if outdir.isdir():
         if hiddendir.isdir():
             try:
                 with open(buildpath(hiddendir, 'jobid'), 'r') as f:
@@ -332,24 +332,24 @@ def submit(parentdir, basename):
             return
         else:
             makedirs(hiddendir)
-        if not set(jobdir.listdir()).isdisjoint(buildpath((names.job, k)) for k in jobspecs.outputfiles):
-            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', jobdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+        if not set(outdir.listdir()).isdisjoint(buildpath((names.job, k)) for k in jobspecs.outfiles):
+            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
-        for key in jobspecs.outputfiles:
-            remove(buildpath(jobdir, (names.job, key)))
-        if parentdir != jobdir:
-            for key in jobspecs.inputfiles:
-                remove(buildpath(jobdir, (names.job, key)))
-    elif jobdir.exists():
-        messages.failure('No se puede crear la carpeta', jobdir, 'porque hay un archivo con ese mismo nombre')
+        for key in jobspecs.outfiles:
+            remove(buildpath(outdir, (names.job, key)))
+        if rootdir != outdir:
+            for key in jobspecs.infiles:
+                remove(buildpath(outdir, (names.job, key)))
+    elif outdir.exists():
+        messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
         return
     else:
-        makedirs(jobdir)
+        makedirs(outdir)
         makedirs(hiddendir)
     
-    for key in jobspecs.inputfiles:
-        inputpath = AbsPath(buildpath(parentdir, (basename, key)))
+    for key in jobspecs.infiles:
+        inputpath = AbsPath(buildpath(rootdir, (basename, key)))
         if inputpath.isfile():
             if options.common.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(inputpath, 'r') as fr:
@@ -362,12 +362,12 @@ def submit(parentdir, basename):
                 except KeyError as e:
                     messages.failure('Hay variables de interpolación indefinidas en el archivo de entrada', buildpath((basename, key)), option=o(e.args[0]))
                     return
-                with open(buildpath(jobdir, (names.job, key)), 'w') as fw:
+                with open(buildpath(outdir, (names.job, key)), 'w') as fw:
                     fw.write(substituted)
-            else:
-                inputpath.copyto(buildpath(jobdir, (names.job, key)))
+            elif rootdir != outdir:
+                inputpath.copyto(buildpath(outdir, (names.job, key)))
             if options.common.delete:
-                remove(buildpath(parentdir, (basename, key)))
+                remove(buildpath(rootdir, (basename, key)))
 
     jobscript = buildpath(hiddendir, 'jobscript')
 

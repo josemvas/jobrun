@@ -22,12 +22,12 @@ def checkjob(jobid):
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
     if process.returncode == 0:
-        if output in hostspecs.blocking_states:
-            return hostspecs.blocking_states[output]
-        elif output in hostspecs.ready_states:
-            return None
-        else:
-            return 'El trabajo "{name}" no se envió porque su estado no está registrado: ' + output.strip()
+        if output not in hostspecs.ready_states:
+            if output in hostspecs.queued_states:
+                return hostspecs.queued_states[output]
+            else:
+                return 'El trabajo "{name}" no se envió porque se obtuvo un valor inesperado al revisar su estado: ' + output.strip()
     else:
-        return 'El trabajo "{name}" no se envió porque ocurrió error al revisar su estado: ' + error
+        if error not in [i.format(id=jobid) for i in hostspecs.warn_errors]:
+            return 'El trabajo "{name}" no se envió porque ocurrió un error al revisar su estado: ' + error
        

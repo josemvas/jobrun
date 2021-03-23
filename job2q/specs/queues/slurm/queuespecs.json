@@ -53,7 +53,7 @@
        "mpich": "mpirun"
    },
    
-   "blocking_states": {
+   "queued_states": {
        "PENDING": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
        "RUNNING": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
        "SUSPENDED": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",

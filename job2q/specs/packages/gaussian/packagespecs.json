@@ -4,11 +4,13 @@
    "parallelib": "openmp",
    "filecheck": "(gjf and not com) or (com and not gjf)",
    "defaults" : {
-      "jobdir": "{job}"
+      "outdir": "{job}"
    },
    "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",
+      "modcom": "job.com",
+      "modgjf": "job.gjf",
       "log": "job.log",
       "chk": "job.chk",
       "fchk": "job.fchk",
@@ -24,21 +26,21 @@
       "oldchk": "oldchk"
    },
    "fileopts": {
-      "oldchk": "oldchk"
+      "chkfile": "oldchk"
    },
-   "inputfiles": [
-      "gjf",
+   "infiles": [
       "com",
+      "gjf",
       "oldchk"
    ],
-   "outputfiles": [
-      "gjf",
-      "com",
+   "outfiles": [
       "log",
       "chk",
       "fchk",
       "wfn",
-      "cub"
+      "cub",
+      "modcom",
+      "modgjf"
    ],
    "interpolable": [
       "gjf",

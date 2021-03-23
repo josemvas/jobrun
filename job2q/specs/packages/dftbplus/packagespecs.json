@@ -5,13 +5,15 @@
    "filecheck": "dftb_in.hsd",
    "stdoutput": "dftb_out.log",
    "defaults": {
-      "jobdir": "{job}"
+      "outdir": "{job}"
    },
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
+      "mod_dftb_in.hsd": "dftb_in.hsd",
+      "charges.bin": "charges.bin",
+      "old_charges.bin": "charges.bin",
       "dftb_pin.hsd": "dftb_pin.hsd",
       "dftb_out.log": "dftb_out.log",
-      "charges.bin": "charges.bin",
       "geo_end.xyz": "geo_end.xyz",
       "geo_end.gen": "geo_end.gen",
       "results.tag": "results.tag",
@@ -36,14 +38,14 @@
       "dftbin": "dftb_in.hsd"
    },
    "fileopts": {
-      "charges": "charges.bin"
+      "chargefile": "oldcharges.bin"
    },
-   "inputfiles": [
+   "infiles": [
       "dftb_in.hsd",
-      "charges.bin"
+      "old_charges.bin"
    ],
-   "outputfiles": [
-      "dftb_in.hsd",
+   "outfiles": [
+      "mod_dftb_in.hsd",
       "charges.bin",
       "dftb_pin.hsd",
       "dftb_out.log",

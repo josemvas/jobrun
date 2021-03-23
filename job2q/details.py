@@ -9,8 +9,8 @@ mpilibs = (
 listags = (
     'load',
     'source',
-    'inputfiles',
-    'outputfiles',
+    'infiles',
+    'outfiles',
     'positionargs',
     'offscript',
     'prescript',
