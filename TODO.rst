@@ -18,6 +18,14 @@ General
 - Agregar en las especificaciones de los trabajos un diccionario con las condiciones lógicas de los archivos de entrada y el mensaje de error si no se cumplen
 - Considerar usar una carpeta oculta ".jobscripts" pra guardar los scripts de envío y renombrarlos con el número de trabajo después de enviarlos
 
+run.py
+------
+- Agregar soporte remoto para las opciones con action=append (p. ej. --allmol)
+
+readmol.py
+----------
+- Determinar el formato correcto de los archivos con extensión .mol (p.ej. MDL, XYZ, MOLDEN, etc...)
+
 console.py
 ----------
 - Seleccionar el scheduler interactivamente

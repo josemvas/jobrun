@@ -2,6 +2,7 @@
 #from logging import WARNING
 from job2q import messages
 
+
 def readmolfile(molfile):
     if molfile.hasext('.mol'):
         reader = parsemdlmol
@@ -72,6 +73,7 @@ def parsemdlmol(fh):
     if line.split()[1] != 'END':
         messages.error('¡El archivo de coordenadas no tiene un formato válido!')
     return [{'natom':natom, 'title':title, 'coords':coords}]
+
 
 def parsegausslog(fh):
     try:
