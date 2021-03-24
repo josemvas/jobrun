@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from . import messages
-from . import readmol
 from .utils import natsort
 from .fileutils import AbsPath, NotAbsolutePath, diritems
 
@@ -26,22 +25,3 @@ def findparameters(rootpath, components, defaults, indent):
             for choice in choices:
                 findparameters(rootpath.joinpath(choice), components, defaults, indent + 1)
             
-def readcoords(molfile):
-    if molfile.hasext('.mol'):
-        reader = readmol.readmol
-    elif molfile.hasext('.xyz'):
-        reader = readmol.readxyz
-    elif molfile.hasext('.log'):
-        reader = readmol.readlog
-    else:
-        messages.error('Solamente se pueden leer archivos mol, xyz y log')
-    if molfile.isfile():
-        with open(molfile, mode='r') as fh:
-            return reader(fh)
-    elif molfile.isdir():
-        messages.error('El archivo de coordenadas', molfile, 'es un directorio')
-    elif molfile.exists():
-        messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
-    else:
-        messages.error('El archivo de coordenadas', molfile, 'no existe')
-

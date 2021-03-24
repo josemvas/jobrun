@@ -7,7 +7,7 @@ from grp import getgrgid
 from .readspec import SpecBunch
 from .utils import Bunch, removesuffix, q
 from .fileutils import AbsPath, buildpath
-from .jobutils import readcoords
+from .readmol import readmolfile
 from .parsing import BoolParser
 
 class NonMatchingFile(Exception):
@@ -81,11 +81,14 @@ class OptDict:
     def interpolate(self):
         if self.common.interpolate:
             if 'mol' in self.common:
+                index = 0
                 prefix = []
-                for i, path in enumerate(self.common.mol, 1):
+                for path in self.common.mol:
                     path = AbsPath(path, cwd=options.common.root)
-                    coords = readcoords(path)['coords']
-                    self.keywords['mol' + str(i)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+                    for step in readmolfile(path):
+                        index += 1
+                        coords = step['coords']
+                        self.keywords['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
                     prefix.append(path.stem)
                 if not 'prefix' in self.common:
                     self.common.prefix = ''.join(prefix)
