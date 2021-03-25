@@ -165,10 +165,9 @@ try:
         #TODO: Consider include common.mol path in fileopts
         if 'mol' in options.common:
             filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.mol, homedir)))
-        #TODO: Make default empty dict for fileopts so no test is needed
-        if hasattr(options, 'fileopts'):
-            for item in options.fileopts.values():
-                filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
+        #DONE?: Make default empty dict for fileopts so no test is needed
+        for item in options.fileopts.values():
+            filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
         for item in arglist:
             if isinstance(item, tuple):
                 rootdir, basename = item

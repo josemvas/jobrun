@@ -277,9 +277,6 @@ def setup():
 
 def submit(rootdir, basename):
 
-    for key in options.fileopts:
-        options.fileopts[key].linkto(buildpath(rootdir, (basename, jobspecs.fileopts[key])))
-
     names.job = removesuffix(basename, '.' + jobspecs.packagefix)
 
     if 'prefix' in options.common:
@@ -300,6 +297,9 @@ def submit(rootdir, basename):
 
     inputfiles = []
     inputdirs = []
+
+    for key in options.fileopts:
+        inputfiles.append((buildpath(outdir, (names.job, jobspecs.fileopts[key])), buildpath(script.scrdir, jobspecs.filekeys[jobspecs.fileopts[key]])))
 
     for key in jobspecs.infiles:
         if AbsPath(buildpath(rootdir, (basename, key))).isfile():
@@ -347,7 +347,10 @@ def submit(rootdir, basename):
     else:
         makedirs(outdir)
         makedirs(hiddendir)
-    
+
+    for key in options.fileopts:
+        options.fileopts[key].linkto(buildpath(outdir, (names.job, jobspecs.fileopts[key])))
+
     for key in jobspecs.infiles:
         inputpath = AbsPath(buildpath(rootdir, (basename, key)))
         if inputpath.isfile():
