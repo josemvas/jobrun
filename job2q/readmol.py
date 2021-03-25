@@ -40,7 +40,7 @@ def readmol(molfile):
         messages.error('El archivo', molfile, 'no existe')
 
 
-#Parse XYZ molfile
+# Parse XYZ molfile
 def parsexyz(fh):
     fh.seek(0)
     trajectory = []
@@ -97,7 +97,7 @@ def parsemdl(fh):
     return [{'natom':natom, 'title':title, 'coords':coords}]
 
 
-# Parse gaussian logfile
+# Parse Gaussian logfile
 def parseglf(fh):
     try:
         import cclib
