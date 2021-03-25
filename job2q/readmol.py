@@ -8,27 +8,28 @@ class ParseError(Exception):
         super().__init__(' '.join(message))
 
 
-def readmolfile(molfile):
+# Guess format and read molfile
+def readmol(molfile):
     if molfile.isfile():
         with open(molfile, mode='r') as fh:
             if molfile.hasext('.mol'):
                 try:
-                    return parsectf(fh)
+                    return parsemdl(fh)
                 except ParseError:
                     try:
                         return parsexyz(fh)
                     except ParseError:
-                        messages.error('El archivo', molfile, 'no es un archivo CTF o XYZ válido')
+                        messages.error(molfile, 'no es un archivo MDL ni XYZ válido')
             elif molfile.hasext('.xyz'):
                 try:
                     return parsexyz(fh)
-                except ParseError:
-                    messages.error('El archivo', molfile, 'no es un archivo XYZ válido')
+                except ParseError as e:
+                    messages.error(molfile, 'no es un archivo XYZ válido', p(e))
             elif molfile.hasext('.log'):
                 try:
-                    return parselog(fh)
+                    return parseglf(fh)
                 except ParseError:
-                    messages.error('El archivo', molfile, 'no es un archivo de Gaussian válido')
+                    messages.error(molfile, 'no es un archivo de salida de gaussian válido')
             else:
                 messages.error('Solamente se pueden leer archivos mol, xyz y log')
     elif molfile.isdir():
@@ -39,6 +40,7 @@ def readmolfile(molfile):
         messages.error('El archivo', molfile, 'no existe')
 
 
+#Parse XYZ molfile
 def parsexyz(fh):
     fh.seek(0)
     trajectory = []
@@ -54,24 +56,25 @@ def parsexyz(fh):
         try:
             natom = int(natom)
         except ValueError:
-            raise ParseError('El archivo de coordenadas no tiene un formato válido')
+            raise ParseError( 'Invalid format')
         try:
             title = next(fh)
             for line in range(natom):
                 e, x, y, z, *_ = next(fh).split()
                 coords.append((e, float(x), float(y), float(z)))
         except StopIteration:
-            raise ParseError('El archivo de coordenadas termina antes de lo esperado')
+            raise ParseError( 'Unexpected end of file')
         trajectory.append({'natom':natom, 'title':title, 'coords':coords})
         
 
-def parsectf(fh):
+# Parse MDL molfile
+def parsemdl(fh):
     fh.seek(0)
     coords = []
     try:
         title = next(fh)
     except StopIteration:
-        messages.error('¡El archivo de coordenadas está vacío!')
+        messages.error('El archivo de coordenadas está vacío')
     try:
         metadata = next(fh)
         comment = next(fh)
@@ -80,21 +83,22 @@ def parsectf(fh):
             natom = int(natom)
             nbond = int(nbond)
         except ValueError:
-            raise ParseError('El archivo de coordenadas no tiene un formato válido')
+            raise ParseError( 'Invalid format')
         for _ in range(natom):
             x, y, z, e, *_ = next(fh).split()
             coords.append((e, float(x), float(y), float(z)))
         for _ in range(nbond):
             next(fh)
     except StopIteration:
-        raise ParseError('El archivo de coordenadas termina antes de lo esperado')
+        raise ParseError( 'Unexpected end of file')
     for line in fh:
         if line.split()[0] != 'M':
-            raise ParseError('El archivo de coordenadas no tiene un formato válido')
+            raise ParseError( 'Invalid format')
     return [{'natom':natom, 'title':title, 'coords':coords}]
 
 
-def parsegausslog(fh):
+# Parse gaussian logfile
+def parseglf(fh):
     try:
         import cclib
     except ImportError:
@@ -104,7 +108,7 @@ def parsegausslog(fh):
     try:
         data = logfile.parse()
     except Exception:
-        messages.error('El archivo de coordenadas no tiene un formato válido')
+        raise ParseError( 'Invalid format')
     pt = cclib.parser.utils.PeriodicTable()
     natom = len(data.atomcoords[-1])
     title = data.scfenergies[-1]

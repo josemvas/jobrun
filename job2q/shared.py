@@ -8,7 +8,7 @@ from . import messages
 from .readspec import SpecBunch
 from .utils import Bunch, removesuffix, q
 from .fileutils import AbsPath, buildpath
-from .readmol import readmolfile
+from .readmol import readmol
 from .parsing import BoolParser
 
 class NonMatchingFile(Exception):
@@ -91,7 +91,7 @@ class OptDict:
                 for path in self.common.mol:
                     index += 1
                     path = AbsPath(path, cwd=options.common.root)
-                    coords = readmolfile(path)[-1]['coords']
+                    coords = readmol(path)[-1]['coords']
                     self.keywords['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
                 if not 'prefix' in self.common:
                     if len(self.common.mol) == 1:
@@ -101,7 +101,7 @@ class OptDict:
             elif 'allmol' in self.common:
                 index = 0
                 path = AbsPath(self.common.molall, cwd=options.common.root)
-                for step in readmolfile(path):
+                for step in readmol(path):
                     index += 1
                     coords = step['coords']
                     self.keywords['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
