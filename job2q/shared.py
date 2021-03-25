@@ -4,6 +4,7 @@ from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam
 from grp import getgrgid
+from . import messages
 from .readspec import SpecBunch
 from .utils import Bunch, removesuffix, q
 from .fileutils import AbsPath, buildpath
@@ -96,7 +97,7 @@ class OptDict:
                     if len(self.common.mol) == 1:
                         self.common.prefix = path.stem
                     else:
-                        messages.error('Se debe especificar un prefijo si se especifica más de un archivo de coordenadas')
+                        messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
             elif 'allmol' in self.common:
                 index = 0
                 path = AbsPath(self.common.molall, cwd=options.common.root)
@@ -111,7 +112,7 @@ class OptDict:
                 if not 'prefix' in self.common and not 'suffix' in self.common:
                     messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
         else:
-            if 'mol' in self.common or self.keywords:
+            if self.keywords or self.common.mol or 'allmol' in self.common:
                 messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 names = Bunch()

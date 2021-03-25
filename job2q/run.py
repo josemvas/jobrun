@@ -94,7 +94,6 @@ try:
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
     group2.add_argument('-o', '--outdir', metavar='JOBDIR', default=SUPPRESS, help='Escribir los archivos de salida en el directorio JOBDIR.')
-#    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
     group2.add_argument('-p', '--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
@@ -104,9 +103,10 @@ try:
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los archivos temporales en el directorio SCRDIR.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+#    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 
     molgroup = group2.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', help='Usar el último paso del archivo MOLFILE para interpolar.')
+    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Usar el último paso del archivo MOLFILE para interpolar.')
     molgroup.add_argument('-M', '--allmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE para interpolar.')
 
     hostgroup = group2.add_mutually_exclusive_group()
