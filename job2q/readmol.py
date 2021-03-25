@@ -81,18 +81,16 @@ def parsectf(fh):
             nbond = int(nbond)
         except ValueError:
             raise ParseError('El archivo de coordenadas no tiene un formato válido')
-        for line in range(natom):
+        for _ in range(natom):
             x, y, z, e, *_ = next(fh).split()
             coords.append((e, float(x), float(y), float(z)))
-        for line in range(nbond):
+        for _ in range(nbond):
             next(fh)
     except StopIteration:
         raise ParseError('El archivo de coordenadas termina antes de lo esperado')
     for line in fh:
         if line.split()[0] != 'M':
             raise ParseError('El archivo de coordenadas no tiene un formato válido')
-    if line.split()[1] != 'END':
-        raise ParseError('El archivo de coordenadas no tiene un formato válido')
     return [{'natom':natom, 'title':title, 'coords':coords}]
 
 
