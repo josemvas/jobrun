@@ -178,15 +178,15 @@ def setup():
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
     script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
 
-    for key in jobspecs.optionargs:
-        if not jobspecs.optionargs[key] in jobspecs.filekeys:
-            messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optionargs')
-        script.main.append('-{key} {val}'.format(key=key, val=jobspecs.filekeys[jobspecs.optionargs[key]]))
+    for key in jobspecs.optargs:
+        if not jobspecs.optargs[key] in jobspecs.filekeys:
+            messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
+        script.main.append('-{key} {val}'.format(key=key, val=jobspecs.filekeys[jobspecs.optargs[key]]))
     
-    for item in jobspecs.positionargs:
+    for item in jobspecs.posargs:
         for key in item.split('|'):
             if not key in jobspecs.filekeys:
-                messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='positionargs')
+                messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
         script.main.append('@' + p('|'.join(jobspecs.filekeys[i] for i in item.split('|'))))
     
     if 'stdinput' in jobspecs:

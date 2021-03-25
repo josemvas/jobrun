@@ -26,7 +26,7 @@
       "oldchk": "oldchk"
    },
    "fileopts": {
-      "chkfile": "oldchk"
+      "oldchk": "oldchk"
    },
    "infiles": [
       "com",
@@ -46,7 +46,7 @@
       "gjf",
       "com"
    ],
-   "positionargs": [
+   "posargs": [
       "gjf|com"
    ],
    "export": {

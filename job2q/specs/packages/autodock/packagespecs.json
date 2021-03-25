@@ -16,7 +16,7 @@
    "outfiles": [
       "dlg"
    ],
-   "optionargs": {
+   "optargs": {
       "p": "dpf",
       "l": "dlg"
    },

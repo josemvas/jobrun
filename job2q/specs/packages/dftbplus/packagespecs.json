@@ -11,7 +11,7 @@
       "dftb_in.hsd": "dftb_in.hsd",
       "mod_dftb_in.hsd": "dftb_in.hsd",
       "charges.bin": "charges.bin",
-      "old_charges.bin": "charges.bin",
+      "charges_end.bin": "charges.bin",
       "dftb_pin.hsd": "dftb_pin.hsd",
       "dftb_out.log": "dftb_out.log",
       "geo_end.xyz": "geo_end.xyz",
@@ -38,15 +38,15 @@
       "dftbin": "dftb_in.hsd"
    },
    "fileopts": {
-      "chargefile": "oldcharges.bin"
+      "chargefile": "charges.bin"
    },
    "infiles": [
       "dftb_in.hsd",
-      "old_charges.bin"
+      "charges.bin"
    ],
    "outfiles": [
       "mod_dftb_in.hsd",
-      "charges.bin",
+      "charges_end.bin",
       "dftb_pin.hsd",
       "dftb_out.log",
       "geo_end.xyz",
