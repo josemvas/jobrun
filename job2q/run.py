@@ -183,12 +183,12 @@ try:
         if remotejobs:
             options.switch.add('base')
             options.switch.add('delete')
-            options.argument.update({'root': remotecwd})
+            options.define.update({'root': remotecwd})
             try:
                 check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
             except CalledProcessError as exc:
                 messages.error(exc.output.decode(sys.stdout.encoding).strip())
-            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [envar + '=' + value for envar, value in environ.items()] + [program] + [o(option) for option in options.switch] + [o(option, value) for option, value in options.argument.items()] + remotejobs)
+            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [env + '=' + val for env, val in environ.items()] + [program] + [o(opt) for opt in options.switch] + [o(opt, val) for opt, val in options.define.items()] + [o(opt, val) for opt, valist in options.append.items() for val in valist] + remotejobs)
         raise SystemExit()
 
     else:

@@ -9,7 +9,7 @@ class NotAbsolutePath(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
-class PathFormatError(Exception):
+class PathKeyError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
@@ -45,7 +45,7 @@ class AbsPath(str):
             if key is None:
                 formatted += lit
             else:
-                raise PathFormatError(self, 'has undefined keys')
+                raise PathKeyError(self, 'has undefined keys')
         return AbsPath(formatted)
     def populate(self):
         for component in splitpath(self):
@@ -78,7 +78,7 @@ def splitcomponent(component):
         try:
             int(first[1])
         except ValueError:
-            raise PathFormatError(self, 'has unresolved non integer keys')
+            raise PathKeyError(self, 'has unresolved non integer keys')
         try:
             second = next(parts)
         except:
@@ -87,7 +87,7 @@ def splitcomponent(component):
             if second[1] is None:
                 suffix = second[0]
             else:
-                raise PathFormatError(self, 'has components with multiple keys')
+                raise PathKeyError(self, 'has components with multiple keys')
         return first[0], '{' + first[1] + '}', suffix
 
 def diritems(abspath, component):
@@ -107,7 +107,7 @@ def diritems(abspath, component):
 def buildpath(*args):
     path = deepjoin(args, iter(pathseps))
 #    if splitpath(path) != [j for i in args for j in splitpath(i)]:
-#        raise PathFormatError('Conflicting path components in', *args)
+#        raise PathKeyError('Conflicting path components in', *args)
     return path
 
 def splitpath(path):

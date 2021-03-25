@@ -69,15 +69,20 @@ class ArgList:
 class OptDict:
     def __init__(self):
         self.__dict__['switch'] = set()
-        self.__dict__['argument'] = dict()
+        self.__dict__['define'] = dict()
+        self.__dict__['append'] = dict()
     def __setattr__(self, attr, attrval):
         self.__dict__[attr] = attrval
         if isinstance(attrval, Bunch):
             for key, value in attrval.items():
-                if value is True:
+                if value is False:
+                    pass
+                elif value is True:
                     self.__dict__['switch'].add(key)
-                elif value is not False:
-                    self.__dict__['argument'].update({key:value})
+                elif isinstance(value, list):
+                    self.__dict__['append'].update({key:value})
+                else:
+                    self.__dict__['define'].update({key:value})
     def interpolate(self):
         if self.common.interpolate:
             if self.common.mol:

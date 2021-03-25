@@ -3,27 +3,44 @@
 from job2q import messages
 
 
+class ParseError(Exception):
+    def __init__(self, *message):
+        super().__init__(' '.join(message))
+
+
 def readmolfile(molfile):
-    if molfile.hasext('.mol'):
-        reader = parsemdlmol
-    elif molfile.hasext('.xyz'):
-        reader = parsexyz
-    elif molfile.hasext('.log'):
-        reader = readlog
-    else:
-        messages.error('Solamente se pueden leer archivos mol, xyz y log')
     if molfile.isfile():
         with open(molfile, mode='r') as fh:
-            return reader(fh)
+            if molfile.hasext('.mol'):
+                try:
+                    return parsectf(fh)
+                except ParseError:
+                    try:
+                        return parsexyz(fh)
+                    except ParseError:
+                        messages.error('El archivo', molfile, 'no es un archivo CTF o XYZ válido')
+            elif molfile.hasext('.xyz'):
+                try:
+                    return parsexyz(fh)
+                except ParseError:
+                    messages.error('El archivo', molfile, 'no es un archivo XYZ válido')
+            elif molfile.hasext('.log'):
+                try:
+                    return parselog(fh)
+                except ParseError:
+                    messages.error('El archivo', molfile, 'no es un archivo de Gaussian válido')
+            else:
+                messages.error('Solamente se pueden leer archivos mol, xyz y log')
     elif molfile.isdir():
-        messages.error('El archivo de coordenadas', molfile, 'es un directorio')
+        messages.error('El archivo', molfile, 'es un directorio')
     elif molfile.exists():
-        messages.error('El archivo de coordenadas', molfile, 'no es un archivo regular')
+        messages.error('El archivo', molfile, 'no es regular')
     else:
-        messages.error('El archivo de coordenadas', molfile, 'no existe')
+        messages.error('El archivo', molfile, 'no existe')
 
 
 def parsexyz(fh):
+    fh.seek(0)
     trajectory = []
     while True:
         coords = []
@@ -33,25 +50,29 @@ def parsexyz(fh):
             if trajectory:
                 return trajectory
             else:
-                messages.error('¡El archivo de coordenadas está vacío!')
+                messages.error('El archivo de coordenadas está vacío')
         try:
             natom = int(natom)
         except ValueError:
-            messages.error('¡El archivo de coordenadas no tiene un formato válido!')
+            raise ParseError('El archivo de coordenadas no tiene un formato válido')
         try:
             title = next(fh)
             for line in range(natom):
                 e, x, y, z, *_ = next(fh).split()
                 coords.append((e, float(x), float(y), float(z)))
         except StopIteration:
-            messages.error('¡El archivo de coordenadas termina antes de lo esperado!')
+            raise ParseError('El archivo de coordenadas termina antes de lo esperado')
         trajectory.append({'natom':natom, 'title':title, 'coords':coords})
         
 
-def parsemdlmol(fh):
+def parsectf(fh):
+    fh.seek(0)
     coords = []
     try:
         title = next(fh)
+    except StopIteration:
+        messages.error('¡El archivo de coordenadas está vacío!')
+    try:
         metadata = next(fh)
         comment = next(fh)
         natom, nbond, *_ = next(fh).split()
@@ -59,19 +80,19 @@ def parsemdlmol(fh):
             natom = int(natom)
             nbond = int(nbond)
         except ValueError:
-            messages.error('¡El archivo de coordenadas no tiene un formato válido!')
+            raise ParseError('El archivo de coordenadas no tiene un formato válido')
         for line in range(natom):
             x, y, z, e, *_ = next(fh).split()
             coords.append((e, float(x), float(y), float(z)))
         for line in range(nbond):
             next(fh)
     except StopIteration:
-        messages.error('¡El archivo de coordenadas termina antes de lo esperado!')
+        raise ParseError('El archivo de coordenadas termina antes de lo esperado')
     for line in fh:
         if line.split()[0] != 'M':
-            messages.error('¡El archivo de coordenadas no tiene un formato válido!')
+            raise ParseError('El archivo de coordenadas no tiene un formato válido')
     if line.split()[1] != 'END':
-        messages.error('¡El archivo de coordenadas no tiene un formato válido!')
+        raise ParseError('El archivo de coordenadas no tiene un formato válido')
     return [{'natom':natom, 'title':title, 'coords':coords}]
 
 
@@ -85,7 +106,7 @@ def parsegausslog(fh):
     try:
         data = logfile.parse()
     except Exception:
-        messages.error('¡El archivo de coordenadas no tiene un formato válido!')
+        messages.error('El archivo de coordenadas no tiene un formato válido')
     pt = cclib.parser.utils.PeriodicTable()
     natom = len(data.atomcoords[-1])
     title = data.scfenergies[-1]
