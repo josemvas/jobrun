@@ -90,13 +90,13 @@ def setup(relpath=False):
             copyfile(buildpath(selhostdir, 'packages', pkgdir, 'packageconf.json'), buildpath(specdir, pkgdir, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
-        match = re.search(r'^([^\t]+):$', line)
+        match = re.fullmatch(r'(\S+):', line)
         if match and match.group(1) not in libpath:
             libpath.append(match.group(1))
 
     pyldpath.append('$LD_LIBRARY_PATH')
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
-        match = re.search(r'=> (.+) \(0x', line)
+        match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
             libdir = os.path.dirname(match.group(1))
             if libdir not in libpath and libdir not in pyldpath:

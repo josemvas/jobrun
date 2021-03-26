@@ -5,11 +5,10 @@ from time import sleep
 from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
-from .utils import o, p, q, Bunch
 from .readspec import readspec
-from .jobutils import printchoices, findparameters
-from .shared import ArgList, InputFileError, names, environ, hostspecs, jobspecs, options
-from .fileutils import AbsPath, NotAbsolutePath, buildpath
+from .utils import Bunch, o, p, q, printree
+from .fileutils import AbsPath, NotAbsolutePath, buildpath, dirbranches
+from .shared import ArgList, names, environ, hostspecs, jobspecs, options
 from .submit import setup, submit 
 
 class LsOptions(Action):
@@ -18,14 +17,14 @@ class LsOptions(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if jobspecs.versions:
             print('Versiones del programa:')
-            printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
+            printree(choices=jobspecs.versions, default=jobspecs.defaults.version)
         for path in jobspecs.defaults.parameterpaths:
             print('Parámetros disponibles:', p(key))
             pathcomponents = AbsPath(path).setkeys(names).populate()
-            findparameters(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, 1)
+            dirbranches(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, 1)
         if jobspecs.keywords:
             print('Variables de interpolación:')
-            printchoices(choices=jobspecs.keywords)
+            printree(choices=jobspecs.keywords)
         raise SystemExit()
 
 class SetCwd(Action):
@@ -162,16 +161,13 @@ try:
         for item in options.fileopts.values():
             filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
         for item in arglist:
-            if isinstance(item, tuple):
-                rootdir, basename = item
-                relparent = os.path.relpath(rootdir, homedir)
-                remotecwd = buildpath(remoteshare, userhost, relparent)
-                remotejobs.append(basename)
-                for key in jobspecs.filekeys:
-                    if os.path.isfile(buildpath(rootdir, (basename, key))):
-                        filelist.append(buildpath(homedir, '.', relparent, (basename, key)))
-            elif isinstance(item, InputFileError):
-                messages.failure(str(item))
+            rootdir, basename = item
+            relparent = os.path.relpath(rootdir, homedir)
+            remotecwd = buildpath(remoteshare, userhost, relparent)
+            remotejobs.append(basename)
+            for key in jobspecs.filekeys:
+                if os.path.isfile(buildpath(rootdir, (basename, key))):
+                    filelist.append(buildpath(homedir, '.', relparent, (basename, key)))
         if remotejobs:
             options.switch.add('base')
             options.switch.add('delete')
@@ -188,17 +184,15 @@ try:
         setup()
         options.interpolate()
 
-        item = next(arglist)
-        if isinstance(item, tuple):
-            submit(*item)
-        elif isinstance(item, InputFileError):
-            messages.failure(str(item))
-        for item in arglist:
-            if isinstance(item, tuple):
-                sleep(options.common.wait)
-                submit(*item)
-            elif isinstance(item, InputFileError):
-                messages.failure(str(item))
+        try:
+            rootdir, basename = next(arglist)
+        except StopIteration:
+            sys.exit()
+
+        submit(rootdir, basename)
+        for rootdir, basename in arglist:
+            sleep(options.common.wait)
+            submit(rootdir, basename)
     
 except KeyboardInterrupt:
     messages.error('Interrumpido por el usuario')

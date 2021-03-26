@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam
@@ -11,12 +12,6 @@ from .fileutils import AbsPath, buildpath
 from .readmol import readmol
 from .parsing import BoolParser
 
-class NonMatchingFile(Exception):
-    pass
-
-class InputFileError(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
 
 class ArgList:
     def __init__(self, args):
@@ -28,6 +23,10 @@ class ArgList:
                 self.args = sort(args, key=natural, reverse=True)
         else:
             self.args = args
+        if 'filter' in options.common:
+            self.filter = re.compile(options.common.filter)
+        else:
+            self.filter = re.compile('.+')
     def __iter__(self):
         return self
     def __next__(self):
@@ -40,14 +39,6 @@ class ArgList:
             rootdir = AbsPath(options.common.root)
         else:
             abspath = AbsPath(self.current, cwd=options.common.root)
-            #TODO: Move file checking to AbsPath class
-            if not abspath.isfile():
-                if not abspath.exists():
-                    return InputFileError('El archivo de entrada', abspath, 'no existe')
-                elif abspath.isdir():
-                    return InputFileError('El archivo de entrada', abspath, 'es un directorio')
-                else:
-                    return InputFileError('El archivo de entrada', abspath, 'no es un archivo regular')
             rootdir = abspath.parent()
             filename = abspath.name
             for key in jobspecs.infiles:
@@ -55,17 +46,31 @@ class ArgList:
                     basename = removesuffix(filename, '.' + key)
                     break
             else:
-                return InputFileError('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.packagename)
-        if 'filter' in options.common:
-            if not re.match(options.common.filter, basename):
-                return NonMatchingFile()
+                messages.failure('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.packagename)
+                return next(self)
+            #TODO: Move file checking to AbsPath class
+            if not abspath.isfile():
+                if not abspath.exists():
+                    messages.failure('El archivo de entrada', abspath, 'no existe')
+                elif abspath.isdir():
+                    messages.failure('El archivo de entrada', abspath, 'es un directorio')
+                else:
+                    messages.failure('El archivo de entrada', abspath, 'no es un archivo regular')
+                return next(self)
+        filtermatch = self.filter.fullmatch(basename)
+        #TODO: Make filtergroups available to other functions
+        if filtermatch:
+            filtergroups = filtermatch.groups()
+        else:
+            return next(self)
         #TODO: Check for optional files without linking first
         if 'filecheck' in jobspecs:
-            if not BoolParser(jobspecs.filecheck).evaluate(
-                {key:AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
-            ):
-                return InputFileError('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
+            filebools = {key: AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
+            if not BoolParser(jobspecs.filecheck).evaluate(filebools):
+                messages.error('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
+                return next(self)
         return rootdir, basename
+
 
 class OptDict:
     def __init__(self):

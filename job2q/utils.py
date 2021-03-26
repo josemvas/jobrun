@@ -89,3 +89,10 @@ def removesuffix(self, suffix):
     else:
         return self[:]
 
+def printree(choices, indent=1, default=None):
+    for choice in natsort(choices):
+        if choice == default:
+            print(' '*2*indent + choice + ' '*3 + '(default)')
+        else:
+            print(' '*2*indent + choice)
+

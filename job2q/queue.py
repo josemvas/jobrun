@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 import sys
-from re import search
 from subprocess import Popen, PIPE
 from .shared import hostspecs, jobspecs
 
@@ -12,7 +12,7 @@ def submitjob(jobscript):
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
     if process.returncode == 0:
-        return search(hostspecs.idregex, output).group(1)
+        return re.search(hostspecs.idregex, output).group(1)
     else:
         raise RuntimeError(error)
         

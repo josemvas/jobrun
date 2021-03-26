@@ -195,3 +195,18 @@ def rmtree(path, date):
             delete_newer(os.path.join(root, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
+def dirbranches(rootpath, components, defaults, indent):
+    component = next(components, None)
+    if component:
+        try:
+            dirbranches(rootpath.joinpath(component.format()), components, defaults, indent)
+        except IndexError:
+            choices = diritems(rootpath, component)
+            try:
+                default = component.format(**defaults)
+            except IndexError:
+                default = None
+            printree(choices=choices, default=default, indent=indent)
+            for choice in choices:
+                dirbranches(rootpath.joinpath(choice), components, defaults, indent + 1)
+            

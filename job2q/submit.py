@@ -222,30 +222,21 @@ def setup():
     else:
         messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
 
-#TODO: Check if variables in parameter sets match filter groups
-#    if 'filter' in options.common:
-#        pattern = re.compile(options.common.filter)
-#        for item in jobspecs.parameters + [i + '-path' for i in jobspecs.parameters]:
-#            if item in options.parameters or item in options.parameterpaths:
-#                for key in Formatter().parse(getattr(options.parameters, item)):
-#                    if key[1] is not None:
-#                        try:
-#                            if int(key[1]) not in range(pattern.groups()):
-#                                messages.error('El nombre o ruta', getattr(options.parameters, key), 'contiene referencias no numéricas', option=key)
-#                        except ValueError:
-#                            messages.error('El nombre o ruta', getattr(options.parameters, key), 'contiene referencias fuera de rango', option=key)
-
-#TODO: Use filter matchings groups to build the parameter list
-#    for key in options.parameters:
-#        for var in getattr(options.parameters, key).split(','): 
-#            if var.startswith('%'):
-#                parameterlist.append(match.groups(var[1:]))
-#            else:
-#                parameterlist.append(var[1:])
-
     parameterdict = {}
     parameterdict.update(jobspecs.defaults.parameters)
     parameterdict.update(options.parameters)
+
+#    #TODO: Use filter groups to set parameters
+#    # This should be moved to the submit function
+#    for key, value in options.parameterdict.items():
+#        if value.startswith('%'):
+#            try:
+#                index = int(value[1:]) - 1
+#            except ValueError:
+#                messages.error(value, 'debe tener un índice numérico', option=o(key))
+#            if index not in range(len(filtergroups)):
+#                messages.error(value, 'El índice está fuera de rango', option=o(key))
+#            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
         pathcomponents = AbsPath(path, cwd=options.common.root).setkeys(names).populate()

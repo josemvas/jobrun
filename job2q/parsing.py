@@ -100,7 +100,7 @@ class BoolParser:
             return None
         l = self.current
         self.current = next(self.tokens, None)
-        if re.match(r'[a-zA-Z0-9_.]+$', l):
+        if re.fullmatch(r'[a-zA-Z0-9_.]+', l):
             return Node(None, None, l)
         else:
             raise Exception('Expected an alphanumeric string')
