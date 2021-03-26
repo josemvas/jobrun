@@ -86,24 +86,23 @@ class OptDict:
                     self.__dict__['define'].update({key:value})
     def interpolate(self):
         if self.common.interpolate:
-            if self.common.mol:
+            if self.common.addmol:
                 index = 0
-                for path in self.common.mol:
+                for path in self.common.addmol:
                     index += 1
                     path = AbsPath(path, cwd=options.common.root)
-                    coords = readmol(path)[-1]['coords']
+                    coords = readmol(path)[-1]
                     self.keywords['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
                 if not 'prefix' in self.common:
-                    if len(self.common.mol) == 1:
+                    if len(self.common.addmol) == 1:
                         self.common.prefix = path.stem
                     else:
                         messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
             elif 'allmol' in self.common:
                 index = 0
                 path = AbsPath(self.common.molall, cwd=options.common.root)
-                for step in readmol(path):
+                for coords in readmol(path):
                     index += 1
-                    coords = step['coords']
                     self.keywords['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
                 prefix.append(path.stem)
                 if not 'prefix' in self.common:
@@ -112,7 +111,7 @@ class OptDict:
                 if not 'prefix' in self.common and not 'suffix' in self.common:
                     messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
         else:
-            if self.keywords or self.common.mol or 'allmol' in self.common:
+            if self.keywords or self.common.addmol or 'allmol' in self.common:
                 messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 names = Bunch()

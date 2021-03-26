@@ -243,36 +243,24 @@ def setup():
 #            else:
 #                parameterlist.append(var[1:])
 
-    for key in jobspecs.parameters:
-#TODO: Replace --key-path options with single --addpath option
-#        if key + '-path' in options.parameterpaths:
-#            rootpath = AbsPath(getattr(options.parameterpaths, key + '-path'), cwd=options.common.root)
-        if key in jobspecs.defaults.parameterpath:
-            if key in options.parameters:
-                parameterlist = options.parameters[key].split(',')
-            elif 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
-                if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
-                    parameterlist = jobspecs.defaults.parameterset[key]
-                else:
-                    messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
-            else:
-                parameterlist = []
-            pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key], cwd=options.common.root).setkeys(names).populate()
-            rootpath = AbsPath(next(pathcomponents))
-            for component in pathcomponents:
-                try:
-                    rootpath = rootpath.joinpath(component.format(*parameterlist))
-                except IndexError:
-                    choices = diritems(rootpath, component)
-                    choice = dialogs.chooseone('Seleccione un conjunto de parámetros', p(key), choices=choices)
-                    rootpath = rootpath.joinpath(choice)
-        else:
-            messages.error('El conjunto de parámetros seleccionado no existe', spec='defaults.parameterpath[{}]'.format(key))
+    parameterdict = {}
+    parameterdict.update(jobspecs.defaults.parameters)
+    parameterdict.update(options.parameters)
+
+    for path in jobspecs.defaults.parameterpaths:
+        pathcomponents = AbsPath(path, cwd=options.common.root).setkeys(names).populate()
+        rootpath = AbsPath(next(pathcomponents))
+        for component in pathcomponents:
+            try:
+                rootpath = rootpath.joinpath(component.format(**parameterdict))
+            except KeyError:
+                choices = diritems(rootpath, component)
+                choice = dialogs.chooseone('Seleccione una opción', choices=choices)
+                rootpath = rootpath.joinpath(choice)
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
-            messages.error('La ruta', rootpath, 'no existe', option='{}-path'.format(key), spec='defaults.parameterpath[{}]'.format(key))
-
+            messages.error('La ruta', path, 'no existe', spec='defaults.parameterpaths')
 
 
 def submit(rootdir, basename):

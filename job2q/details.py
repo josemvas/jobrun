@@ -25,6 +25,7 @@ dictags = (
     'versions',
     'optargs',
     'parameters',
+    'parameterpaths',
     'filekeys',
     'filevars',
     'fileopts',

@@ -19,18 +19,10 @@ class LsOptions(Action):
         if jobspecs.versions:
             print('Versiones del programa:')
             printchoices(choices=jobspecs.versions, default=jobspecs.defaults.version)
-        for key in jobspecs.parameters:
-            if key in jobspecs.defaults.parameterpath:
-                if 'parameterset' in jobspecs.defaults and key in jobspecs.defaults.parameterset:
-                    if isinstance(jobspecs.defaults.parameterset[key], (list, tuple)):
-                        defaults = jobspecs.defaults.parameterset[key]
-                    else:
-                        messages.error('La clave', key, 'no es una lista', spec='defaults.parameterset')
-                else:
-                    defaults = []
-                print('Conjuntos de parámetros:', p(key))
-                pathcomponents = AbsPath(jobspecs.defaults.parameterpath[key]).setkeys(names).populate()
-                findparameters(AbsPath(next(pathcomponents)), pathcomponents, defaults, 1)
+        for path in jobspecs.defaults.parameterpaths:
+            print('Parámetros disponibles:', p(key))
+            pathcomponents = AbsPath(path).setkeys(names).populate()
+            findparameters(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, 1)
         if jobspecs.keywords:
             print('Variables de interpolación:')
             printchoices(choices=jobspecs.keywords)
@@ -99,6 +91,7 @@ try:
     group2.add_argument('-p', '--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group2.add_argument('-s', '--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('-S', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
+    group2.add_argument('-a', '--addpath', metavar='PATH', action='append', default=[], help='Agregar la ruta de parámetros PATH.')
     group2.add_argument('--root', action=SetCwd, metavar='ROOTDIR', default=os.getcwd(), help='Usar rutas relativas al directorio ROOTDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los archivos temporales en el directorio SCRDIR.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
@@ -106,8 +99,8 @@ try:
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 
     molgroup = group2.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Usar el último paso del archivo MOLFILE para interpolar.')
-    molgroup.add_argument('-M', '--allmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE para interpolar.')
+    molgroup.add_argument('-m', '--addmol', metavar='MOLFILE', action='append', default=[], help='Agregar el paso final del archivo MOLFILE a las coordenadas de interpolación.')
+    molgroup.add_argument('-M', '--allmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
 
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
@@ -162,9 +155,9 @@ try:
         remoteshare = output.decode(sys.stdout.encoding).strip()
         if not remoteshare:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        #TODO: Consider include common.mol path in fileopts
+        #TODO: Consider include common.addmol path in fileopts
         if 'mol' in options.common:
-            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.mol, homedir)))
+            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.addmol, homedir)))
         #DONE?: Make default empty dict for fileopts so no test is needed
         for item in options.fileopts.values():
             filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))

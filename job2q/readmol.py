@@ -64,7 +64,7 @@ def parsexyz(fh):
                 coords.append((e, float(x), float(y), float(z)))
         except StopIteration:
             raise ParseError( 'Unexpected end of file')
-        trajectory.append({'natom':natom, 'title':title, 'coords':coords})
+        trajectory.append(coords)
         
 
 # Parse MDL molfile
@@ -94,7 +94,7 @@ def parsemdl(fh):
     for line in fh:
         if line.split()[0] != 'M':
             raise ParseError( 'Invalid format')
-    return [{'natom':natom, 'title':title, 'coords':coords}]
+    return [coords]
 
 
 # Parse Gaussian logfile
@@ -110,9 +110,6 @@ def parseglf(fh):
     except Exception:
         raise ParseError( 'Invalid format')
     pt = cclib.parser.utils.PeriodicTable()
-    natom = len(data.atomcoords[-1])
-    title = data.scfenergies[-1]
-    coords = [(pt.element[data.atomnos[i]], e[0], e[1], e[2]) for i, e in enumerate(data.atomcoords[-1])]
-    return [{'natom':natom, 'title':title, 'coords':coords}]
+    return [(pt.element[data.atomnos[i]], e[0], e[1], e[2]) for i, e in enumerate(data.atomcoords[-1])]
 
 

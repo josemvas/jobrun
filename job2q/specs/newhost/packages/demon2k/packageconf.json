@@ -1,12 +1,9 @@
 {
    "defaults": {
       "version": "6.0.1",
-      "parameterpath": {
-         "bases": "/home/{user}/share/parameters/deMon2k/{0}"
-      },
-      "parameterset": {
-         "bases" : [ "default" ]
-      }
+      "parameterpaths": [
+         "/home/{user}/share/deMon2k/bases"
+      ]
    },
    "versions": {
       "6.0.1": {

@@ -18,7 +18,7 @@ def findparameters(rootpath, components, defaults, indent):
         except IndexError:
             choices = diritems(rootpath, component)
             try:
-                default = component.format(*defaults)
+                default = component.format(**defaults)
             except IndexError:
                 default = None
             printchoices(choices=choices, default=default, indent=indent)

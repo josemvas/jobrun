@@ -75,10 +75,10 @@ def splitcomponent(component):
     if first[1] is None:
         return first[0],
     else:
-        try:
-            int(first[1])
-        except ValueError:
-            raise PathKeyError(self, 'has unresolved non integer keys')
+#        try:
+#            int(first[1])
+#        except ValueError:
+#            raise PathKeyError(component, 'has unresolved non integer keys')
         try:
             second = next(parts)
         except:
@@ -87,7 +87,7 @@ def splitcomponent(component):
             if second[1] is None:
                 suffix = second[0]
             else:
-                raise PathKeyError(self, 'has components with multiple keys')
+                raise PathKeyError(component, 'has components with multiple keys')
         return first[0], '{' + first[1] + '}', suffix
 
 def diritems(abspath, component):
