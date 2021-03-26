@@ -11,8 +11,8 @@ General
 - Agregar opción para imprimir la versión del script
 - Determinar los conjuntos de parámetros a partir del filtro, por ejemplo: autodock --addpath=$HOME/docklib/{release}/ligands/{ligand}.pdbqt --addpath=$HOME/docklib/{release}/receptors/{receptor} --release 1.1 --ligand=#1 --receptor=#2 --filter '([^_]+)_([^_]+)'
 - Agregar en las especificaciones de los trabajos un diccionario con las condiciones lógicas de los archivos de entrada y el mensaje de error si no se cumplen
-- Considerar usar una carpeta oculta nombrada con el número de trabajo para guardar los jobscripts
-- Agregar opción para incluir la clave y versión del programa en los nombres de los archivos de salida
+- Nombrar la carpeta oculta de jobscripts con el número de trabajo
+- Agregar una opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Considerar usar template strings para interpolar las opciones y especificaciones
 
 console.py
@@ -29,8 +29,7 @@ queue.py
 AbsPath
 -------
 - Considerar no aceptar listas de componentes de path como argumento (usar el método joinpath en su lugar)
-- Considerar reemplazar método setkeys con la opción keys= y aceptar listas además de diccionarios para interpolar
-- Usar , en vez de / para separar los valores de los componentes interpolables de las rutas de parámetros
+- Quitar el método setkeys de Abspath y dejar a joinpath realizar la interpolacion de los componentes
 
 readspec.py
 -----------
