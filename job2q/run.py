@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
 from .readspec import readspec
-from .utils import Bunch, o, p, q, printree
+from .utils import Bunch, DefaultItem, _, o, p, q, printree
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, dirbranches
 from .shared import ArgList, names, environ, hostspecs, jobspecs, options
 from .submit import setup, submit 
@@ -16,15 +16,18 @@ class LsOptions(Action):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         if jobspecs.versions:
-            print('Versiones del programa:')
-            printree(choices=jobspecs.versions, default=jobspecs.defaults.version)
+            print(_('Versiones del programa:'))
+            printree([DefaultItem(i, jobspecs.defaults.version) for i in jobspecs.versions], level=1)
         for path in jobspecs.defaults.parameterpaths:
-            print('Parámetros disponibles:', p(key))
-            pathcomponents = AbsPath(path).setkeys(names).populate()
-            dirbranches(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, 1)
+            tree = {}
+            pathcomponents = AbsPath(path).setkeys(names).yieldcomponents()
+            dirbranches(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, tree)
+            if tree:
+               print(_('Parámetros en $path:'))
+               printree(tree, level=1)
         if jobspecs.keywords:
-            print('Variables de interpolación:')
-            printree(choices=jobspecs.keywords)
+            print(_('Variables de interpolación:'))
+            printree([DefaultItem(i) for i in jobspecs.keywords], level=1)
         raise SystemExit()
 
 class SetCwd(Action):

@@ -2,7 +2,7 @@
 from string import Template
 from . import dialogs, messages
 from .queue import submitjob, checkjob
-from .fileutils import AbsPath, NotAbsolutePath, diritems, buildpath, remove, makedirs, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
@@ -226,8 +226,9 @@ def setup():
     parameterdict.update(jobspecs.defaults.parameters)
     parameterdict.update(options.parameters)
 
+#    #TODO: Move this code to the submit function
 #    #TODO: Use filter groups to set parameters
-#    # This should be moved to the submit function
+#    #TODO: Use template strings to interpolate
 #    for key, value in options.parameterdict.items():
 #        if value.startswith('%'):
 #            try:
@@ -239,13 +240,13 @@ def setup():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        pathcomponents = AbsPath(path, cwd=options.common.root).setkeys(names).populate()
+        pathcomponents = AbsPath(path, cwd=options.common.root).setkeys(names).yieldcomponents()
         rootpath = AbsPath(next(pathcomponents))
         for component in pathcomponents:
             try:
                 rootpath = rootpath.joinpath(component.format(**parameterdict))
             except KeyError:
-                choices = diritems(rootpath, component)
+                choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)
                 rootpath = rootpath.joinpath(choice)
         if rootpath.exists():

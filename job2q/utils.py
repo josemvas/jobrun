@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import sys
 from . import colors
+from string import Formatter, Template
 
 wordseps = (' ', '')
 pathseps = (os.path.sep, '.')
@@ -21,6 +23,15 @@ class Bunch(dict):
             raise AttributeError(item)
     def __setattr__(self, item, value):
         self.__setitem__(item, value)
+
+class DefaultItem(str):
+    def __new__(cls, key, default=None):
+        obj = str.__new__(cls, key)
+        obj.default = key == default
+        return obj
+
+def _(message):
+    return Template(message).safe_substitute(sys._getframe(1).f_locals)
 
 def o(key, value=None):
     if value is not None:
@@ -89,10 +100,14 @@ def removesuffix(self, suffix):
     else:
         return self[:]
 
-def printree(choices, indent=1, default=None):
-    for choice in natsort(choices):
-        if choice == default:
-            print(' '*2*indent + choice + ' '*3 + '(default)')
-        else:
-            print(' '*2*indent + choice)
+def printree(tree, level=0):
+    if isinstance(tree, (list, dict)):
+        for branch in natsort(tree):
+            if branch.default:
+                print(' '*2*level + branch + ' '*3 + '(default)')
+            else:
+                print(' '*2*level + branch)
+            printree(branch, level + 1)
 
+def getformatkeys(formatstr):
+    return [i[1] for i in Formatter().parse(formatstr)  if i[1] is not None]

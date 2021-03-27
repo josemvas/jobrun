@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import deepjoin, pathseps, natsort
+from .utils import DefaultItem, deepjoin, pathseps, natsort, printree, getformatkeys
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -47,9 +47,23 @@ class AbsPath(str):
             else:
                 raise PathKeyError(self, 'has undefined keys')
         return AbsPath(formatted)
-    def populate(self):
+    def yieldcomponents(self):
         for component in splitpath(self):
-            yield ''.join(splitcomponent(component))
+            parts = string.Formatter.parse(None, component)
+            first = next(parts)
+            if first[1] is None:
+                yield first[0]
+            else:
+                try:
+                    second = next(parts)
+                except:
+                    suffix = ''
+                else:
+                    if second[1] is None:
+                        suffix = second[0]
+                    else:
+                        raise PathKeyError(component, 'has components with multiple keys')
+                yield first[0] + '{' + first[1] + '}' + suffix
     def listdir(self):
         return os.listdir(self)
     def parent(self):
@@ -68,41 +82,6 @@ class AbsPath(str):
         copyfile(self, os.path.join(*dest))
     def joinpath(self, path):
         return AbsPath(os.path.join(self, path))
-
-def splitcomponent(component):
-    parts = string.Formatter.parse(None, component)
-    first = next(parts)
-    if first[1] is None:
-        return first[0],
-    else:
-#        try:
-#            int(first[1])
-#        except ValueError:
-#            raise PathKeyError(component, 'has unresolved non integer keys')
-        try:
-            second = next(parts)
-        except:
-            suffix = ''
-        else:
-            if second[1] is None:
-                suffix = second[0]
-            else:
-                raise PathKeyError(component, 'has components with multiple keys')
-        return first[0], '{' + first[1] + '}', suffix
-
-def diritems(abspath, component):
-    try:
-        dirlist = abspath.listdir()
-    except FileNotFoundError:
-        messages.error('El directorio', abspath, 'no existe')
-    except NotADirectoryError:
-        messages.error('La ruta', abspath, 'no es un directorio')
-    prefix, _, suffix = splitcomponent(component)
-    dirlist = [ i for i in dirlist if i.startswith(prefix) and i.endswith(suffix) ]
-    if dirlist:
-        return natsort(dirlist)
-    else:
-        messages.error('El directorio', abspath, 'está vacío o no coincide con la búsqueda')
 
 def buildpath(*args):
     path = deepjoin(args, iter(pathseps))
@@ -195,18 +174,17 @@ def rmtree(path, date):
             delete_newer(os.path.join(root, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def dirbranches(rootpath, components, defaults, indent):
+def dirbranches(rootpath, components, defaults, tree):
     component = next(components, None)
     if component:
-        try:
-            dirbranches(rootpath.joinpath(component.format()), components, defaults, indent)
-        except IndexError:
-            choices = diritems(rootpath, component)
-            try:
-                default = component.format(**defaults)
-            except IndexError:
-                default = None
-            printree(choices=choices, default=default, indent=indent)
+        formatkeys = getformatkeys(component)
+        if formatkeys:
+            choices = rootpath.listdir()
+            default = defaults.get(formatkeys[0], None)
             for choice in choices:
-                dirbranches(rootpath.joinpath(choice), components, defaults, indent + 1)
-            
+                key = DefaultItem(choice, default)
+                tree[key] = {}
+                dirbranches(rootpath.joinpath(choice), components, defaults, tree[key])
+        else:
+            dirbranches(rootpath.joinpath(component), components, defaults, tree)
+

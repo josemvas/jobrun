@@ -9,7 +9,8 @@ General
 - Trap para SIGINT y SIGTERM enviados por bkill
 - Poner límite de memoria a los trabajos
 - Agregar opción para imprimir la versión del script
-- Determinar los conjuntos de parámetros a partir del filtro, por ejemplo: autodock --addpath=$HOME/docklib/{release}/ligands/{ligand}.pdbqt --addpath=$HOME/docklib/{release}/receptors/{receptor} --release 1.1 --ligand=#1 --receptor=#2 --filter '([^_]+)_([^_]+)'
+- Considerar no admitir componentes de ruta parcialmente interpolables y simplificar el código relacionado (setkeys, validate, yieldcomponents)
+- Determinar los conjuntos de parámetros a partir del filtro, por ejemplo: autodock --addpath=$HOME/docklib/{release}/ligands/{ligand} --addpath=$HOME/docklib/{release}/receptors/{receptor} --release 1.1 --ligand=%1.pdbqt --receptor=%2 --filter '([^_]+)_([^_]+)'
 - Agregar en las especificaciones de los trabajos un diccionario con las condiciones lógicas de los archivos de entrada y el mensaje de error si no se cumplen
 - Nombrar la carpeta oculta de jobscripts con el número de trabajo
 - Agregar una opción para incluir la clave y versión del programa en los nombres de los archivos de salida
