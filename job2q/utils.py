@@ -24,14 +24,13 @@ class Bunch(dict):
     def __setattr__(self, item, value):
         self.__setitem__(item, value)
 
-class DefaultItem(str):
-    def __new__(cls, key, default=None):
-        obj = str.__new__(cls, key)
-        obj.default = key == default
-        return obj
+class _(Template):
+    format = Template.safe_substitute
+    def __str__(self):
+        return(self.safe_substitute())
 
-def _(message):
-    return Template(message).safe_substitute(sys._getframe(1).f_locals)
+class DefaultStr(str):
+    pass
 
 def o(key, value=None):
     if value is not None:
@@ -100,14 +99,16 @@ def removesuffix(self, suffix):
     else:
         return self[:]
 
-def printree(tree, level=0):
+def printtree(tree, level=0):
     if isinstance(tree, (list, dict)):
         for branch in natsort(tree):
-            if branch.default:
+            if isinstance(branch, DefaultStr):
                 print(' '*2*level + branch + ' '*3 + '(default)')
-            else:
+            elif isinstance(branch, str):
                 print(' '*2*level + branch)
-            printree(branch, level + 1)
+            else:
+                raise SystemExit(colors.red + 'Tree elements must be str or DefaultStr type' + colors.default)
+            printtree(branch, level + 1)
 
 def getformatkeys(formatstr):
     return [i[1] for i in Formatter().parse(formatstr)  if i[1] is not None]

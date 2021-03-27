@@ -70,7 +70,7 @@ class BoolParser:
         l = self.Conj()
         if self.accept('or'):
             r = self.Disj()
-            if r == None:
+            if r is None:
                 return None
             return Node(l, r, 'or')
         return l
@@ -79,7 +79,7 @@ class BoolParser:
         l = self.Neg()
         if self.accept('and'):
             r = self.Conj()
-            if r == None:
+            if r is None:
                 return None
             return Node(l, r, 'and')
         return l
@@ -87,7 +87,7 @@ class BoolParser:
     def Neg(self):
         if self.accept('not'):
             l = self.Lit()
-            if l == None:
+            if l is None:
                 return None
             return Node(None, l, 'not')
         return self.Lit()

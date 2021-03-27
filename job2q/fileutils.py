@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import DefaultItem, deepjoin, pathseps, natsort, printree, getformatkeys
+from .utils import DefaultStr, deepjoin, pathseps, natsort, printtree, getformatkeys
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -174,17 +174,28 @@ def rmtree(path, date):
             delete_newer(os.path.join(root, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def dirbranches(rootpath, components, defaults, tree):
+def getcomponentkey(component):
+    formatkeys = getformatkeys(component)
+    if formatkeys:
+        if len(formatkeys) == 1:
+            if component.format(**{formatkeys[0]: ''}):
+                messages.error('La variable de interpolación no ocupa todo el componente', component)
+            else:
+                return formatkeys[0]
+        else:
+            messages.error('Hay más de una variable de interpolación en el componente', component)
+
+def findbranches(rootpath, components, defaults, dirtree):
     component = next(components, None)
     if component:
-        formatkeys = getformatkeys(component)
-        if formatkeys:
+        key = getcomponentkey(component)
+        if key:
             choices = rootpath.listdir()
-            default = defaults.get(formatkeys[0], None)
+            default = defaults.get(key, None)
             for choice in choices:
-                key = DefaultItem(choice, default)
-                tree[key] = {}
-                dirbranches(rootpath.joinpath(choice), components, defaults, tree[key])
+                choice = DefaultStr(choice) if choice == default else str(choice)
+                dirtree[choice] = {}
+                findbranches(rootpath.joinpath(choice), components, defaults, dirtree[choice])
         else:
-            dirbranches(rootpath.joinpath(component), components, defaults, tree)
+            findbranches(rootpath.joinpath(component), components, defaults, dirtree)
 
