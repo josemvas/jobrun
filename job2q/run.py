@@ -20,8 +20,8 @@ class LsOptions(Action):
             printtree([DefaultStr(i) if i == jobspecs.defaults.version else str(i) for i in jobspecs.versions], level=1)
         for path in jobspecs.defaults.parameterpaths:
             dirtree = {}
-            pathcomponents = AbsPath(path).setkeys(names).yieldcomponents()
-            findbranches(AbsPath(next(pathcomponents)), pathcomponents, jobspecs.defaults.parameters, dirtree)
+            partlist = AbsPath(path).setkeys(names).parts()
+            findbranches(AbsPath(next(partlist)), partlist, jobspecs.defaults.parameters, dirtree)
             if dirtree:
                print(_('Parámetros en $path:').format(path=path.format(**{i: '*' for i in getformatkeys(path)})))
                printtree(dirtree, level=1)

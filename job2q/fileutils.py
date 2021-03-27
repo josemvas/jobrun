@@ -29,45 +29,12 @@ class AbsPath(str):
         obj.name = os.path.basename(path)
         obj.stem, obj.extension = os.path.splitext(obj.name)
         return obj
-    def setkeys(self, keydict):
-        formatted = ''
-        for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if key is None:
-                formatted += lit
-            elif spec:
-                formatted += lit + keydict.get(key, '{' + key + ':' + spec + '}')
-            else:
-                formatted += lit + keydict.get(key, '{' + key + '}')
-        return AbsPath(formatted)
-    def validate(self):
-        formatted = ''
-        for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if key is None:
-                formatted += lit
-            else:
-                raise PathKeyError(self, 'has undefined keys')
-        return AbsPath(formatted)
-    def yieldcomponents(self):
-        for component in splitpath(self):
-            parts = string.Formatter.parse(None, component)
-            first = next(parts)
-            if first[1] is None:
-                yield first[0]
-            else:
-                try:
-                    second = next(parts)
-                except:
-                    suffix = ''
-                else:
-                    if second[1] is None:
-                        suffix = second[0]
-                    else:
-                        raise PathKeyError(component, 'has components with multiple keys')
-                yield first[0] + '{' + first[1] + '}' + suffix
-    def listdir(self):
-        return os.listdir(self)
+    def parts(self):
+        return iter(splitpath(self))
     def parent(self):
         return AbsPath(os.path.dirname(self))
+    def listdir(self):
+        return os.listdir(self)
     def hasext(self, extension):
         return self.extension == extension
     def exists(self):
@@ -82,12 +49,44 @@ class AbsPath(str):
         copyfile(self, os.path.join(*dest))
     def joinpath(self, path):
         return AbsPath(os.path.join(self, path))
+    def setkeys(self, keydict):
+        formatted = ''
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if key is None:
+                formatted += lit
+#            elif spec:
+#                formatted += lit + keydict.get(key, '{' + key + ':' + spec + '}')
+            else:
+                formatted += lit + keydict.get(key, '{' + key + '}')
+        return AbsPath(formatted)
+    def validate(self):
+        formatted = ''
+        for lit, key, spec, _ in string.Formatter.parse(None, self):
+            if key is None:
+                formatted += lit
+            else:
+                raise PathKeyError(self, 'has undefined keys')
+        return AbsPath(formatted)
+#    def yieldparts(self):
+#        for part in splitpath(self):
+#            items = string.Formatter.parse(None, part)
+#            first = next(items)
+#            if first[1] is None:
+#                yield first[0]
+#            else:
+#                try:
+#                    second = next(items)
+#                except:
+#                    suffix = ''
+#                else:
+#                    if second[1] is None:
+#                        suffix = second[0]
+#                    else:
+#                        raise PathKeyError(part, 'has parts with multiple keys')
+#                yield first[0] + '{' + first[1] + '}' + suffix
 
 def buildpath(*args):
-    path = deepjoin(args, iter(pathseps))
-#    if splitpath(path) != [j for i in args for j in splitpath(i)]:
-#        raise PathKeyError('Conflicting path components in', *args)
-    return path
+    return deepjoin(args, iter(pathseps))
 
 def splitpath(path):
     if path:
@@ -174,28 +173,28 @@ def rmtree(path, date):
             delete_newer(os.path.join(root, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def getcomponentkey(component):
-    formatkeys = getformatkeys(component)
+def getpartkey(part):
+    formatkeys = getformatkeys(part)
     if formatkeys:
         if len(formatkeys) == 1:
-            if component.format(**{formatkeys[0]: ''}):
-                messages.error('La variable de interpolación no ocupa todo el componente', component)
+            if part.format(**{formatkeys[0]: ''}):
+                messages.error('La variable de interpolación no ocupa todo el componente', part)
             else:
                 return formatkeys[0]
         else:
-            messages.error('Hay más de una variable de interpolación en el componente', component)
+            messages.error('Hay más de una variable de interpolación en el componente', part)
 
-def findbranches(rootpath, components, defaults, dirtree):
-    component = next(components, None)
-    if component:
-        key = getcomponentkey(component)
+def findbranches(rootpath, partlist, defaults, dirtree):
+    part = next(partlist, None)
+    if part:
+        key = getpartkey(part)
         if key:
             choices = rootpath.listdir()
             default = defaults.get(key, None)
             for choice in choices:
                 choice = DefaultStr(choice) if choice == default else str(choice)
                 dirtree[choice] = {}
-                findbranches(rootpath.joinpath(choice), components, defaults, dirtree[choice])
+                findbranches(rootpath.joinpath(choice), partlist, defaults, dirtree[choice])
         else:
-            findbranches(rootpath.joinpath(component), components, defaults, dirtree)
+            findbranches(rootpath.joinpath(part), partlist, defaults, dirtree)
 

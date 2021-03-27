@@ -240,11 +240,11 @@ def setup():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        pathcomponents = AbsPath(path, cwd=options.common.root).setkeys(names).yieldcomponents()
-        rootpath = AbsPath(next(pathcomponents))
-        for component in pathcomponents:
+        partlist = AbsPath(path, cwd=options.common.root).setkeys(names).parts()
+        rootpath = AbsPath(next(partlist))
+        for part in partlist:
             try:
-                rootpath = rootpath.joinpath(component.format(**parameterdict))
+                rootpath = rootpath.joinpath(part.format(**parameterdict))
             except KeyError:
                 choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)
