@@ -3,11 +3,16 @@
    "packagename": "ORCA",
    "parallelib": "openmpi",
    "mpilaunch": "False",
-   "filecheck": "inp",
    "stdoutput": "out",
+
+   "conflicts": {
+      "not inp": "Debe existir un archivo inp"
+   },
+
    "defaults" : {
       "outdir": "{job}"
    },
+
    "filekeys": {
       "inp": "job.inp",
       "out": "job.out",
@@ -19,15 +24,19 @@
       "engrad": "job.engrad",
       "property": "job_property.txt"
    },
+
    "filevars": {
       "inp": "inp"
    },
+
    "infiles": [
       "inp"
    ],
+
    "posargs": [
       "inp"
    ],
+
    "outfiles": [
       "inp",
       "gbw",
@@ -39,6 +48,7 @@
       "engrad",
       "property"
    ],
+
    "prescript": [
       "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $nproc end\" $inp"
    ]

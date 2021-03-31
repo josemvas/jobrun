@@ -22,6 +22,7 @@ dictags = (
     'export',
     'append',
     'defaults',
+    'conflicts',
     'versions',
     'optargs',
     'parameters',

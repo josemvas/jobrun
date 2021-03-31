@@ -2,24 +2,33 @@
    "packagefix": "AD",
    "packagename": "AutoDock",
    "parallelib": "None",
-   "filecheck": "dpf",
+
+   "conflicts": {
+      "not dpf": "Debe existir un archivo dpf"
+   },
+
    "defaults" : {
       "outdir": "."
    },
+
    "filekeys": {
       "dpf": "job.dpf",
       "dlg": "job.dlg"
    },
+
    "infiles": [
       "dpf"
    ],
+
    "outfiles": [
       "dlg"
    ],
+
    "optargs": {
       "p": "dpf",
       "l": "dlg"
    },
+
    "parameters": [
       "lig",
       "rec"

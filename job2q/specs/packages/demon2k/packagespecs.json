@@ -3,10 +3,15 @@
    "packagename": "deMon2k",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
-   "filecheck": "inp",
+
+   "conflicts": {
+      "not inp": "Debe existir un archivo inp"
+   },
+
    "defaults" : {
       "outdir": "{job}"
    },
+
    "filekeys": {
       "inp": "deMon.inp",
       "modinp": "deMon.inp",
@@ -20,15 +25,18 @@
       "pie": "deMon.pie",
       "bin": "deMon.bin"
    },
+
    "fileopts": {
       "rstfile": "rst",
       "trjfile": "oldtrj"
    },
+
    "infiles": [
       "inp",
       "rst",
       "oldtrj"
    ],
+
    "outfiles": [
       "modinp",
       "trj",
@@ -39,9 +47,11 @@
       "pie",
       "bin"
    ],
+
    "interpolable": [
       "inp"
    ],
+
    "keywords": [
       "title",
       "method",
@@ -51,6 +61,7 @@
       "charge",
       "spin"
    ],
+
    "parameters": [
       "bases"
    ]

@@ -2,10 +2,16 @@
    "packagefix": "G",
    "packagename": "Gaussian",
    "parallelib": "openmp",
-   "filecheck": "(gjf and not com) or (com and not gjf)",
+
+   "conflicts": {
+      "com and gjf": "No deben existir ambos archivos com y gjf",
+      "not com and not gjf": "Debe existir un archivo com o gjf"
+   },
+
    "defaults" : {
       "outdir": "{job}"
    },
+
    "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",
@@ -18,6 +24,7 @@
       "cub": "job.cub",
       "oldchk": "job.oldchk"
    },
+
    "filevars": {
       "com": "com",
       "gjf": "gjf",
@@ -25,14 +32,17 @@
       "fchk": "fchk",
       "oldchk": "oldchk"
    },
+
    "fileopts": {
       "oldchk": "oldchk"
    },
+
    "infiles": [
       "com",
       "gjf",
       "oldchk"
    ],
+
    "outfiles": [
       "log",
       "chk",
@@ -42,22 +52,27 @@
       "modcom",
       "modgjf"
    ],
+
    "interpolable": [
       "gjf",
       "com"
    ],
+
    "posargs": [
       "gjf|com"
    ],
+
    "export": {
       "GAUSS_SCRDIR": "."
    },
+
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",
       "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
    ],
+
    "keywords": [
       "title",
       "method",

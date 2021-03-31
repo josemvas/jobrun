@@ -3,11 +3,16 @@
    "packagename": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
-   "filecheck": "INCAR and POSCAR and POTCAR",
+
+   "conflicts": {
+      "not INCAR or not POSCAR or not POTCAR": "Deben existir los archivos INCAR, POSCAR y POTCAR"
+   },
+
    "stdoutput": "log",
    "defaults" : {
       "outdir": "{job}"
    },
+
    "filekeys": {
       "INCAR": "INCAR",
       "POSCAR": "POSCAR",
@@ -39,6 +44,7 @@
       "xml": "vasprun.xml",
       "log": "logfile"
    },
+
    "infiles": [
       "INCAR",
       "POSCAR",
@@ -47,6 +53,7 @@
       "CHGCAR",
       "WAVECAR"
    ],
+
    "outfiles": [
       "CHG",
       "CHGCAR",

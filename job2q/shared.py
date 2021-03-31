@@ -7,7 +7,7 @@ from pwd import getpwnam
 from grp import getgrgid
 from . import messages
 from .readspec import SpecBunch
-from .utils import Bunch, removesuffix, q
+from .utils import Bunch, removesuffix, p, q
 from .fileutils import AbsPath, buildpath
 from .readmol import readmol
 from .parsing import BoolParser
@@ -63,11 +63,10 @@ class ArgList:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
-        #TODO: Check for optional files without linking first
-        if 'filecheck' in jobspecs:
-            filebools = {key: AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
-            if not BoolParser(jobspecs.filecheck).evaluate(filebools):
-                messages.error('El trabajo', q(basename), 'no se envió porque hacen faltan archivos de entrada o hay un conflicto entre ellos')
+        filebools = {key: AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.fileopts for key in jobspecs.filekeys}
+        for conflict, message in jobspecs.conflicts.items():
+            if BoolParser(conflict).evaluate(filebools):
+                messages.error(message, p(basename))
                 return next(self)
         return rootdir, basename
 

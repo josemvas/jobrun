@@ -2,11 +2,16 @@
    "packagefix": "DFTB+",
    "packagename": "DFTB+",
    "parallelib": "openmp",
-   "filecheck": "dftb_in.hsd",
    "stdoutput": "dftb_out.log",
+
+   "conflicts": {
+      "not dftb_in.hsd": "Debe existir un archivo dftb_in.hsd"
+   },
+
    "defaults": {
       "outdir": "{job}"
    },
+
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
       "mod_dftb_in.hsd": "dftb_in.hsd",
@@ -34,16 +39,20 @@
       "ARPACK.DAT": "ARPACK.DAT",
       "TEST_ARPACK.DAT": "TEST_ARPACK.DAT"
    },
+
    "filevars": {
       "dftbin": "dftb_in.hsd"
    },
+
    "fileopts": {
       "chargefile": "charges.bin"
    },
+
    "infiles": [
       "dftb_in.hsd",
       "charges.bin"
    ],
+
    "outfiles": [
       "mod_dftb_in.hsd",
       "charges_end.bin",
@@ -69,9 +78,11 @@
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
    ],
+
    "parameters": [
       "slako"
    ],
+
    "prescript": [
       "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
    ]
