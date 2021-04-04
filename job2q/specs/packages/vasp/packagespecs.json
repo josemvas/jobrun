@@ -1,5 +1,5 @@
 {
-   "packagefix": "VASP",
+   "packagekey": "vasp",
    "packagename": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
@@ -10,7 +10,7 @@
 
    "stdoutput": "log",
    "defaults" : {
-      "outdir": "{job}"
+      "jobdir": "True"
    },
 
    "filekeys": {

@@ -7,10 +7,10 @@ from pwd import getpwnam
 from grp import getgrgid
 from . import messages
 from .readspec import SpecBunch
-from .utils import Bunch, removesuffix, p, q
+from .utils import Bunch, p, q
 from .fileutils import AbsPath, buildpath
-from .readmol import readmol
 from .parsing import BoolParser
+from .readmol import readmol
 
 
 class ArgList:
@@ -43,7 +43,7 @@ class ArgList:
             filename = abspath.name
             for key in jobspecs.infiles:
                 if filename.endswith('.' + key):
-                    basename = removesuffix(filename, '.' + key)
+                    basename = filename[:-len('.' + key)]
                     break
             else:
                 messages.failure('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.packagename)

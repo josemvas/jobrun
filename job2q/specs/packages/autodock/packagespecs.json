@@ -1,5 +1,5 @@
 {
-   "packagefix": "AD",
+   "packagekey": "ad",
    "packagename": "AutoDock",
    "parallelib": "None",
 
@@ -8,7 +8,7 @@
    },
 
    "defaults" : {
-      "outdir": "."
+      "jobdir": "False"
    },
 
    "filekeys": {

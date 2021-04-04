@@ -3,7 +3,7 @@ from string import Template
 from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
-from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, removesuffix
+from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
 
@@ -62,12 +62,9 @@ def setup():
     if not 'packagename' in jobspecs:
         messages.error('No se especificó el nombre del programa', spec='packagename')
     
-    if not 'packagefix' in jobspecs:
-        messages.error('No se especificó el sufijo del programa', spec='packagefix')
+    if not 'packagekey' in jobspecs:
+        messages.error('No se especificó el sufijo del programa', spec='packagekey')
     
-    if not 'outdir' in jobspecs.defaults:
-        messages.error('No se especificó el directorio de salida por defecto', spec='defaults.outdir')
-
     for key in options.parameters:
         if '/' in options.parameters[key]:
             messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
@@ -257,7 +254,8 @@ def setup():
 
 def submit(rootdir, basename):
 
-    names.job = removesuffix(basename, '.' + jobspecs.packagefix)
+    packagext = '.' + jobspecs.packagekey
+    names.job = basename[:-len(packagext)] if basename.endswith(packagext) else basename
 
     if 'prefix' in options.common:
         names.job = options.common.prefix + '.' + names.job
@@ -268,10 +266,16 @@ def submit(rootdir, basename):
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=rootdir)
     else:
-        outdir = AbsPath(jobspecs.defaults.outdir, cwd=rootdir).setkeys(names).validate()
+        if 'jobdir' in jobspecs.defaults and jobspecs.defaults.jobdir:
+            outdir = AbsPath(names.job, cwd=rootdir)
+        else:
+            outdir = AbsPath(rootdir)
+
+    if basename.endswith('.' + jobspecs.packagekey):
+        names.job = names.job + packagext
 
 #TODO: Prepend program version to extension of output files if option is enabled
-    progfix = jobspecs.packagefix + '.'.join(options.common.version.split())
+    progfix = jobspecs.packagekey + '.'.join(options.common.version.split())
 
     hiddendir = AbsPath(buildpath(outdir, '.' + progfix))
 

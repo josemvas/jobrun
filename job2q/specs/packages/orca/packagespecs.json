@@ -1,5 +1,5 @@
 {
-   "packagefix": "ORCA",
+   "packagekey": "orca",
    "packagename": "ORCA",
    "parallelib": "openmpi",
    "mpilaunch": "False",
@@ -10,7 +10,7 @@
    },
 
    "defaults" : {
-      "outdir": "{job}"
+      "jobdir": "True"
    },
 
    "filekeys": {

@@ -1,5 +1,5 @@
 {
-   "packagefix": "DFTB+",
+   "packagekey": "dftb+",
    "packagename": "DFTB+",
    "parallelib": "openmp",
    "stdoutput": "dftb_out.log",
@@ -9,7 +9,7 @@
    },
 
    "defaults": {
-      "outdir": "{job}"
+      "jobdir": "True"
    },
 
    "filekeys": {

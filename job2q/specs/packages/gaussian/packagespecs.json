@@ -1,5 +1,5 @@
 {
-   "packagefix": "G",
+   "packagekey": "g",
    "packagename": "Gaussian",
    "parallelib": "openmp",
 
@@ -9,7 +9,7 @@
    },
 
    "defaults" : {
-      "outdir": "{job}"
+      "jobdir": "True"
    },
 
    "filekeys": {

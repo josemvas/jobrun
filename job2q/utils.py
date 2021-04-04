@@ -86,19 +86,6 @@ def override_function(cls):
         return wrapper
     return decorator
 
-def removeprefix(self, prefix):
-    if self.startswith(prefix):
-        return self[len(prefix):]
-    else:
-        return self[:]
-
-def removesuffix(self, suffix):
-    # suffix='' should not call self[:-0].
-    if suffix and self.endswith(suffix):
-        return self[:-len(suffix)]
-    else:
-        return self[:]
-
 def printtree(tree, level=0):
     if isinstance(tree, (list, dict)):
         for branch in natsort(tree):

@@ -1,5 +1,5 @@
 {
-   "packagefix": "deMon",
+   "packagekey": "deMon",
    "packagename": "deMon2k",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
@@ -9,7 +9,7 @@
    },
 
    "defaults" : {
-      "outdir": "{job}"
+      "jobdir": "True"
    },
 
    "filekeys": {
