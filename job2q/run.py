@@ -157,14 +157,16 @@ try:
         remoteshare = output.decode(sys.stdout.encoding).strip()
         if not remoteshare:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        #TODO: Consider include common.addmol path in fileopts
-        if 'mol' in options.common:
-            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.addmol, homedir)))
-        #DONE?: Make default empty dict for fileopts so no test is needed
-        for item in options.fileopts.values():
-            filelist.append(buildpath(homedir, '.', os.path.relpath(item, homedir)))
-        for item in arglist:
-            rootdir, basename = item
+        #TODO: Consider include allmol and addmol paths in fileopts
+        if 'allmol' in options.common:
+            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.allmol, homedir)))
+        for path in options.common.addmol:
+            filelist.append(buildpath(homedir, '.', os.path.relpath(path, homedir)))
+        #TODO: (done?) Make default empty dict for fileopts so no test is needed
+        for path in options.fileopts.values():
+            filelist.append(buildpath(homedir, '.', os.path.relpath(path, homedir)))
+        for path in arglist:
+            rootdir, basename = path
             relparent = os.path.relpath(rootdir, homedir)
             remotecwd = buildpath(remoteshare, userhost, relparent)
             remotejobs.append(basename)
