@@ -1,5 +1,9 @@
 #!/bin/bash
 
+normal=$(tput sgr0)
+yellow=$(tput setaf 3)
+red=$(tput setaf 1)
+
 delete_remote_files () {
     filelist=$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')
     { echo "${yellow}Los siguientes archivos $1 serán borrados de $host:${normal}"; echo "$filelist"; } | less -FXr
@@ -35,6 +39,7 @@ if [[ -n $1 ]]; then
     host=$1
 else
     echo 'Error: Debe especificar un servidor'
+    echo "Uso: $0 <hostname>"
     exit
 fi
 
@@ -53,37 +58,41 @@ conflicting=$(echo "$including" | grep -v '^>f          ' | grep -v '^>f++++++++
 #exit
 
 if [[ -n $unsynced || -n $conflicting ]]; then
-    if [[ -n $unsynced ]]; then
-        echo ${yellow}Sincronizando archivos nuevos...${normal}
-        echo "$unsynced" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
-        echo
-    fi
-    if [[ -n $conflicting ]]; then
-        if [[ -z ${force+?} ]]; then
-            echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local:${normal}"
-            echo "$conflicting"
-            echo "${yellow}Ejecute este escript con la opción --force para sobreescribir las versiones locales${normal}"
-        else
-            echo ${yellow}Sobreescribiendo los archivos conflictivos...${normal}
-            echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
+    if [[ -n ${delete+?} ]]; then 
+        echo ${red}No se borraron los archivos redundantes de $host porque aún hay archivos sin sincronizar${normal}
+    else
+        if [[ -n $unsynced ]]; then
+            echo ${yellow}Sincronizando archivos nuevos...${normal}
+            echo "$unsynced" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
+            echo
+        fi
+        if [[ -n $conflicting ]]; then
+            if [[ -z ${force+?} ]]; then
+                echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local:${normal}"
+                echo "$conflicting"
+                echo "${yellow}Ejecute este escript con la opción --force para sobreescribir las versiones locales${normal}"
+            else
+                echo ${yellow}Sobreescribiendo los archivos conflictivos...${normal}
+                echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
+            fi
         fi
     fi
 else
-    echo ${yellow}No hay archivos nuevos que sincronizar${normal}
+    if [[ -n ${delete+?} ]]; then 
+        if [[ -n $synced ]]; then
+            delete_remote_files "redundantes" "$synced"
+        elif [[ -n $excluded ]]; then
+            delete_remote_files "excluidos" "$synced"
+        fi
+    else
+        echo ${yellow}No hay archivos nuevos que sincronizar${normal}
+        if [[ -n $synced ]]; then
+            echo "${yellow}Hay archivos redundantes en $host que ya fueron sincronizados, use la opción --delete para eliminarlos${normal}"
+        fi
+        if [[ -n $excluded ]]; then
+            echo "${yellow}Hay archivos en $host que fueron excluidos de la sincronización, use las opciones --exclude=$expat y --delete para eliminarlos${normal}"
+        fi
+    fi
 fi
 
-if [[ -n ${delete+?} ]]; then 
-    if [[ -n $synced ]]; then
-        delete_remote_files "redundantes" "$synced"
-    elif [[ -n $excluded ]]; then
-        delete_remote_files "excluidos" "$synced"
-    fi
-else
-    if [[ -n $synced ]]; then
-        echo "Hay archivos redundantes en $host que fueron sincronizados con anterioridad, use la opción --delete para eliminarlos"
-    fi
-    if [[ -n $excluded ]]; then
-        echo "Hay archivos en $host que fueron excluidos de la sincronización, use las opciones --exclude=$expat y --delete para eliminarlos"
-    fi
-fi
 
