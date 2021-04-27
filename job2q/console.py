@@ -10,7 +10,7 @@ from .utils import natsort, q
 from .readspec import readspec
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, mkdir, copyfile, link, symlink
 
-def setup(relpath=False):
+def install(relpath=False):
 
     libpath = []
     pyldpath = []
