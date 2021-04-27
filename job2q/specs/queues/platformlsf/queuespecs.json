@@ -1,0 +1,71 @@
+{
+   "submitcmd": [ "bsub" ],
+   "statcmd": [ "bjobs", "-ostat", "-noheader" ],
+   "idregex": "<([0-9]+)>",
+   "title": "#BSUB -J '{}'",
+
+   "metadata": [
+      "#BSUB -P '{packagename}'"
+   ],
+
+   "logging": [
+      "#BSUB -o '{logdir}/%J.out'",
+      "#BSUB -e '{logdir}/%J.err'"
+   ],
+
+   "serial": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '1'",
+      "#BSUB -R 'span[hosts=1]'"
+   ],
+
+   "parallel": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'"
+   ],
+
+   "parallelin": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts=1]'"
+   ],
+
+   "parallelat": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -R 'span[hosts={nhost}]'",
+      "#BSUB -m '{hosts}'"
+   ],
+
+   "envars": {
+      "jobid": "$LSB_JOBID",
+      "nproc": "$(echo $LSB_HOSTS | wc -w)",
+      "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
+   },
+    
+   "mpilauncher": {
+      "openmpi": "mpirun",
+      "intelmpi": "mpirun",
+      "mpich": "mpirun"
+   },
+
+   "queued_states": {
+      "PEND": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
+      "RUN": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
+      "PSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
+      "USUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
+      "SSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}"
+   },
+
+   "ready_states": [
+      "DONE",
+      "EXIT"
+   ],
+
+   "warn_errors": [
+      "Job <{id}> is not found"
+   ]
+
+}
+
