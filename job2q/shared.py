@@ -10,7 +10,6 @@ from .readspec import SpecBunch
 from .utils import Bunch, p, q
 from .fileutils import AbsPath, buildpath
 from .parsing import BoolParser
-from .readmol import readmol
 
 class ArgList:
     def __init__(self, args):

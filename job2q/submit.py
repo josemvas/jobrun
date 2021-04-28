@@ -6,6 +6,7 @@ from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, co
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
+from .readmol import readmol
 
 def interpolate():
     if options.common.interpolate:
