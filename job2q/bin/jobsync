@@ -59,7 +59,7 @@ conflicting=$(echo "$including" | grep -v '^>f          ' | grep -v '^>f++++++++
 
 if [[ -n $unsynced || -n $conflicting ]]; then
     if [[ -n ${delete+?} ]]; then 
-        echo ${red}No se borraron los archivos redundantes de $host porque aún hay archivos sin sincronizar${normal}
+        echo ${red}No se borró ningún archivo porque hay archivos pendientes de sincronizar en pandiyan${normal}
     else
         if [[ -n $unsynced ]]; then
             echo ${yellow}Sincronizando archivos nuevos...${normal}
