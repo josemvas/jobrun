@@ -10,8 +10,8 @@ from .readmol import readmol
 
 def interpolate():
     if options.common.interpolate:
-        for index, value in enumerate(options.common.interpolation):
-            options.interpolationdict[str(index)] = value
+        for index, value in enumerate(options.common.interpolation_variable, 1):
+            options.interpolationdict['var' + str(index)] = value
         if options.common.mol:
             index = 0
             for path in options.common.mol:
@@ -37,7 +37,7 @@ def interpolate():
             if not 'prefix' in options.common and not 'suffix' in options.common:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
     else:
-        if options.interpolationdict or options.common.interpolation or options.common.mol or 'trjmol' in options.common:
+        if options.interpolationdict or options.common.interpolation_variable or options.common.mol or 'trjmol' in options.common:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 def initialize():
@@ -379,7 +379,7 @@ def submit(rootdir, basename):
                     messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', buildpath((basename, key)))
                     return
                 except KeyError as e:
-                    messages.failure('Hay variables de interpolación indefinidas en el archivo de entrada', buildpath((basename, key)), option=o(e.args[0]))
+                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', buildpath((basename, key)), option=o(e.args[0]))
                     return
                 with open(buildpath(outdir, (names.job, key)), 'w') as fw:
                     fw.write(substituted)
