@@ -39,7 +39,7 @@ if [[ -n $1 ]]; then
     host=$1
 else
     echo 'Error: Debe especificar un servidor'
-    echo "Uso: $0 <hostname>"
+    echo "Uso: $(basename "$0") <hostname>"
     exit
 fi
 
@@ -85,13 +85,13 @@ else
             delete_remote_files "excluidos" "$synced"
         fi
     else
-        echo ${yellow}No hay archivos nuevos que sincronizar${normal}
         if [[ -n $synced ]]; then
             echo "${yellow}Hay archivos redundantes en $host que ya fueron sincronizados, use la opción --delete para eliminarlos${normal}"
         fi
         if [[ -n $excluded ]]; then
-            echo "${yellow}Hay archivos en $host que fueron excluidos de la sincronización, use las opciones --exclude=$expat y --delete para eliminarlos${normal}"
+            echo "${yellow}Hay archivos en $host que fueron excluidos, use las opciones --exclude=$expat y --delete para eliminarlos${normal}"
         fi
+        echo No hay archivos nuevos que sincronizar
     fi
 fi
 
