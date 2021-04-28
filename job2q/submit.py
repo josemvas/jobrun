@@ -9,7 +9,7 @@ from .details import mpilibs
 
 def interpolate():
     if options.common.interpolate:
-        for index, value in enumerate(options.common.posvar):
+        for index, value in enumerate(options.common.interpolation):
             options.interpolationdict[str(index)] = value
         if options.common.mol:
             index = 0
@@ -36,7 +36,7 @@ def interpolate():
             if not 'prefix' in options.common and not 'suffix' in options.common:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
     else:
-        if options.interpolationdict or options.common.posvar or options.common.mol or 'trjmol' in options.common:
+        if options.interpolationdict or options.common.interpolation or options.common.mol or 'trjmol' in options.common:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 def initialize():
