@@ -48,7 +48,7 @@ def initialize():
     script.main = []
 
     if not hostspecs.scheduler:
-        messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
+        messages.error('No se especificó el nombre del gestor de trabajos', spec='scheduler')
     
     if options.common.nodefaults:
         jobspecs.defaults.pop('version', None)
@@ -415,7 +415,7 @@ def submit(rootdir, basename):
         try:
             jobid = submitjob(jobscript)
         except RuntimeError as error:
-            messages.failure('El sistema de reportó un error al enviar el trabajo', q(names.job), p(error))
+            messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(names.job), p(error))
             return
         else:
             messages.success('El trabajo', q(names.job), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
