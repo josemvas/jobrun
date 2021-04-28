@@ -90,7 +90,7 @@ try:
     group2.add_argument('-o', '--outdir', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group2.add_argument('-x', '--interpolation-variable', metavar='VALUE', action='append', default=[], help='Definir las variables anónimas de interpolación.')
+    group2.add_argument('-x', '--interpolation-variable', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
     group2.add_argument('--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('--root', action=SetCwd, metavar='PATH', default=os.getcwd(), help='Usar rutas relativas al directorio PATH.')
     group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
@@ -126,7 +126,7 @@ try:
     group5 = parser.add_argument_group('Variables de interpolación')
     group5.key = 'interpolationdict'
     for key in jobspecs.interpolationkeywords:
-        group5.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Variable de interpolación {}.'.format(key.upper()))
+        group5.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Variable de interpolación.')
 
     parsedargs = parser.parse_args(remainingargs)
 
