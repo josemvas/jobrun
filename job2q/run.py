@@ -9,7 +9,7 @@ from .readspec import readspec
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, findbranches
 from .shared import ArgList, names, environ, hostspecs, jobspecs, options
-from .submit import setup, submit 
+from .submit import initialize, interpolate, submit 
 
 class LsOptions(Action):
     def __init__(self, **kwargs):
@@ -25,9 +25,9 @@ class LsOptions(Action):
             if dirtree:
                print(_('Parámetros en $path:').format(path=path.format(**{i: '*' for i in getformatkeys(path)})))
                printtree(dirtree, level=1)
-        if jobspecs.keywords:
+        if jobspecs.interpolationkeywords:
             print(_('Variables de interpolación:'))
-            printtree(jobspecs.keywords, level=1)
+            printtree(jobspecs.interpolationkeywords, level=1)
         raise SystemExit()
 
 class SetCwd(Action):
@@ -72,7 +72,7 @@ try:
     parser = ArgumentParser(prog=program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 
     group0 = parser.add_argument_group('Argumentos')
-    group0.add_argument('fileargs', nargs='*', metavar='FILE', help='Ruta al acrhivo de entrada.')
+    group0.add_argument('argumentfiles', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
 
     group1 = parser.add_argument_group('Ejecución remota')
     group1.add_argument('-H', '--remotehost', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
@@ -86,23 +86,24 @@ try:
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group2.add_argument('-d', '--ignore-defaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
+    group2.add_argument('-d', '--nodefaults', action='store_true', help='Ignorar las versiones por defecto de lo programas y parámetros.')
     group2.add_argument('-o', '--outdir', metavar='JOBDIR', default=SUPPRESS, help='Escribir los archivos de salida en el directorio JOBDIR.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group2.add_argument('-p', '--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group2.add_argument('-s', '--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
-    group2.add_argument('-S', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
-    group2.add_argument('-a', '--addpath', metavar='PATH', action='append', default=[], help='Agregar la ruta de parámetros PATH.')
+    group6.add_argument('-I', '--posvar', metavar='VALUE', action='append', default=[], help='Variable posicional de interpolación.')
+    group2.add_argument('-p', '--parameter', metavar='PATH', action='append', default=[], help='Agregar la ruta de parámetros PATH.')
+    group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('--root', action=SetCwd, metavar='ROOTDIR', default=os.getcwd(), help='Usar rutas relativas al directorio ROOTDIR.')
     group2.add_argument('--scratch', metavar='SCRDIR', default=SUPPRESS, help='Escribir los archivos temporales en el directorio SCRDIR.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
+    group2.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--dry', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 
     molgroup = group2.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--addmol', metavar='MOLFILE', action='append', default=[], help='Agregar el paso final del archivo MOLFILE a las coordenadas de interpolación.')
-    molgroup.add_argument('-M', '--allmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
+    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Agregar el paso final del archivo MOLFILE a las coordenadas de interpolación.')
+    molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
 
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
@@ -118,14 +119,14 @@ try:
         group3.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
     group4 = parser.add_argument_group('Archivos opcionales')
-    group4.key = 'fileopts'
-    for key, value in jobspecs.fileopts.items():
+    group4.key = 'optionalfiles'
+    for key, value in jobspecs.fileoptions.items():
         group4.add_argument(o(key), metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group5 = parser.add_argument_group('Variables de interpolación')
-    group5.key = 'keywords'
-    for key in jobspecs.keywords:
-        group5.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Valor de la variable {}.'.format(key.upper()))
+    group5.key = 'interpolationdict'
+    for key in jobspecs.interpolationkeywords:
+        group5.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Variable de interpolación {}.'.format(key.upper()))
 
     parsedargs = parser.parse_args(remainingargs)
 
@@ -134,15 +135,15 @@ try:
             group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
             setattr(options, group.key, Bunch(**group_dict))
 
-    if parsedargs.fileargs:
-        arglist = ArgList(parsedargs.fileargs)
+    if parsedargs.argumentfiles:
+        arglist = ArgList(parsedargs.argumentfiles)
     else:
         messages.error('Debe especificar al menos un archivo de entrada')
 
-    for key in options.fileopts:
-        options.fileopts[key] = AbsPath(options.fileopts[key], cwd=options.common.root)
-        if not options.fileopts[key].isfile():
-            messages.error('El archivo de entrada', options.fileopts[key], 'no existe', option=o(key))
+    for key in options.optionalfiles:
+        options.optionalfiles[key] = AbsPath(options.optionalfiles[key], cwd=options.common.root)
+        if not options.optionalfiles[key].isfile():
+            messages.error('El archivo de entrada', options.optionalfiles[key], 'no existe', option=o(key))
 
     if parsedargs.remotehost:
 
@@ -157,13 +158,13 @@ try:
         remoteshare = output.decode(sys.stdout.encoding).strip()
         if not remoteshare:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
-        #TODO: Consider include allmol and addmol paths in fileopts
-        if 'allmol' in options.common:
-            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.allmol, homedir)))
-        for path in options.common.addmol:
+        #TODO: Consider include trjmol and mol paths in optionalfiles
+        if 'trjmol' in options.common:
+            filelist.append(buildpath(homedir, '.', os.path.relpath(options.common.trjmol, homedir)))
+        for path in options.common.mol:
             filelist.append(buildpath(homedir, '.', os.path.relpath(path, homedir)))
-        #TODO: (done?) Make default empty dict for fileopts so no test is needed
-        for path in options.fileopts.values():
+        #TODO: (done?) Make default empty dict for optionalfiles so no test is needed
+        for path in options.optionalfiles.values():
             filelist.append(buildpath(homedir, '.', os.path.relpath(path, homedir)))
         for path in arglist:
             rootdir, basename = path
@@ -186,8 +187,8 @@ try:
 
     else:
 
-        setup()
-        options.interpolate()
+        initialize()
+        interpolate()
 
         try:
             rootdir, basename = next(arglist)

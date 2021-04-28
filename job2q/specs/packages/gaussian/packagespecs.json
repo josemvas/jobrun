@@ -33,7 +33,7 @@
       "oldchk": "oldchk"
    },
 
-   "fileopts": {
+   "fileoptions": {
       "oldchk": "oldchk"
    },
 
@@ -73,7 +73,7 @@
       "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
    ],
 
-   "keywords": [
+   "interpolationkeywords": [
       "title",
       "method",
       "basis",

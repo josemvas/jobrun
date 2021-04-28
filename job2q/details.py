@@ -15,7 +15,7 @@ listags = (
     'offscript',
     'prescript',
     'postscript',
-    'keywords',
+    'interpolationkeywords',
 )
 
 dictags = (
@@ -29,6 +29,6 @@ dictags = (
     'parameterpaths',
     'filekeys',
     'filevars',
-    'fileopts',
+    'fileoptions',
 )
 

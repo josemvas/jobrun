@@ -26,7 +26,7 @@
       "bin": "deMon.bin"
    },
 
-   "fileopts": {
+   "fileoptions": {
       "rstfile": "rst",
       "trjfile": "oldtrj"
    },
@@ -52,7 +52,7 @@
       "inp"
    ],
 
-   "keywords": [
+   "interpolationkeywords": [
       "title",
       "method",
       "basis",

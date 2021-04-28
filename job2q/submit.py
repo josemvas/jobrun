@@ -7,8 +7,39 @@ from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args,
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
 
+def interpolate():
+    if options.common.interpolate:
+        for index, value in enumerate(options.common.posvar):
+            options.interpolationdict[str(index)] = value
+        if options.common.mol:
+            index = 0
+            for path in options.common.mol:
+                index += 1
+                path = AbsPath(path, cwd=options.common.root)
+                coords = readmol(path)[-1]
+                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+            if not 'prefix' in options.common:
+                if len(options.common.mol) == 1:
+                    options.common.prefix = path.stem
+                else:
+                    messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
+        elif 'trjmol' in options.common:
+            index = 0
+            path = AbsPath(options.common.molall, cwd=options.common.root)
+            for coords in readmol(path):
+                index += 1
+                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+            prefix.append(path.stem)
+            if not 'prefix' in options.common:
+                options.common.prefix = path.stem
+        else:
+            if not 'prefix' in options.common and not 'suffix' in options.common:
+                messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
+    else:
+        if options.interpolationdict or options.common.posvar or options.common.mol or 'trjmol' in options.common:
+            messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
-def setup():
+def initialize():
 
     script.header = []
     script.setup = []
@@ -18,7 +49,7 @@ def setup():
     if not hostspecs.scheduler:
         messages.error('No se especificó el nombre del sistema de colas', spec='scheduler')
     
-    if options.common.ignore_defaults:
+    if options.common.nodefaults:
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('parameterset', None)
     
@@ -282,8 +313,8 @@ def submit(rootdir, basename):
     inputfiles = []
     inputdirs = []
 
-    for key in options.fileopts:
-        inputfiles.append((buildpath(outdir, (names.job, jobspecs.fileopts[key])), buildpath(script.scrdir, jobspecs.filekeys[jobspecs.fileopts[key]])))
+    for key in options.optionalfiles:
+        inputfiles.append((buildpath(outdir, (names.job, jobspecs.fileoptions[key])), buildpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for key in jobspecs.infiles:
         if AbsPath(buildpath(rootdir, (basename, key))).isfile():
@@ -332,8 +363,8 @@ def submit(rootdir, basename):
         makedirs(outdir)
         makedirs(hiddendir)
 
-    for key in options.fileopts:
-        options.fileopts[key].linkto(buildpath(outdir, (names.job, jobspecs.fileopts[key])))
+    for key in options.optionalfiles:
+        options.optionalfiles[key].linkto(buildpath(outdir, (names.job, jobspecs.fileoptions[key])))
 
     for key in jobspecs.infiles:
         inputpath = AbsPath(buildpath(rootdir, (basename, key)))
@@ -342,7 +373,7 @@ def submit(rootdir, basename):
                 with open(inputpath, 'r') as fr:
                     template = fr.read()
                 try:
-                    substituted = Template(template).substitute(options.keywords)
+                    substituted = Template(template).substitute(options.interpolationdict)
                 except ValueError:
                     messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', buildpath((basename, key)))
                     return
