@@ -290,10 +290,10 @@ def submit(rootdir, basename):
     names.job = basename[:-len(packagext)] if basename.endswith(packagext) else basename
 
     if 'prefix' in options.common:
-        names.job = options.common.prefix + '.' + names.job
+        names.job = Template(options.common.prefix).substitute(options.interpolationdict) + '.' + names.job
 
     if 'suffix' in options.common:
-        names.job = names.job + '.' + options.common.suffix
+        names.job = names.job + '.' + Template(options.common.suffix).substitute(options.interpolationdict)
 
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=rootdir)
