@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+from string import Template
 from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam

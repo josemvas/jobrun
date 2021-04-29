@@ -1,5 +1,5 @@
 {
-   "packagekey": "vasp",
+   "shortname": "vasp",
    "packagename": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",

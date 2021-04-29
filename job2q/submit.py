@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-from string import Template
 from . import dialogs, messages
 from .queue import submitjob, checkjob
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
-from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs
+from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
 from .readmol import readmol
 
 def interpolate():
     if options.common.interpolate:
-        for index, value in enumerate(options.common.interpolationlist, 1):
-            options.interpolationdict['x' + str(index)] = value
         if options.common.mol:
             index = 0
             for path in options.common.mol:
@@ -21,7 +18,7 @@ def interpolate():
                 options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.common:
                 if len(options.common.mol) == 1:
-                    options.common.prefix = path.stem
+                    names.prefix = path.stem
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
         elif 'trjmol' in options.common:
@@ -32,12 +29,12 @@ def interpolate():
                 options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             prefix.append(path.stem)
             if not 'prefix' in options.common:
-                options.common.prefix = path.stem
+                names.prefix = path.stem
         else:
             if not 'prefix' in options.common and not 'suffix' in options.common:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
     else:
-        if options.interpolationdict or options.common.interpolationlist or options.common.mol or 'trjmol' in options.common:
+        if options.interpolationdict or options.common.var or options.common.mol or 'trjmol' in options.common:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 def initialize():
@@ -94,8 +91,8 @@ def initialize():
     if not 'packagename' in jobspecs:
         messages.error('No se especificó el nombre del programa', spec='packagename')
     
-    if not 'packagekey' in jobspecs:
-        messages.error('No se especificó el sufijo del programa', spec='packagekey')
+    if not 'shortname' in jobspecs:
+        messages.error('No se especificó el sufijo del programa', spec='shortname')
     
     for key in options.parameters:
         if '/' in options.parameters[key]:
@@ -283,33 +280,50 @@ def initialize():
         else:
             messages.error('La ruta', path, 'no existe', spec='defaults.parameterpaths')
 
+    if 'prefix' in options.common:
+        try:
+            names.prefix = substitute(options.common.prefix, subdict=options.interpolationdict, sublist=options.common.var)
+        except ValueError as e:
+            messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
+        except KeyError as e:
+            messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
+
+    if 'suffix' in options.common:
+        try:
+            names.suffix = substitute(options.common.suffix, subdict=options.interpolationdict, sublist=options.common.var)
+        except ValueError as e:
+            messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
+        except KeyError as e:
+            messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
+
 
 def submit(rootdir, basename):
 
-    packagext = '.' + jobspecs.packagekey
-    names.job = basename[:-len(packagext)] if basename.endswith(packagext) else basename
+    if basename.endswith('.' + jobspecs.shortname):
+        jobname = basename[:-len(jobspecs.shortname)-1]
+    else:
+        jobname = basename
 
-    if 'prefix' in options.common:
-        names.job = options.common.prefix.format(*options.common.interpolationlist, **options.interpolationdict) + '.' + names.job
+    if 'prefix' in names:
+        jobname = names.prefix + '.' + jobname
 
-    if 'suffix' in options.common:
-        names.job = names.job + '.' + options.common.suffix.format(*options.common.interpolationlist, **options.interpolationdict)
+    if 'suffix' in names:
+        jobname = jobname +  '.' + names.suffix
+
+    #TODO: Append program version to output file extension if option is enabled
+    if basename.endswith('.' + jobspecs.shortname):
+        names.job = jobname + '.' + jobspecs.shortname
+    else:
+        names.job = jobname
 
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=rootdir)
+    elif jobspecs.defaults.jobdir:
+        outdir = AbsPath(jobname, cwd=rootdir)
     else:
-        if 'jobdir' in jobspecs.defaults and jobspecs.defaults.jobdir:
-            outdir = AbsPath(names.job, cwd=rootdir)
-        else:
-            outdir = AbsPath(rootdir)
+        outdir = AbsPath(rootdir)
 
-    if basename.endswith('.' + jobspecs.packagekey):
-        names.job = names.job + packagext
-
-#TODO: Prepend program version to extension of output files if option is enabled
-    progfix = jobspecs.packagekey + '.'.join(options.common.version.split())
-
-    hiddendir = AbsPath(buildpath(outdir, '.' + progfix))
+    hiddendir = AbsPath(buildpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
     inputfiles = []
     inputdirs = []
@@ -374,15 +388,15 @@ def submit(rootdir, basename):
                 with open(inputpath, 'r') as fr:
                     template = fr.read()
                 try:
-                    substituted = Template(template).substitute(options.interpolationdict)
+                    template = substitute(template, subdict=options.interpolationdict, sublist=options.common.var)
                 except ValueError:
                     messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', buildpath((basename, key)))
                     return
                 except KeyError as e:
-                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', buildpath((basename, key)), option=o(e.args[0]))
+                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', buildpath((basename, key)), var=e.args[0])
                     return
                 with open(buildpath(outdir, (names.job, key)), 'w') as fw:
-                    fw.write(substituted)
+                    fw.write(template)
             elif rootdir != outdir:
                 inputpath.copyto(buildpath(outdir, (names.job, key)))
             if options.common.delete:

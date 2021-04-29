@@ -1,5 +1,5 @@
 {
-   "packagekey": "g",
+   "shortname": "g",
    "packagename": "Gaussian",
    "parallelib": "openmp",
 

@@ -1,5 +1,5 @@
 {
-   "packagekey": "orca",
+   "shortname": "orca",
    "packagename": "ORCA",
    "parallelib": "openmpi",
    "mpilaunch": "False",

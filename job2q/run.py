@@ -90,7 +90,7 @@ try:
     group2.add_argument('-o', '--outdir', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('-b', '--base', action='store_true', help='Interpretar los argumentos como nombres de trabajos.')
     group2.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group2.add_argument('-x', '--interpolationlist', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
+    group2.add_argument('-x', '--var', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
     group2.add_argument('--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('--root', action=SetCwd, metavar='PATH', default=os.getcwd(), help='Usar rutas relativas al directorio PATH.')
     group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')

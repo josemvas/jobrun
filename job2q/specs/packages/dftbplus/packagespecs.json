@@ -1,5 +1,5 @@
 {
-   "packagekey": "dftb+",
+   "shortname": "dftb+",
    "packagename": "DFTB+",
    "parallelib": "openmp",
    "stdoutput": "dftb_out.log",

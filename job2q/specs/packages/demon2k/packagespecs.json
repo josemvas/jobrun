@@ -1,5 +1,5 @@
 {
-   "packagekey": "deMon",
+   "shortname": "deMon",
    "packagename": "deMon2k",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
