@@ -10,7 +10,7 @@ from .readmol import readmol
 
 def interpolate():
     if options.common.interpolate:
-        for index, value in enumerate(options.common.interpolation_variable, 1):
+        for index, value in enumerate(options.common.interpolationlist, 1):
             options.interpolationdict['x' + str(index)] = value
         if options.common.mol:
             index = 0
@@ -37,7 +37,7 @@ def interpolate():
             if not 'prefix' in options.common and not 'suffix' in options.common:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
     else:
-        if options.interpolationdict or options.common.interpolation_variable or options.common.mol or 'trjmol' in options.common:
+        if options.interpolationdict or options.common.interpolationlist or options.common.mol or 'trjmol' in options.common:
             messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 def initialize():
@@ -290,10 +290,10 @@ def submit(rootdir, basename):
     names.job = basename[:-len(packagext)] if basename.endswith(packagext) else basename
 
     if 'prefix' in options.common:
-        names.job = Template(options.common.prefix).substitute(options.interpolationdict) + '.' + names.job
+        names.job = options.common.prefix.format(*options.common.interpolationlist, **options.interpolationdict) + '.' + names.job
 
     if 'suffix' in options.common:
-        names.job = names.job + '.' + Template(options.common.suffix).substitute(options.interpolationdict)
+        names.job = names.job + '.' + options.common.suffix).format(*options.common.interpolationlist, **options.interpolationdict)
 
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=rootdir)
