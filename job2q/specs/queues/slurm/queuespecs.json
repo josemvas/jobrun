@@ -1,7 +1,8 @@
 {
    "submitcmd": [ "sbatch" ],
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
-   "idregex": " ([0-9]+)$",
+   "submitre": ".* ([0-9]+)",
+   "statre": "(.+)",
    "title": "#SBATCH -J '{job}'",
 
    "metadata": [

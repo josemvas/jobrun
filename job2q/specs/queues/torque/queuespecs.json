@@ -1,7 +1,8 @@
 {
    "submitcmd": [ "qsub" ],
-   "statcmd": [ "qstat", "?" ],
-   "idregex": "?",
+   "statcmd": [ "qstat", "-x" ],
+   "submitre": "(.+)",
+   "statre": ".*<job_state>([^<]+)</job_state>.*",
    "title": "#PBS -N '{job}'",
 
    "logging": [
@@ -27,7 +28,7 @@
       "#PBS -l 'nodes=1:ppn={nproc}'",
    ],
 
-   // Parallel job on requested hosts
+   // Parallel job on multiple hosts
    "parallelat": [
       "#PBS -q '{queue}'",
       "#PBS -l 'nodes={hosts}:ppn={nproc}'"
@@ -52,11 +53,11 @@
       "S": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
       "W": "El trabajo {name} no se envió porque está esperando a ser ejecutado con número de trabajo {id}",
       "T": "El trabajo {name} no se envió porque está siendo movido a otro host con número de trabajo {id}"
+      "E": "El trabajo {name} no se envió porque terminó pero aún está en cola con número de trabajo {id}",
    },
     
    "ready_states": [
       "C",
-      "E"
    ]
 }
 

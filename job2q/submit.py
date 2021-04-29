@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import dialogs, messages
-from .queue import submitjob, checkjob
+from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, environ, hostspecs, jobspecs, options
@@ -351,7 +351,7 @@ def submit(rootdir, basename):
             try:
                 with open(buildpath(hiddendir, 'jobid'), 'r') as f:
                     jobid = f.read()
-                jobstate = checkjob(jobid)
+                jobstate = jobstat(jobid)
                 if jobstate is not None:
                     messages.failure(jobstate.format(id=jobid, name=names.job))
                     return
@@ -427,7 +427,7 @@ def submit(rootdir, basename):
         messages.success('Se procesó el trabajo', q(names.job), 'y se generaron los archivos para el envío en', hiddendir, option='--dry')
     else:
         try:
-            jobid = submitjob(jobscript)
+            jobid = jobsubmit(jobscript)
         except RuntimeError as error:
             messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(names.job), p(error))
             return
