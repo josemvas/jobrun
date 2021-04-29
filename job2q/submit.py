@@ -293,7 +293,7 @@ def submit(rootdir, basename):
         names.job = options.common.prefix.format(*options.common.interpolationlist, **options.interpolationdict) + '.' + names.job
 
     if 'suffix' in options.common:
-        names.job = names.job + '.' + options.common.suffix).format(*options.common.interpolationlist, **options.interpolationdict)
+        names.job = names.job + '.' + options.common.suffix.format(*options.common.interpolationlist, **options.interpolationdict)
 
     if 'outdir' in options.common:
         outdir = AbsPath(options.common.outdir, cwd=rootdir)
