@@ -64,7 +64,7 @@ def install(relpath=False):
     if selhostname in schedulers:
         copyfile(buildpath(sourcedir, 'specs', 'queues', schedulers[selhostname], 'queuespecs.json'), buildpath(etcdir, 'queuespecs.json'))
     else:
-        messages.warning('Especifique el gestor de trabajos en el archivo', buildpath(etcdir, 'queuespecs.json'), 'y ejecute otra vez este comando')
+        messages.warning('Especifique el gestor de trabajos en el archivo', buildpath(etcdir, 'hostspecs.json'), 'y ejecute otra vez este comando')
         return
          
     for spec in os.listdir(buildpath(selhostdir, 'packages')):
