@@ -11,7 +11,7 @@ from .readmol import readmol
 def interpolate():
     if options.common.interpolate:
         for index, value in enumerate(options.common.interpolation_variable, 1):
-            options.interpolationdict['var' + str(index)] = value
+            options.interpolationdict['x' + str(index)] = value
         if options.common.mol:
             index = 0
             for path in options.common.mol:
