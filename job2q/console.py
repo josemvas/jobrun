@@ -16,12 +16,12 @@ def install(relpath=False):
     pyldpath = []
     configured = []
     clusternames = {}
-    clusterspecnames = {}
+    clusterspeckeys = {}
     clusterschedulers = {}
     packagenames = {}
-    packagespecnames = {}
+    packagespeckeys = {}
     schedulernames = {}
-    schedulerspecnames = {}
+    schedulerspeckeys = {}
     defaults = {}
     
     rootdir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=os.path.isdir)
@@ -42,7 +42,7 @@ def install(relpath=False):
             messages.warning('El directorio', specname, 'no contiene ningún archivo de configuración')
         clusterspecs = readspec(buildpath(hostspecdir, specname, 'clusterspecs.json'))
         clusternames[specname] = clusterspecs.clustername
-        clusterspecnames[clusterspecs.clustername] = specname
+        clusterspeckeys[clusterspecs.clustername] = specname
         if 'scheduler' in clusterspecs:
             clusterschedulers[specname] = clusterspecs.scheduler
 
@@ -53,7 +53,8 @@ def install(relpath=False):
     else:
         defaulthost = None
 
-    selhost = clusterspecnames[dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)]
+    selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
+    selhost = clusterspeckeys[selhostname]
     
     if not os.path.isfile(buildpath(etcdir, 'clusterspecs.json')) or readspec(buildpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(buildpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(buildpath(hostspecdir, selhost, 'clusterspecs.json'), buildpath(etcdir, 'clusterspecs.json'))
@@ -61,7 +62,7 @@ def install(relpath=False):
     for specname in os.listdir(queuespecdir):
         queuespecs = readspec(buildpath(queuespecdir, specname, 'queuespecs.json'))
         schedulernames[specname] = queuespecs.schedulername
-        schedulerspecnames[queuespecs.schedulername] = specname
+        schedulerspeckeys[queuespecs.schedulername] = specname
 
     if os.path.isfile(buildpath(etcdir, 'queuespecs.json')):
         defaultscheduler = readspec(buildpath(etcdir, 'queuespecs.json')).schedulername
@@ -70,13 +71,14 @@ def install(relpath=False):
     else:
         defaultscheduler = None
 
-    selscheduler = schedulerspecnames[dialogs.chooseone('Seleccione el gestor de trabajos adecuado', choices=sorted(schedulernames.values()), default=defaultscheduler)]
+    selschedulername = dialogs.chooseone('Seleccione el gestor de trabajos adecuado', choices=sorted(schedulernames.values()), default=defaultscheduler)
+    selscheduler = schedulerspeckeys[selschedulername]
     copyfile(buildpath(sourcedir, 'specs', 'queues', selscheduler, 'queuespecs.json'), buildpath(etcdir, 'queuespecs.json'))
          
     for specname in os.listdir(buildpath(hostspecdir, selhost, 'packages')):
         packagespecs = readspec(buildpath(sourcedir, 'specs', 'packages', specname, 'packagespecs.json'))
         packagenames[specname] = (packagespecs.packagename)
-        packagespecnames[packagespecs.packagename] = specname
+        packagespeckeys[packagespecs.packagename] = specname
 
     if not packagenames:
         messages.warning('No hay programas preconfigurados para este host')
@@ -85,15 +87,16 @@ def install(relpath=False):
     for specname in os.listdir(specdir):
         configured.append(readspec(buildpath(specdir, specname, 'packagespecs.json')).packagename)
 
-    selpackages = [packagespecnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)]
+    selpackagenames = dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)
 
-    for package in selpackages:
+    for packagename in selpackagenames:
+        package = packagespeckeys[packagename]
         mkdir(buildpath(specdir, package))
         link(buildpath(etcdir, 'clusterspecs.json'), buildpath(specdir, package, 'clusterspecs.json'))
         link(buildpath(etcdir, 'queuespecs.json'), buildpath(specdir, package, 'queuespecs.json'))
         copyfile(buildpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), buildpath(specdir, package, 'packagespecs.json'))
         copypathspec = True
-        if package not in configured or not os.path.isfile(buildpath(specdir, package, 'packageconf.json')) or readspec(buildpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(buildpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+        if packagename not in configured or not os.path.isfile(buildpath(specdir, package, 'packageconf.json')) or readspec(buildpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(buildpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
             copyfile(buildpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), buildpath(specdir, package, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
