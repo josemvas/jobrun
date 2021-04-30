@@ -3,7 +3,7 @@
    "headname": "helio",
    "scheduler": "lavalsf",
    "filesync": "remote",
-   "logdir": "/home/{user}/.jobs",
+   "logdir": "/home/{user}/.submissions",
    "defaults": {
       "queue": "auto",
       "scratchdir": "/scratch",

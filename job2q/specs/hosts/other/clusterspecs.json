@@ -2,7 +2,7 @@
    "clustername" : "Otro",
    "headname": "",
    "filesync": "remote",
-   "logdir": "/home/{user}/.jobs",
+   "logdir": "/home/{user}/.submissions",
 
    "defaults": {
       "queue": "",
