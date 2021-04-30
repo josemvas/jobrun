@@ -18,27 +18,37 @@
 
    "serial": [
       "#BSUB -q '{queue}'",
-      "#BSUB -n '1'",
+      "#BSUB -n '1'"
+   ],
+
+   "serialat": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -m '{host}'",
+      "#BSUB -n '1'"
+   ],
+
+   "singlehost": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '{nproc}'",
       "#BSUB -R 'span[hosts=1]'"
    ],
 
-   "parallel": [
+   "singlehostat": [
+      "#BSUB -q '{queue}'",
+      "#BSUB -n '{nproc}'",
+      "#BSUB -m '{host}'"
+   ],
+
+   "multihost": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
       "#BSUB -R 'span[hosts={nhost}]'"
    ],
 
-   "parallelin": [
+   "multihostat": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts=1]'"
-   ],
-
-   "parallelat": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -m '{hostlist}'"
    ],
 
    "envars": {

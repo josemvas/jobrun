@@ -18,30 +18,37 @@
 
    "serial": [
        "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -n '1'"
    ],
 
-   "parallel": [
+   "serialat": [
        "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -w '{host}'",
+       "#SBATCH -n '1'"
    ],
 
-   "parallelin": [
+   "singlehost": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -N '1'"
    ],
 
-   "parallelat": [
+   "singlehostat": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -w '{host}'"
+   ],
+
+   "multihost": [
+       "#SBATCH -p '{queue}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -N '{nhost}'"
+   ],
+
+   "multihostat": [
+       "#SBATCH -p '{queue}'",
+       "#SBATCH -n '{nproc}'",
+       "#SBATCH -w '{hostlist}'"
    ],
 
    "envars": {

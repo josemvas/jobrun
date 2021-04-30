@@ -1,8 +1,7 @@
 {
    "shortname": "orca",
    "packagename": "ORCA",
-   "parallelib": "openmpi",
-   "mpilaunch": "False",
+   "parallelib": "standalone",
    "stdoutput": "out",
 
    "conflicts": {

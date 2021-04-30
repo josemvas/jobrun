@@ -17,19 +17,29 @@
       "#PBS -l 'nodes=1:ppn=1'"
    ],
 
-   "parallel": [
+   "serialat": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={nhost}:ppn={nproc}'"
+      "#PBS -l 'nodes={host}:ppn=1'"
    ],
 
-   "parallelin": [
+   "singlehost": [
       "#PBS -q '{queue}'",
       "#PBS -l 'nodes=1:ppn={nproc}'"
    ],
 
-   "parallelat": [
+   "singlehostat": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={hosts}:ppn={nproc}'"
+      "#PBS -l 'nodes={host}:ppn={nproc}'"
+   ],
+
+   "multihost": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes={nhost}:ppn={nproc}'"
+   ],
+
+   "multihostat": [
+      "#PBS -q '{queue}'",
+      "#PBS -l 'nodes={hostlist}:ppn={nproc}'"
    ],
 
    "envars": {

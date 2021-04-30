@@ -4,7 +4,7 @@ from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, environ, hostspecs, jobspecs, options
-from .details import mpilibs
+from .details import wrappers
 from .readmol import readmol
 
 def interpolate():
@@ -124,23 +124,35 @@ def initialize():
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            for item in hostspecs.serial:
-                script.header.append(item.format(**options.common))
+            if 'host' in options.common:
+                for item in hostspecs.serialat:
+                    script.header.append(item.format(**options.common))
+            else:
+                for item in hostspecs.serial:
+                    script.header.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() == 'openmp':
-            for item in hostspecs.parallelin:
-                script.header.append(item.format(**options.common))
+            if 'host' in options.common:
+                for item in hostspecs.singlehostat:
+                    script.header.append(item.format(**options.common))
+            else:
+                for item in hostspecs.singlehost:
+                    script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif jobspecs.parallelib.lower() in mpilibs:
-            if not 'mpilaunch' in jobspecs:
-                messages.error('No se especificó si el programa debe ser ejecutado por mpirun', spec='mpilaunch')
-            for item in hostspecs.parallel:
-                script.header.append(item.format(**options.common))
-            if jobspecs.mpilaunch:
-                script.main.append(hostspecs.mpilauncher[jobspecs.parallelib])
-        # Parallel at requested hosts
-#        elif 'hosts' in options.common:
-#            for item in hostspecs.parallelat:
-#                script.header.append(item.format(**options.common))
+        elif jobspecs.parallelib.lower() == 'standalone':
+            if 'hostlist' in options.common:
+                for item in hostspecs.multihostat:
+                    script.header.append(item.format(**options.common))
+            else:
+                for item in hostspecs.multihost:
+                    script.header.append(item.format(**options.common))
+        elif jobspecs.parallelib.lower() in wrappers:
+            if 'hostlist' in options.common:
+                for item in hostspecs.multihostat:
+                    script.header.append(item.format(**options.common))
+            else:
+                for item in hostspecs.multihost:
+                    script.header.append(item.format(**options.common))
+            script.main.append(hostspecs.mpilauncher[jobspecs.parallelib])
         else:
             messages.error('El tipo de paralelización', jobspecs.parallelib, 'no está soportado', spec='parallelib')
     else:

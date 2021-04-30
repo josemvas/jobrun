@@ -107,7 +107,7 @@ try:
 
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
-    hostgroup.add_argument('--hosts', metavar='NODELIST', default=SUPPRESS, help='Solicitar nodos específicos de ejecución por nombre.')
+    hostgroup.add_argument('--host', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
 
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
