@@ -153,7 +153,7 @@ try:
         userhost = names.user + '@' + names.cluster
 
         try:
-            output = check_output(['ssh', remotehost, 'echo $JOBSHARE'], stderr=STDOUT)
+            output = check_output(['ssh', remotehost, 'echo $REMOTEROOT'], stderr=STDOUT)
         except CalledProcessError as exc:
             messages.error(exc.output.decode(sys.stdout.encoding).strip())
         remoteshare = output.decode(sys.stdout.encoding).strip()

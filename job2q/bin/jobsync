@@ -5,14 +5,14 @@ yellow=$(tput setaf 3)
 red=$(tput setaf 1)
 
 delete_remote_files () {
-    filelist=$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')
+    filelist=$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')
     { echo "${yellow}Los siguientes archivos $1 serán borrados de $host:${normal}"; echo "$filelist"; } | less -FXr
     while true; do
         read -p "${yellow}Escriba \"ok\" para proceder o presione ENTER para cancelar: ${normal}" answer
         case "$answer" in
           [oO][kK])
             echo -n ${yellow}Borrando los archivos $1... ${normal}
-            echo "$2" | rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p'
+            echo "$2" | rsync -tv --files-from=- --remove-source-files "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p'
             echo Hecho
             break;;
           ?*) echo Escriba \"ok\" si desea borrar los archivos o presione ENTER para cancelar;;
@@ -43,8 +43,8 @@ else
     exit
 fi
 
-including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME")
-excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME")
+including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME")
+excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME")
 synced=$(echo "$including$excluding" | sed -n 's,^.f          ,,p')
 unsynced=$(echo "$including" | sed -n 's,^>f+++++++++ ,,p')
 excluded=$(echo "$excluding" | sed -n 's,^>f+++++++++ ,,p')
@@ -63,7 +63,7 @@ if [[ -n $unsynced || -n $conflicting ]]; then
     else
         if [[ -n $unsynced ]]; then
             echo ${yellow}Sincronizando archivos nuevos...${normal}
-            echo "$unsynced" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
+            echo "$unsynced" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME"
             echo
         fi
         if [[ -n $conflicting ]]; then
@@ -73,7 +73,7 @@ if [[ -n $unsynced || -n $conflicting ]]; then
                 echo "${yellow}Ejecute este escript con la opción --force para sobreescribir las versiones locales${normal}"
             else
                 echo ${yellow}Sobreescribiendo los archivos conflictivos...${normal}
-                echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSHARE/$USER@$HOSTNAME/" "$HOME"
+                echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$REMOTEROOT/$USER@$HOSTNAME/" "$HOME"
             fi
         fi
     fi
