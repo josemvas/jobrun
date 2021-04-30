@@ -48,6 +48,8 @@ def install(relpath=False):
 
     if os.path.isfile(buildpath(etcdir, 'clusterspecs.json')):
         defaulthost = readspec(buildpath(etcdir, 'clusterspecs.json')).clustername
+        if defaulthost not in clusternames.values():
+            defaulthost = 'Otro'
     else:
         defaulthost = None
 
