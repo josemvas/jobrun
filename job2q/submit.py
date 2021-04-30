@@ -244,7 +244,7 @@ def initialize():
     if hostspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
-        script.fetch = 'mv "{}" "{}"'.format
+        script.fetch = 'cp "{}" "{}"'.format
         script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
     elif hostspecs.filesync == 'remote':
