@@ -59,7 +59,7 @@
    ],
 
    "warn_errors": [
-      "Job <[0-9]+> is not found"
+      "qstat: Unknown Job Id Error [0-9]+.*"
    ]
 
 }
