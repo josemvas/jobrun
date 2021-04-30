@@ -44,9 +44,6 @@ def initialize():
     script.envars = []
     script.main = []
 
-    if not hostspecs.scheduler:
-        messages.error('No se especificó el nombre del gestor de trabajos', spec='scheduler')
-    
     if options.common.nodefaults:
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('parameterset', None)
