@@ -12,8 +12,8 @@
    ],
 
    "logfiles": [
-       "#SBATCH -o '{jobdir}/output/%A'",
-       "#SBATCH -e '{jobdir}/errors/%A'"
+       "#SBATCH -o '{logdir}/%A.out'",
+       "#SBATCH -e '{logdir}/%A.err'"
    ],
 
    "serial": [

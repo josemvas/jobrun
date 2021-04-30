@@ -12,8 +12,8 @@
    ],
 
    "logfiles": [
-      "#BSUB -o '{jobdir}/output/%J'",
-      "#BSUB -e '{jobdir}/errors/%J'"
+      "#BSUB -o '{logdir}/%J.out'",
+      "#BSUB -e '{logdir}/%J.err'"
    ],
 
    "serial": [
