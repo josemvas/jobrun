@@ -2,7 +2,7 @@
    "schedulername": "TORQUE",
    "submitcmd": [ "qsub" ],
    "statcmd": [ "qstat", "-x" ],
-   "submitre": "(.+)",
+   "submitre": "([0-9]+)\\.[^.]+",
    "statre": ".*<job_state>([^<]+)</job_state>.*",
 
    "jobname": "#PBS -N '{job}'",
@@ -59,7 +59,7 @@
    ],
 
    "warn_errors": [
-      "qstat: Unknown Job Id Error [0-9]+.*"
+      "qstat: Unknown Job Id Error [0-9]+\\.[^.]+"
    ]
 
 }
