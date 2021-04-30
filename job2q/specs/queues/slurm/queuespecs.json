@@ -54,7 +54,7 @@
    "envars": {
        "jobid": "$SLURM_JOB_ID",
        "nproc": "$SLURM_NTASKS",
-       "hosts": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
+       "hostlist": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
    },
    
    "mpilauncher": {

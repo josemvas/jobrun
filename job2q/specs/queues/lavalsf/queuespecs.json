@@ -54,7 +54,7 @@
    "envars": {
       "jobid": "$LSB_JOBID",
       "nproc": "$(echo $LSB_HOSTS | wc -w)",
-      "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
+      "hostlist": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
    },
     
    "mpilauncher": {

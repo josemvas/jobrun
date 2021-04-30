@@ -45,7 +45,7 @@
    "envars": {
       "jobid": "$PBS_JOBID",
       "nproc": "$(echo $PBS_NODEFILE | wc -w)",
-      "hosts": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"
+      "hostlist": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"
    },
     
    "mpilauncher": {

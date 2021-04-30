@@ -248,10 +248,10 @@ def initialize():
         script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
     elif hostspecs.filesync == 'remote':
-        script.rmdir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
-        script.mkdir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.fetch = 'for host in ${{hosts[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.fetchdir = 'for host in ${{hosts[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
+        script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.fetch = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.fetchdir = 'for host in ${{hostlist[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.remit = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
@@ -419,7 +419,7 @@ def submit(rootdir, basename):
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('job', names.job) + '\n')
-        f.write('for host in ${hosts[*]}; do echo "<$host>"; done' + '\n')
+        f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.mkdir(script.scrdir) + '\n')
         f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
         f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
