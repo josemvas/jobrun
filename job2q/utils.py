@@ -61,11 +61,8 @@ def q(string):
 def Q(string):
     return "'{0}'".format(string)
 
-def natural(string):
+def natkey(string):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
-
-def natsort(stringlist):
-    return sorted(stringlist, key=natural)
 
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())

@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import DefaultStr, deepjoin, pathseps, natsort, printtree, getformatkeys
+from .utils import DefaultStr, deepjoin, pathseps, printtree, getformatkeys
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):

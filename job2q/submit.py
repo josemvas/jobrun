@@ -2,7 +2,7 @@
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
-from .utils import Bunch, IdentityList, natural, natsort, o, p, q, Q, join_args, boolstrs, substitute
+from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, environ, hostspecs, jobspecs, options
 from .details import mpilibs
 from .readmol import readmol
@@ -157,7 +157,7 @@ def initialize():
                 else:
                     messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
             else:
-                options.common.version = dialogs.chooseone('Seleccione una versión', choices=natsort(jobspecs.versions.keys()))
+                options.common.version = dialogs.chooseone('Seleccione una versión', choices=sorted(jobspecs.versions.keys(), key=natkey))
         if options.common.version not in jobspecs.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
     else:

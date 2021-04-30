@@ -50,7 +50,7 @@ try:
     except KeyError:
         pass
     
-    hostspecs.merge(readspec(buildpath(specdir, program, 'hostspecs.json')))
+    hostspecs.merge(readspec(buildpath(specdir, program, 'clusterspecs.json')))
     hostspecs.merge(readspec(buildpath(specdir, program, 'queuespecs.json')))
 
     jobspecs.merge(readspec(buildpath(specdir, program, 'packagespecs.json')))

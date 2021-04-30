@@ -1,4 +1,5 @@
 {
+   "schedulername": "TORQUE",
    "submitcmd": [ "qsub" ],
    "statcmd": [ "qstat", "-x" ],
    "submitre": "(.+)",
@@ -10,25 +11,21 @@
       "#PBS -e '{logdir}/%J.err'"
    ],
 
-   // Serial job
    "serial": [
       "#PBS -q '{queue}'",
       "#PBS -l 'nodes=1:ppn=1'"
    ],
 
-   // Parallel job
    "parallel": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={nhost}:ppn={nproc}'",
+      "#PBS -l 'nodes={nhost}:ppn={nproc}'"
    ],
 
-   // Parallel job on single host
    "parallelin": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes=1:ppn={nproc}'",
+      "#PBS -l 'nodes=1:ppn={nproc}'"
    ],
 
-   // Parallel job on multiple hosts
    "parallelat": [
       "#PBS -q '{queue}'",
       "#PBS -l 'nodes={hosts}:ppn={nproc}'"
@@ -52,12 +49,12 @@
       "H": "El trabajo {name} no se envió porque está retenido con número de trabajo {id}",
       "S": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
       "W": "El trabajo {name} no se envió porque está esperando a ser ejecutado con número de trabajo {id}",
-      "T": "El trabajo {name} no se envió porque está siendo movido a otro host con número de trabajo {id}"
-      "E": "El trabajo {name} no se envió porque terminó pero aún está en cola con número de trabajo {id}",
+      "T": "El trabajo {name} no se envió porque está siendo movido a otro host con número de trabajo {id}",
+      "E": "El trabajo {name} no se envió porque terminó pero aún está en cola con número de trabajo {id}"
    },
     
    "ready_states": [
-      "C",
+      "C"
    ]
 }
 

@@ -1,4 +1,5 @@
 {
+   "schedulername": "Platform LSF",
    "submitcmd": [ "bsub" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "submitre": ".*<([0-9]+)>.*",

@@ -8,7 +8,7 @@ from pwd import getpwnam
 from grp import getgrgid
 from . import messages
 from .readspec import SpecBunch
-from .utils import Bunch, p, q
+from .utils import Bunch, p, q, natkey
 from .fileutils import AbsPath, buildpath
 from .parsing import BoolParser
 
@@ -17,9 +17,9 @@ class ArgList:
         self.current = None
         if 'sort' in options.common:
             if options.common.sort == 'natural':
-                self.args = sort(args, key=natural)
+                self.args = sorted(args, key=natkey)
             elif options.common.sort == 'reverse':
-                self.args = sort(args, key=natural, reverse=True)
+                self.args = sorted(args, key=natkey, reverse=True)
         else:
             self.args = args
         if 'filter' in options.common:
