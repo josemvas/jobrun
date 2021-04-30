@@ -197,11 +197,8 @@ def initialize():
     except NotAbsolutePath:
         script.main.append(jobspecs.versions[options.common.version].executable)
 
-    jobout = AbsPath(hostspecs.logdir, 'output').setkeys(names).validate()
-    joberr = AbsPath(hostspecs.logdir, 'error').setkeys(names).validate()
-
-    for item in hostspecs.logging:
-        script.header.append(item.format(jobout=jobout, joberr=joberr))
+    for path in hostspecs.logfiles:
+        script.header.append(path.format(logdir=AbsPath(hostspecs.logdir).setkeys(names).validate()))
 
     script.setup.append("shopt -s nullglob extglob")
 

@@ -2,7 +2,7 @@
    "clustername" : "Otro",
    "headname": "",
    "filesync": "remote",
-   "logdir": "/home/{user}/.joblogs",
+   "logdir": "/tmp",
 
    "defaults": {
       "queue": "",

@@ -11,9 +11,9 @@
        "#SBATCH --comment='{packagename}'"
    ],
 
-   "logging": [
-       "#SBATCH -o '{jobout}/%A'",
-       "#SBATCH -e '{joberr}/%A'"
+   "logfiles": [
+       "#SBATCH -o '{jobdir}/output/%A'",
+       "#SBATCH -e '{jobdir}/errors/%A'"
    ],
 
    "serial": [

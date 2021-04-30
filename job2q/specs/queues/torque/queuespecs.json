@@ -7,9 +7,9 @@
 
    "jobname": "#PBS -N '{job}'",
 
-   "logging": [
-      "#PBS -o '{jobout}/%J'",
-      "#PBS -e '{joberr}/%J'"
+   "logfiles": [
+      "#PBS -o '{logdir}/output/%J'",
+      "#PBS -e '{logdir}/errors/%J'"
    ],
 
    "serial": [

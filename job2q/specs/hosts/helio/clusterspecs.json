@@ -3,7 +3,8 @@
    "headname": "helio",
    "scheduler": "lavalsf",
    "filesync": "remote",
-   "logdir": "/home/{user}/.joblogs",
+   "logdir": "/tmp",
+
    "defaults": {
       "queue": "auto",
       "scratchdir": "/scratch",

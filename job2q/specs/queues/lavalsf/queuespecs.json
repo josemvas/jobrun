@@ -11,9 +11,9 @@
       "#BSUB -P '{packagename}'"
    ],
 
-   "logging": [
-      "#BSUB -o '{jobout}/%J'",
-      "#BSUB -e '{joberr}/%J'"
+   "logfiles": [
+      "#BSUB -o '{jobdir}/output/%J'",
+      "#BSUB -e '{jobdir}/errors/%J'"
    ],
 
    "serial": [
