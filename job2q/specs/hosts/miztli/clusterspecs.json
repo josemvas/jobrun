@@ -3,7 +3,7 @@
    "headname": "mn328",
    "scheduler": "platformlsf",
    "filesync": "remote",
-   "logdir": "/home/{group}/{user}/.submissions",
+   "logdir": "/home/{group}/{user}/.logs",
 
    "defaults": {
       "queue": "q_htc",
