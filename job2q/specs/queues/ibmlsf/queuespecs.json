@@ -67,7 +67,7 @@
    ],
 
    "warn_errors": [
-      "Job <{id}> is not found"
+      "Job <[0-9]+> is not found"
    ]
 
 }

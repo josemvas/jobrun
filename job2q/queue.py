@@ -29,6 +29,9 @@ def jobstat(jobid):
             else:
                 return 'El trabajo "{name}" no se envió porque está en cola pero su estado es inválido: ' + status
     else:
-        if error not in [i.format(id=jobid) for i in hostspecs.warn_errors]:
+        for regex in hostspecs.warn_errors:
+            if re.fullmatch(regex, error):
+                break
+        else:
             return 'El trabajo "{name}" no se envió porque ocurrió un error al revisar su estado: ' + error
        

@@ -56,6 +56,11 @@
     
    "ready_states": [
       "C"
+   ],
+
+   "warn_errors": [
+      "Job <[0-9]+> is not found"
    ]
+
 }
 
