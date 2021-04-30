@@ -4,7 +4,8 @@
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "submitre": ".*<([0-9]+)>.*",
    "statre": "(.+)",
-   "title": "#BSUB -J '{}'",
+
+   "jobname": "#BSUB -J '{job}'",
 
    "metadata": [
       "#BSUB -P '{packagename}'"

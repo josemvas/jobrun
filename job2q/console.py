@@ -77,11 +77,11 @@ def install(relpath=False):
         packagespecnames[packagespecs.packagename] = specname
 
     if not packagenames:
-        messages.warning('No hay programas configurados para este host')
+        messages.warning('No hay programas preconfigurados para este host')
         raise SystemExit()
 
     for specname in os.listdir(specdir):
-        configured.append(readspec(buildpath(specdir, specname, 'clusterspecs.json')).packagename)
+        configured.append(readspec(buildpath(specdir, specname, 'packagespecs.json')).packagename)
 
     selpackages = [packagespecnames[i] for i in dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)]
 

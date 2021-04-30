@@ -404,7 +404,7 @@ def submit(rootdir, basename):
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash' + '\n')
         f.write(''.join(i + '\n' for i in script.header))
-        f.write(hostspecs.title.format(names.job) + '\n')
+        f.write(hostspecs.jobname.format(**names) + '\n')
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('job', names.job) + '\n')

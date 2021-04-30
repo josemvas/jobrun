@@ -4,7 +4,8 @@
    "statcmd": [ "qstat", "-x" ],
    "submitre": "(.+)",
    "statre": ".*<job_state>([^<]+)</job_state>.*",
-   "title": "#PBS -N '{job}'",
+
+   "jobname": "#PBS -N '{job}'",
 
    "logging": [
       "#PBS -o '{logdir}/%J.out'",

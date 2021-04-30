@@ -4,7 +4,8 @@
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
    "submitre": ".* ([0-9]+)",
    "statre": "(.+)",
-   "title": "#SBATCH -J '{job}'",
+
+   "jobname": "#SBATCH -J '{job}'",
 
    "metadata": [
        "#SBATCH --comment='{packagename}'"
