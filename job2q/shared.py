@@ -2,7 +2,6 @@
 import os
 import re
 from string import Template
-from socket import gethostname
 from getpass import getuser 
 from pwd import getpwnam
 from grp import getgrgid
@@ -91,7 +90,6 @@ class OptDict:
 names = Bunch()
 names.user = getuser()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-names.host = gethostname()
 
 environ = Bunch()
 options = OptDict()

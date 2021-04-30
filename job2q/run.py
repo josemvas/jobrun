@@ -150,7 +150,8 @@ try:
         filelist = []
         remotejobs = []
         remotehost = parsedargs.remotehost
-        userhost = names.user + '@' + names.host
+        userhost = names.user + '@' + names.cluster
+
         try:
             output = check_output(['ssh', remotehost, 'echo $JOBSHARE'], stderr=STDOUT)
         except CalledProcessError as exc:
