@@ -1,0 +1,6 @@
+#!/bin/sh
+test ! -L "$0" && exit
+LD_LIBRARY_PATH={libpath} \
+PYTHONPATH={moduledir} \
+SPECDIR={specdir} \
+{python} -m job2q.run "$(basename "$0")" "$@"
