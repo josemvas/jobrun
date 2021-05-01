@@ -163,7 +163,7 @@ try:
             output = check_output(['ssh', remotehost, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'], stderr=STDOUT)
         except CalledProcessError as exc:
             messages.error(exc.output.decode(sys.stdout.encoding).strip())
-        remoteroot, remotecmd = output.decode(sys.stdout.encoding).strip().split(':')
+        remotecmd, remoteroot = output.decode(sys.stdout.encoding).strip().split(':')
         if not remoteroot or not remotecmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
         #TODO: Consider include trjmol and mol paths in optionalfiles
