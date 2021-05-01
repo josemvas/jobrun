@@ -67,7 +67,7 @@ def install(relpath=False):
     if os.path.isfile(buildpath(etcdir, 'queuespecs.json')):
         defaultscheduler = readspec(buildpath(etcdir, 'queuespecs.json')).schedulername
     elif selhost in clusterschedulers:
-        defaultscheduler = schedulernames[clusterschedulers[selhost]]
+        defaultscheduler = clusterschedulers[selhost]
     else:
         defaultscheduler = None
 
