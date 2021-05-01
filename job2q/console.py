@@ -8,12 +8,12 @@ from . import dialogs
 from . import messages
 from .utils import q
 from .readspec import readspec
-from .fileutils import AbsPath, NotAbsolutePath, buildpath, mkdir, copyfile, link, symlink
+from .fileutils import AbsPath, NotAbsolutePath, buildpath, mkdir, copyfile, symlink
 
 def install(relpath=False):
 
-    libpath = []
-    pyldpath = []
+    pylibs = []
+    syslibs = []
     configured = []
     clusternames = {}
     clusterspeckeys = {}
@@ -92,8 +92,8 @@ def install(relpath=False):
     for packagename in selpackagenames:
         package = packagespeckeys[packagename]
         mkdir(buildpath(specdir, package))
-        link(buildpath(etcdir, 'clusterspecs.json'), buildpath(specdir, package, 'clusterspecs.json'))
-        link(buildpath(etcdir, 'queuespecs.json'), buildpath(specdir, package, 'queuespecs.json'))
+        symlink(buildpath(etcdir, 'clusterspecs.json'), buildpath(specdir, package, 'clusterspecs.json'))
+        symlink(buildpath(etcdir, 'queuespecs.json'), buildpath(specdir, package, 'queuespecs.json'))
         copyfile(buildpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), buildpath(specdir, package, 'packagespecs.json'))
         copypathspec = True
         if packagename not in configured or not os.path.isfile(buildpath(specdir, package, 'packageconf.json')) or readspec(buildpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(buildpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
@@ -101,32 +101,35 @@ def install(relpath=False):
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
-        if match and match.group(1) not in libpath:
-            libpath.append(match.group(1))
+        if match and match.group(1) not in syslibs:
+            syslibs.append(match.group(1))
 
-    pyldpath.append('$LD_LIBRARY_PATH')
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
             libdir = os.path.dirname(match.group(1))
-            if libdir not in libpath and libdir not in pyldpath:
-                pyldpath.append(libdir)
+            if libdir not in syslibs:
+                pylibs.append(libdir)
 
-    modulepath = os.path.dirname(sourcedir)
+    installation = dict(
+        python = sys.executable,
+        libpath = os.pathsep.join(pylibs),
+        moduledir = os.path.dirname(sourcedir),
+        specdir = specdir,
+    )
 
-    with open(buildpath(sourcedir, 'bin', 'job2q'), 'r') as fr, open(buildpath(bindir, 'job2q'), 'w') as fw:
-        fw.write(fr.read().format(
-            python=sys.executable,
-            pyldpath=os.pathsep.join(pyldpath),
-            modulepath=modulepath,
-            specdir=specdir
-        ))
+    with open(buildpath(sourcedir, 'bin', 'job2q'), 'r') as r, open(buildpath(bindir, 'job2q'), 'w') as w:
+        w.write(r.read().format(**installation))
+
+    with open(buildpath(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(buildpath(bindir, 'job2q.target'), 'w') as w:
+        w.write(r.read().format(**installation))
 
     for specname in os.listdir(specdir):
-        symlink(buildpath(bindir, 'job2q'), buildpath(bindir, specname))
+        symlink(buildpath(bindir, 'job2q.target'), buildpath(bindir, specname))
 
     copyfile(buildpath(sourcedir, 'bin','jobsync'), buildpath(bindir, 'jobsync'))
 
-    os.chmod(buildpath(bindir, 'jobsync'), 0o755)
     os.chmod(buildpath(bindir, 'job2q'), 0o755)
+    os.chmod(buildpath(bindir, 'job2q.target'), 0o755)
+    os.chmod(buildpath(bindir, 'jobsync'), 0o755)
 

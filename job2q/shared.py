@@ -91,7 +91,6 @@ names = Bunch()
 names.user = getuser()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 
-environ = Bunch()
 options = OptDict()
 hostspecs = SpecBunch()
 jobspecs = SpecBunch()

@@ -3,7 +3,7 @@ from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
-from .shared import names, environ, hostspecs, jobspecs, options
+from .shared import names, hostspecs, jobspecs, options
 from .details import wrappers
 from .readmol import readmol
 

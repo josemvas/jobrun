@@ -9,7 +9,7 @@ from . import messages
 from .readspec import readspec
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
 from .fileutils import AbsPath, NotAbsolutePath, buildpath, findbranches
-from .shared import ArgList, names, environ, hostspecs, jobspecs, options
+from .shared import ArgList, names, hostspecs, jobspecs, options
 from .submit import initialize, interpolate, submit 
 
 class LsOptions(Action):
@@ -39,17 +39,17 @@ class SetCwd(Action):
 
 try:
 
+    try:
+        specdir = os.environ['SPECDIR']
+    except KeyError:
+        messages.error('No se definió la variable de entorno SPECDIR')
+    
     homedir = os.path.expanduser('~')
+
     parser = ArgumentParser(add_help=False)
-    parser.add_argument('--specdir', metavar='SPECDIR', help='Ruta al directorio de especificaciones del programa.')
-    parser.add_argument('--program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
+    parser.add_argument('program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
     globals().update(vars(parsedargs))
-    
-    try:
-        environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
-    except KeyError:
-        pass
     
     hostspecs.merge(readspec(buildpath(specdir, program, 'clusterspecs.json')))
     hostspecs.merge(readspec(buildpath(specdir, program, 'queuespecs.json')))
@@ -148,17 +148,23 @@ try:
 
     if parsedargs.remotehost:
 
+        environ = {}
         filelist = []
         remotejobs = []
         remotehost = parsedargs.remotehost
         userhost = names.user + '@' + gethostname()
 
         try:
-            output = check_output(['ssh', remotehost, 'echo $REMOTEROOT'], stderr=STDOUT)
+            environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+        except KeyError:
+            pass
+        
+        try:
+            output = check_output(['ssh', remotehost, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'], stderr=STDOUT)
         except CalledProcessError as exc:
             messages.error(exc.output.decode(sys.stdout.encoding).strip())
-        remoteshare = output.decode(sys.stdout.encoding).strip()
-        if not remoteshare:
+        remoteroot, remotecmd = output.decode(sys.stdout.encoding).strip().split(':')
+        if not remoteroot or not remotecmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
         #TODO: Consider include trjmol and mol paths in optionalfiles
         if 'trjmol' in options.common:
@@ -171,7 +177,7 @@ try:
         for path in arglist:
             rootdir, basename = path
             relparent = os.path.relpath(rootdir, homedir)
-            remotecwd = buildpath(remoteshare, userhost, relparent)
+            remotecwd = buildpath(remoteroot, userhost, relparent)
             remotejobs.append(basename)
             for key in jobspecs.filekeys:
                 if os.path.isfile(buildpath(rootdir, (basename, key))):
@@ -181,10 +187,10 @@ try:
             options.switch.add('delete')
             options.define.update({'root': remotecwd})
             try:
-                check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteshare, userhost)])
+                check_output(['rsync', '-qRLtz'] + filelist + [remotehost + ':' + buildpath(remoteroot, userhost)])
             except CalledProcessError as exc:
                 messages.error(exc.output.decode(sys.stdout.encoding).strip())
-            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [env + '=' + val for env, val in environ.items()] + [program] + [o(opt) for opt in options.switch] + [o(opt, val) for opt, val in options.define.items()] + [o(opt, val) for opt, valist in options.append.items() for val in valist] + remotejobs)
+            os.execv('/usr/bin/ssh', [__file__, '-qt', remotehost] + [env + '=' + val for env, val in environ.items()] + [remotecmd] + [program] + [o(opt) for opt in options.switch] + [o(opt, val) for opt, val in options.define.items()] + [o(opt, val) for opt, valist in options.append.items() for val in valist] + remotejobs)
         raise SystemExit()
 
     else:
