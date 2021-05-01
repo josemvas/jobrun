@@ -44,7 +44,7 @@
 
    "envars": {
       "jobid": "$PBS_JOBID",
-      "nproc": "$(expr $PBS_NUM_NODES \* $PBS_NUM_PPN)",
+      "nproc": "$(expr $PBS_NUM_NODES \\* $PBS_NUM_PPN)",
       "hostlist": "$(printf '%s\\n' $PBS_NODEFILE | uniq)"
    },
     
