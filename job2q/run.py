@@ -155,7 +155,7 @@ try:
         userhost = names.user + '@' + gethostname()
 
         try:
-            environ[TELEGRAM_CHAT_ID] = os.environ['TELEGRAM_CHAT_ID']
+            environ['TELEGRAM_CHAT_ID'] = os.environ['TELEGRAM_CHAT_ID']
         except KeyError:
             pass
         
