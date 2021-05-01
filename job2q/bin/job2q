@@ -1,4 +1,5 @@
 #!/bin/sh
+exec env \
 LD_LIBRARY_PATH={libpath} \
 PYTHONPATH={moduledir} \
 SPECDIR={specdir} \

@@ -4,32 +4,36 @@ normal=$(tput sgr0)
 yellow=$(tput setaf 3)
 red=$(tput setaf 1)
 
-delete_remote_files () {
-    filelist=$(echo "$2" | rsync -ntii --files-from=- --remove-source-files "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p')
-    { echo "${yellow}Los siguientes archivos $1 serán borrados de $host:${normal}"; echo "$filelist"; } | less -FXr
+sync_files () {
+    test -z "$1" && return
+    rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME" <<< "$1"
+}
+
+remove_files () {
+    test -z "$1" && return
+    { echo "${red}Los siguientes archivos $2 serán borrados de $host:${normal}"; echo "$1"; } | less -FXr
     while true; do
-        read -p "${yellow}Escriba \"ok\" para proceder o presione ENTER para cancelar: ${normal}" answer
+        read -p "${yellow}Escriba OK para eliminarlos o presione ENTER para conservarlos: ${normal}" answer
         case "$answer" in
           [oO][kK])
-            echo -n ${yellow}Borrando los archivos $1... ${normal}
-            echo "$2" | rsync -tv --files-from=- --remove-source-files "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f          ,,p'
+            echo -n ${yellow}Eliminando archivos $2... ${normal}
+            rsync -tv --files-from=- --remove-source-files "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME" | sed -n 's,^.f......... ,,p' <<< "$1"
             echo Hecho
             break;;
-          ?*) echo Escriba \"ok\" si desea borrar los archivos o presione ENTER para cancelar;;
           *) break;;
         esac
     done
 }
 
-options=$(getopt -n "$0" -o '' -l force,delete,exclude: -- "$@") || exit
+options=$(getopt -n "$0" -o '' -l force,clean -- "$@") || exit
 
 eval "set -- $options"
 
 while (( $# )); do
   case "$1" in
     --force) force=; shift;;
-    --delete) delete=; shift;;
-    --exclude) expat=$2; shift 2;;
+    --clean) clean=; shift;;
+#    --exclude) expat=$2; shift 2;;
     --) shift; break;;
      *) echo Unknown option: $1; exit 1
   esac
@@ -43,56 +47,68 @@ else
     exit
 fi
 
-including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
-excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
-synced=$(echo "$including$excluding" | sed -n 's,^.f          ,,p')
-unsynced=$(echo "$including" | sed -n 's,^>f+++++++++ ,,p')
-excluded=$(echo "$excluding" | sed -n 's,^>f+++++++++ ,,p')
-conflicting=$(echo "$including" | grep -v '^>f          ' | grep -v '^>f+++++++++ ' | sed -n 's,^>f......... ,,p')
+#including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
+#excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
+files=$(rsync -rntii "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
 
-#echo "$including"
+synced=$(echo "$files" | sed -n 's,^\.f          ,,p')
+unsynced=$(echo "$files" | sed -n 's,^>f+++++++++ ,,p')
+conflicting=$(echo "$files" | grep -v '^>f          ' | grep -v '^>f+++++++++ ' | sed -n 's,^>f......... ,,p')
+
+#echo "$files"
 #echo "$synced"
 #echo "$unsynced"
-#echo "$excluded"
 #echo "$conflicting"
 #exit
 
-if [[ -n $unsynced || -n $conflicting ]]; then
-    if [[ -n ${delete+?} ]]; then 
-        echo ${red}No se borró ningún archivo porque hay archivos pendientes de sincronizar en pandiyan${normal}
+if [[ -n ${clean+?} ]]; then 
+    if [[ -n ${force+?} ]]; then 
+        if [[ -n $synced || -n $conflicting || -n $unsynced ]]; then
+            remove_files "$synced" duplicados
+            remove_files "$conflicting" conflictivos
+            remove_files "$unsynced" remanentes
+        else
+            echo No hay archivos que eliminar
+        fi
     else
         if [[ -n $unsynced ]]; then
-            echo ${yellow}Sincronizando archivos nuevos...${normal}
-            echo "$unsynced" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME"
-            echo
-        fi
-        if [[ -n $conflicting ]]; then
-            if [[ -z ${force+?} ]]; then
-                echo "${yellow}La versión remota de los siguientes archivos difiere de la versión local:${normal}"
-                echo "$conflicting"
-                echo "${yellow}Ejecute este escript con la opción --force para sobreescribir las versiones locales${normal}"
-            else
-                echo ${yellow}Sobreescribiendo los archivos conflictivos...${normal}
-                echo "$conflicting" | rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME"
-            fi
+            echo ${red}No se limpió el host $host porque los siguientes archivos no se han sincronizado:${normal} 
+            echo "$unsynced"
+            echo ${yellow}Sincronícelos primero o use las opciones --clean y --force para eliminarlos${normal}
+        elif [[ -n $conflicting ]]; then
+            echo ${red}No se limpió el host $host porque hay conflictos entre las versiones locales y remotas de los siguientes archivos:${normal}
+            echo "$conflicting"
+            echo ${yellow}Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas${normal}
+        elif [[ -n $synced ]]; then
+            remove_files "$synced" duplicados
+        else
+            echo No hay archivos que eliminar
         fi
     fi
 else
-    if [[ -n ${delete+?} ]]; then 
-        if [[ -n $synced ]]; then
-            delete_remote_files "redundantes" "$synced"
-        elif [[ -n $excluded ]]; then
-            delete_remote_files "excluidos" "$synced"
+    if [[ -n ${force+?} ]]; then 
+        if [[ -n $unsynced  || -n $conflicting ]]; then
+            sync_files "$unsynced"
+            sync_files "$conflicting"
+        else
+            echo No hay archivos que sincronizar
         fi
     else
-        if [[ -n $synced ]]; then
-            echo "${yellow}Hay archivos redundantes en $host que ya fueron sincronizados, use la opción --delete para eliminarlos${normal}"
+        if [[ -n $unsynced  || -n $conflicting ]]; then
+            if [[ -n $unsynced ]]; then
+                sync_files "$unsynced"
+                echo Sincronización completa
+            fi
+            if [[ -n $conflicting ]]; then
+                echo ${red}No se sincronizaron los siguientes archivos porque hay conflictos entre sus versiones locales y remotas:${normal}
+                echo "$conflicting"
+                echo ${yellow}Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas${normal}
+            fi
+        elif [[ -n $synced ]]; then
+            echo ${yellow}No hay archivos nuevos que sincronizar pero hay duplicados en $host, use la opción --clean para eliminarlos${normal}
+        else
+            echo No hay archivos que sincronizar
         fi
-        if [[ -n $excluded ]]; then
-            echo "${yellow}Hay archivos en $host que fueron excluidos, use las opciones --exclude=$expat y --delete para eliminarlos${normal}"
-        fi
-        echo No hay archivos nuevos que sincronizar
     fi
 fi
-
 
