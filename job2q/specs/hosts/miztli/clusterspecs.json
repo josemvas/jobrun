@@ -11,6 +11,6 @@
       "wait": "3"
    },
    "offscript": [
-      "test $TELEGRAM_CHAT_ID && curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text=\"Tu cálculo \\\"$job\\\" en $clustername ha finalizado\""
+      "test $TELEGRAM_CHAT_ID && curl -1 -X POST https://api.telegram.org/bot719535229:AAF-4WcgUQKpyu8009Et09xbo6OWNbSdX0M/sendMessage -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text=\"Tu cálculo \\\"$job\\\" en $cluster ha finalizado\""
    ]
 }
