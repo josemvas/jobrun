@@ -2,6 +2,7 @@
 import os
 import sys
 from time import sleep
+from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
@@ -150,7 +151,7 @@ try:
         filelist = []
         remotejobs = []
         remotehost = parsedargs.remotehost
-        userhost = names.user + '@' + names.cluster
+        userhost = names.user + '@' + gethostname()
 
         try:
             output = check_output(['ssh', remotehost, 'echo $REMOTEROOT'], stderr=STDOUT)
