@@ -49,7 +49,7 @@ fi
 
 #including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
 #excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
-files=$(rsync -rntii "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
+files=$(rsync -rntii --exclude='.*' "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME")
 
 synced=$(echo "$files" | sed -n 's,^\.f          ,,p')
 unsynced=$(echo "$files" | sed -n 's,^>f+++++++++ ,,p')
