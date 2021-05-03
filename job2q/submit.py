@@ -418,8 +418,8 @@ def submit(basedir, basename):
         remoteargs.constants.update({'outdir': remotecwd})
         filelist = []
         for key in jobspecs.filekeys:
-            if os.path.isfile(formpath(outdir, (basename, key))):
-                filelist.append(formpath(paths.home, '.', relparent, (basename, key)))
+            if os.path.isfile(formpath(outdir, (filename, key))):
+                filelist.append(formpath(paths.home, '.', relparent, (filename, key)))
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)

@@ -11,12 +11,12 @@ sync_files () {
 
 remove_files () {
     test -z "$1" && return
-    { echo "${red}Los siguientes archivos $2 serán borrados de $host:${normal}"; echo "$1"; } | less -FXr
+    { echo $red\Los siguientes archivos $2 serán borrados de $host:$normal; echo "$1"; } | less -FXr
     while true; do
-        read -p "${yellow}Escriba OK para eliminarlos o presione ENTER para conservarlos: ${normal}" answer
+        read -p "${yellow}Escriba OK para eliminarlos o presione ENTER para conservarlos: $normal" answer
         case "$answer" in
           [oO][kK])
-            echo -n ${yellow}Eliminando archivos $2... ${normal}
+            echo -n $yellow\Eliminando archivos $2... $normal
             rsync -tv --files-from=- --remove-source-files "$host":"\$JOB2Q_ROOT/$USER@$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
             echo Hecho
             break;;
@@ -42,8 +42,8 @@ done
 if [[ -n $1 ]]; then
     host=$1
 else
-    echo 'Error: Debe especificar un servidor'
-    echo "Uso: $(basename "$0") <hostname>"
+    echo $red\Debe especificar un servidor$normal
+    echo Uso: $(basename "$0") \<hostname\>
     exit
 fi
 
@@ -72,13 +72,13 @@ if [[ -n ${clean+?} ]]; then
         fi
     else
         if [[ -n $unsynced ]]; then
-            echo ${red}No se limpió el host $host porque los siguientes archivos no se han sincronizado:${normal} 
+            echo $red\No se limpió el host $host porque los siguientes archivos no se han sincronizado:$normal 
             echo "$unsynced"
-            echo ${yellow}Sincronícelos primero o use las opciones --clean y --force para eliminarlos${normal}
+            echo $yellow\Sincronícelos primero o use las opciones --clean y --force para eliminarlos$normal
         elif [[ -n $conflicting ]]; then
-            echo ${red}No se limpió el host $host porque hay conflictos entre las versiones locales y remotas de los siguientes archivos:${normal}
+            echo $red\No se limpió el host $host porque hay conflictos entre las versiones locales y remotas de los siguientes archivos:$normal
             echo "$conflicting"
-            echo ${yellow}Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas${normal}
+            echo $yellow\Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas$normal
         elif [[ -n $synced ]]; then
             remove_files "$synced" duplicados
         else
@@ -100,12 +100,12 @@ else
                 echo Sincronización completa
             fi
             if [[ -n $conflicting ]]; then
-                echo ${red}No se sincronizaron los siguientes archivos porque hay conflictos entre sus versiones locales y remotas:${normal}
+                echo $red\No se sincronizaron los siguientes archivos porque hay conflictos entre sus versiones locales y remotas:$normal
                 echo "$conflicting"
-                echo ${yellow}Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas${normal}
+                echo $yellow\Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas$normal
             fi
         elif [[ -n $synced ]]; then
-            echo ${yellow}No hay archivos nuevos que sincronizar pero hay duplicados en $host, use la opción --clean para eliminarlos${normal}
+            echo $yellow\No hay archivos nuevos que sincronizar pero hay duplicados en $host, use la opción --clean para eliminarlos$normal
         else
             echo No hay archivos que sincronizar
         fi
