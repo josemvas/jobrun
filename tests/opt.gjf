@@ -1,7 +1,7 @@
-# HF/$basis opt
+# HF/%basis opt
 
 Interpolated basis and coordinates
 
 0, 1
-$mol1
+%mol1
 

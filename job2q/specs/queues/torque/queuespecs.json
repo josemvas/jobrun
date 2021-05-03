@@ -5,11 +5,11 @@
    "submitre": "([0-9]+)\\.[^.]+",
    "statre": ".*<job_state>([^<]+)</job_state>.*",
 
-   "jobname": "#PBS -N '{job}'",
+   "jobname": "#PBS -N '{}'",
 
    "logfiles": [
-      "#PBS -o '{logdir}/%J.out'",
-      "#PBS -e '{logdir}/%J.err'"
+      "#PBS -o '{}/%J.out'",
+      "#PBS -e '{}/%J.err'"
    ],
 
    "serial": [
@@ -19,7 +19,7 @@
 
    "serialat": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={host}:ppn=1'"
+      "#PBS -l 'nodes={nodelist}:ppn=1'"
    ],
 
    "singlehost": [
@@ -29,12 +29,12 @@
 
    "singlehostat": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={host}:ppn={nproc}'"
+      "#PBS -l 'nodes={nodelist}:ppn={nproc}'"
    ],
 
    "multihost": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={nhost}:ppn={nproc}'"
+      "#PBS -l 'nodes={nodes}:ppn={nproc}'"
    ],
 
    "multihostat": [

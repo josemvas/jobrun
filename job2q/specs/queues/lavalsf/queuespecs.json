@@ -5,15 +5,12 @@
    "submitre": ".*<([0-9]+)>.*",
    "statre": "(.+)",
 
-   "jobname": "#BSUB -J '{job}'",
-
-   "metadata": [
-      "#BSUB -P '{packagename}'"
-   ],
+   "jobname": "#BSUB -J '{}'",
+   "jobkind": "#BSUB -P '{}'",
 
    "logfiles": [
-      "#BSUB -o '{logdir}/%J.out'",
-      "#BSUB -e '{logdir}/%J.err'"
+      "#BSUB -o '{}/%J.out'",
+      "#BSUB -e '{}/%J.err'"
    ],
 
    "serial": [
@@ -23,7 +20,7 @@
 
    "serialat": [
       "#BSUB -q '{queue}'",
-      "#BSUB -m '{host}'",
+      "#BSUB -m '{nodelist}'",
       "#BSUB -n '1'"
    ],
 
@@ -36,13 +33,13 @@
    "singlehostat": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -m '{host}'"
+      "#BSUB -m '{nodelist}'"
    ],
 
    "multihost": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'"
+      "#BSUB -R 'span[hosts={nodes}]'"
    ],
 
    "multihostat": [

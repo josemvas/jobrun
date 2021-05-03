@@ -5,15 +5,12 @@
    "submitre": ".* ([0-9]+)",
    "statre": "(.+)",
 
-   "jobname": "#SBATCH -J '{job}'",
-
-   "metadata": [
-       "#SBATCH --comment='{packagename}'"
-   ],
+   "jobname": "#SBATCH -J '{}'",
+   "jobkind": "#SBATCH --comment='{}'",
 
    "logfiles": [
-       "#SBATCH -o '{logdir}/%A.out'",
-       "#SBATCH -e '{logdir}/%A.err'"
+       "#SBATCH -o '{}/%A.out'",
+       "#SBATCH -e '{}/%A.err'"
    ],
 
    "serial": [
@@ -23,7 +20,7 @@
 
    "serialat": [
        "#SBATCH -p '{queue}'",
-       "#SBATCH -w '{host}'",
+       "#SBATCH -w '{nodelist}'",
        "#SBATCH -n '1'"
    ],
 
@@ -36,13 +33,13 @@
    "singlehostat": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -w '{host}'"
+       "#SBATCH -w '{nodelist}'"
    ],
 
    "multihost": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'"
+       "#SBATCH -N '{nodes}'"
    ],
 
    "multihostat": [

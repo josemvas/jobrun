@@ -85,7 +85,7 @@ class AbsPath(str):
 #                        raise PathKeyError(part, 'has parts with multiple keys')
 #                yield first[0] + '{' + first[1] + '}' + suffix
 
-def buildpath(*args):
+def formpath(*args):
     return deepjoin(args, iter(pathseps))
 
 def splitpath(path):
@@ -166,11 +166,11 @@ def rmtree(path, date):
         if os.path.getmtime(node) > date:
             try: delete(node)
             except OSError as e: print(e)
-    for root, dirs, files in os.walk(path, topdown=False):
+    for parent, dirs, files in os.walk(path, topdown=False):
         for f in files:
-            delete_newer(os.path.join(root, f), date, os.remove)
+            delete_newer(os.path.join(parent, f), date, os.remove)
         for d in dirs:
-            delete_newer(os.path.join(root, d), date, os.rmdir)
+            delete_newer(os.path.join(parent, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
 def getpartkey(part):
@@ -184,17 +184,17 @@ def getpartkey(part):
         else:
             messages.error('Hay más de una variable de interpolación en el componente', part)
 
-def findbranches(rootpath, partlist, defaults, dirtree):
+def findbranches(parent, partlist, defaults, dirtree):
     part = next(partlist, None)
     if part:
         key = getpartkey(part)
         if key:
-            choices = rootpath.listdir()
+            choices = parent.listdir()
             default = defaults.get(key, None)
             for choice in choices:
                 choice = DefaultStr(choice) if choice == default else str(choice)
                 dirtree[choice] = {}
-                findbranches(rootpath.joinpath(choice), partlist, defaults, dirtree[choice])
+                findbranches(parent.joinpath(choice), partlist, defaults, dirtree[choice])
         else:
-            findbranches(rootpath.joinpath(part), partlist, defaults, dirtree)
+            findbranches(parent.joinpath(part), partlist, defaults, dirtree)
 

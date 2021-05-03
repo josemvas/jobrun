@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-from string import Template
-from getpass import getuser 
 from pwd import getpwnam
 from grp import getgrgid
-from . import messages
+from string import Template
+from getpass import getuser 
+from socket import gethostname
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
-from .fileutils import AbsPath, buildpath
+from .fileutils import AbsPath, formpath
 from .parsing import BoolParser
+from . import messages
 
 class ArgList:
     def __init__(self, args):
@@ -32,11 +33,11 @@ class ArgList:
             self.current = self.args.pop(0)
         except IndexError:
             raise StopIteration
-        if options.common.base:
+        if options.common.jobname:
             basename = self.current
-            rootdir = AbsPath(options.common.root)
+            rootdir = AbsPath(options.common.cwd)
         else:
-            abspath = AbsPath(self.current, cwd=options.common.root)
+            abspath = AbsPath(self.current, cwd=options.common.cwd)
             rootdir = abspath.parent()
             filename = abspath.name
             for key in jobspecs.infiles:
@@ -61,37 +62,43 @@ class ArgList:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
-        filebools = {key: AbsPath(buildpath(rootdir, (basename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
+        filebools = {key: AbsPath(formpath(rootdir, (basename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
         for conflict, message in jobspecs.conflicts.items():
             if BoolParser(conflict).evaluate(filebools):
                 messages.error(message, p(basename))
                 return next(self)
         return rootdir, basename
 
-
-class OptDict:
+class ArgGroups:
     def __init__(self):
-        self.__dict__['switch'] = set()
-        self.__dict__['define'] = dict()
-        self.__dict__['append'] = dict()
-    def __setattr__(self, attr, attrval):
-        self.__dict__[attr] = attrval
-        if isinstance(attrval, Bunch):
-            for key, value in attrval.items():
+        self.__dict__['switches'] = set()
+        self.__dict__['constants'] = dict()
+        self.__dict__['lists'] = dict()
+    def gather(self, options):
+        if isinstance(options, Bunch):
+            for key, value in options.items():
                 if value is False:
                     pass
                 elif value is True:
-                    self.__dict__['switch'].add(key)
+                    self.__dict__['switches'].add(key)
                 elif isinstance(value, list):
-                    self.__dict__['append'].update({key:value})
+                    self.__dict__['lists'].update({key:value})
                 else:
-                    self.__dict__['define'].update({key:value})
+                    self.__dict__['constants'].update({key:value})
+    def __repr__(self):
+        return repr(self.__dict__)
 
 names = Bunch()
 names.user = getuser()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+names.host = gethostname()
 
-options = OptDict()
-hostspecs = SpecBunch()
+paths = Bunch()
+paths.home = os.path.expanduser('~')
+
+environ = Bunch()
+options = Bunch()
+remoteargs = ArgGroups()
 jobspecs = SpecBunch()
+hostspecs = SpecBunch()
 

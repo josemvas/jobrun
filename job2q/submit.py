@@ -1,41 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, buildpath, remove, makedirs, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, formpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
-from .shared import names, hostspecs, jobspecs, options
+from .shared import names, paths, environ, hostspecs, jobspecs, options, remoteargs
 from .details import wrappers
 from .readmol import readmol
-
-def interpolate():
-    if options.common.interpolate:
-        if options.common.mol:
-            index = 0
-            for path in options.common.mol:
-                index += 1
-                path = AbsPath(path, cwd=options.common.root)
-                coords = readmol(path)[-1]
-                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
-            if not 'prefix' in options.common:
-                if len(options.common.mol) == 1:
-                    names.prefix = path.stem
-                else:
-                    messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
-        elif 'trjmol' in options.common:
-            index = 0
-            path = AbsPath(options.common.molall, cwd=options.common.root)
-            for coords in readmol(path):
-                index += 1
-                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
-            prefix.append(path.stem)
-            if not 'prefix' in options.common:
-                names.prefix = path.stem
-        else:
-            if not 'prefix' in options.common and not 'suffix' in options.common:
-                messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
-    else:
-        if options.interpolationdict or options.common.var or options.common.mol or 'trjmol' in options.common:
-            messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
 def initialize():
 
@@ -44,7 +15,36 @@ def initialize():
     script.envars = []
     script.main = []
 
-    if options.common.nodefaults:
+    if options.interpolation.interpolate:
+        if options.interpolation.mol:
+            index = 0
+            for path in options.interpolation.mol:
+                index += 1
+                path = AbsPath(path, cwd=options.common.cwd)
+                coords = readmol(path)[-1]
+                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+            if not 'prefix' in options.common:
+                if len(options.interpolation.mol) == 1:
+                    options.prefix = path.stem
+                else:
+                    messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
+        elif 'trjmol' in options.interpolation:
+            index = 0
+            path = AbsPath(options.common.molall, cwd=options.common.cwd)
+            for coords in readmol(path):
+                index += 1
+                options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+            prefix.append(path.stem)
+            if not 'prefix' in options.common:
+                options.prefix = path.stem
+        else:
+            if not 'prefix' in options.common and not 'suffix' in options.common:
+                messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
+    else:
+        if options.interpolationdict or options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
+            messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
+
+    if options.common.defaults:
         jobspecs.defaults.pop('version', None)
         jobspecs.defaults.pop('parameterset', None)
     
@@ -54,8 +54,8 @@ def initialize():
         except AttributeError:
             options.common.wait = 0
     
-    if 'nhost' not in options.common:
-        options.common.nhost = 1
+    if 'nodes' not in options.common:
+        options.common.nodes = 1
 
 #TODO: Add suport for dialog boxes
 #    if options.common.xdialog:
@@ -72,10 +72,10 @@ def initialize():
         messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
 
     if 'scratch' in options.common:
-        script.scrdir = AbsPath(buildpath(options.common.scratch, hostspecs.envars.jobid))
+        script.scrdir = AbsPath(formpath(options.common.scratch, hostspecs.envars.jobid))
     else:
         try:
-            script.scrdir = AbsPath(buildpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(names).validate()
+            script.scrdir = AbsPath(formpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(names).validate()
         except NotAbsolutePath:
             messages.error(hostspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
 
@@ -117,21 +117,20 @@ def initialize():
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outfiles')
 
-    if 'metadata' in hostspecs:
-        for item in hostspecs.metadata:
-            script.header.append(item.format(**jobspecs))
+    if 'jobkind' in hostspecs:
+        script.header.append(hostspecs.jobkind.format(jobspecs.packagename))
 
     #TODO: MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
-            if 'host' in options.common:
+            if 'nodelist' in options.common:
                 for item in hostspecs.serialat:
                     script.header.append(item.format(**options.common))
             else:
                 for item in hostspecs.serial:
                     script.header.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() == 'openmp':
-            if 'host' in options.common:
+            if 'nodelist' in options.common:
                 for item in hostspecs.singlehostat:
                     script.header.append(item.format(**options.common))
             else:
@@ -139,14 +138,14 @@ def initialize():
                     script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif jobspecs.parallelib.lower() == 'standalone':
-            if 'hostlist' in options.common:
+            if 'nodelist' in options.common:
                 for item in hostspecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
                 for item in hostspecs.multihost:
                     script.header.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() in wrappers:
-            if 'hostlist' in options.common:
+            if 'nodelist' in options.common:
                 for item in hostspecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
@@ -198,7 +197,7 @@ def initialize():
         script.main.append(jobspecs.versions[options.common.version].executable)
 
     for path in hostspecs.logfiles:
-        script.header.append(path.format(logdir=AbsPath(hostspecs.logdir).setkeys(names).validate()))
+        script.header.append(path.format(AbsPath(hostspecs.logdir).setkeys(names).validate()))
 
     script.setup.append("shopt -s nullglob extglob")
 
@@ -274,7 +273,7 @@ def initialize():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        partlist = AbsPath(path, cwd=options.common.root).setkeys(names).parts()
+        partlist = AbsPath(path, cwd=options.common.cwd).setkeys(names).parts()
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
@@ -290,7 +289,7 @@ def initialize():
 
     if 'prefix' in options.common:
         try:
-            names.prefix = substitute(options.common.prefix, subdict=options.interpolationdict, sublist=options.common.var)
+            options.prefix = substitute(options.common.prefix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
         except KeyError as e:
@@ -298,70 +297,70 @@ def initialize():
 
     if 'suffix' in options.common:
         try:
-            names.suffix = substitute(options.common.suffix, subdict=options.interpolationdict, sublist=options.common.var)
+            options.suffix = substitute(options.common.suffix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
         except KeyError as e:
             messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
 
 
-def submit(rootdir, basename):
+def submit(basedir, basename):
 
     if basename.endswith('.' + jobspecs.shortname):
         jobname = basename[:-len(jobspecs.shortname)-1]
     else:
         jobname = basename
 
-    if 'prefix' in names:
-        jobname = names.prefix + '.' + jobname
+    if 'prefix' in options:
+        jobname = options.prefix + '.' + jobname
 
-    if 'suffix' in names:
-        jobname = jobname +  '.' + names.suffix
+    if 'suffix' in options:
+        jobname = jobname +  '.' + options.suffix
 
     #TODO: Append program version to output file extension if option is enabled
     if basename.endswith('.' + jobspecs.shortname):
-        names.job = jobname + '.' + jobspecs.shortname
+        filename = jobname + '.' + jobspecs.shortname
     else:
-        names.job = jobname
+        filename = jobname
 
     if 'outdir' in options.common:
-        outdir = AbsPath(options.common.outdir, cwd=rootdir)
+        outdir = AbsPath(options.common.outdir, cwd=basedir)
     elif jobspecs.defaults.jobdir:
-        outdir = AbsPath(jobname, cwd=rootdir)
+        outdir = AbsPath(jobname, cwd=basedir)
     else:
-        outdir = AbsPath(rootdir)
+        outdir = AbsPath(basedir)
 
-    hiddendir = AbsPath(buildpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
+    hiddendir = AbsPath(formpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
     inputfiles = []
     inputdirs = []
 
     for key in options.optionalfiles:
-        inputfiles.append((buildpath(outdir, (names.job, jobspecs.fileoptions[key])), buildpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+        inputfiles.append((formpath(outdir, (filename, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for key in jobspecs.infiles:
-        if AbsPath(buildpath(rootdir, (basename, key))).isfile():
-            inputfiles.append((buildpath(outdir, (names.job, key)), buildpath(script.scrdir, jobspecs.filekeys[key])))
+        if AbsPath(formpath(basedir, (basename, key))).isfile():
+            inputfiles.append((formpath(outdir, (filename, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
-            inputfiles.append((path, buildpath(script.scrdir, path.name)))
+            inputfiles.append((path, formpath(script.scrdir, path.name)))
         elif path.isdir():
-            inputdirs.append((buildpath(path), script.scrdir))
+            inputdirs.append((formpath(path), script.scrdir))
 
     outputfiles = []
 
     for key in jobspecs.outfiles:
-        outputfiles.append((buildpath(script.scrdir, jobspecs.filekeys[key]), buildpath(outdir, (names.job, key))))
+        outputfiles.append((formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (filename, key))))
     
     if outdir.isdir():
         if hiddendir.isdir():
             try:
-                with open(buildpath(hiddendir, 'jobid'), 'r') as f:
+                with open(formpath(hiddendir, 'jobid'), 'r') as f:
                     jobid = f.read()
                 jobstate = jobstat(jobid)
                 if jobstate is not None:
-                    messages.failure(jobstate.format(id=jobid, name=names.job))
+                    messages.failure(jobstate.format(id=jobid, name=jobname))
                     return
             except FileNotFoundError:
                 pass
@@ -370,15 +369,15 @@ def submit(rootdir, basename):
             return
         else:
             makedirs(hiddendir)
-        if not set(outdir.listdir()).isdisjoint(buildpath((names.job, k)) for k in jobspecs.outfiles):
+        if not set(outdir.listdir()).isdisjoint(formpath((filename, k)) for k in jobspecs.outfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in jobspecs.outfiles:
-            remove(buildpath(outdir, (names.job, key)))
-        if rootdir != outdir:
+            remove(formpath(outdir, (filename, key)))
+        if basedir != outdir:
             for key in jobspecs.infiles:
-                remove(buildpath(outdir, (names.job, key)))
+                remove(formpath(outdir, (filename, key)))
     elif outdir.exists():
         messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -387,62 +386,93 @@ def submit(rootdir, basename):
         makedirs(hiddendir)
 
     for key in options.optionalfiles:
-        options.optionalfiles[key].linkto(buildpath(outdir, (names.job, jobspecs.fileoptions[key])))
+        options.optionalfiles[key].linkto(formpath(outdir, (filename, jobspecs.fileoptions[key])))
 
     for key in jobspecs.infiles:
-        inputpath = AbsPath(buildpath(rootdir, (basename, key)))
+        inputpath = AbsPath(formpath(basedir, (basename, key)))
         if inputpath.isfile():
-            if options.common.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
+            if options.interpolation.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(inputpath, 'r') as fr:
                     template = fr.read()
                 try:
-                    template = substitute(template, subdict=options.interpolationdict, sublist=options.common.var)
+                    template = substitute(template, subdict=options.interpolationdict, sublist=options.interpolation.vars)
                 except ValueError:
-                    messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', buildpath((basename, key)))
+                    messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((basename, key)))
                     return
                 except KeyError as e:
-                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', buildpath((basename, key)), var=e.args[0])
+                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((basename, key)), var=e.args[0])
                     return
-                with open(buildpath(outdir, (names.job, key)), 'w') as fw:
+                with open(formpath(outdir, (filename, key)), 'w') as fw:
                     fw.write(template)
-            elif rootdir != outdir:
-                inputpath.copyto(buildpath(outdir, (names.job, key)))
+            elif basedir != outdir:
+                inputpath.copyto(formpath(outdir, (filename, key)))
             if options.common.delete:
-                remove(buildpath(rootdir, (basename, key)))
+                remove(formpath(basedir, (basename, key)))
 
-    jobscript = buildpath(hiddendir, 'jobscript')
+    if options.remote.host:
 
-    with open(jobscript, 'w') as f:
-        f.write('#!/bin/bash' + '\n')
-        f.write(''.join(i + '\n' for i in script.header))
-        f.write(hostspecs.jobname.format(**names) + '\n')
-        f.write(''.join(i + '\n' for i in script.setup))
-        f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
-        f.write(script.setenv('job', names.job) + '\n')
-        f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
-        f.write(script.mkdir(script.scrdir) + '\n')
-        f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
-        f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
-        f.write(script.chdir(script.scrdir) + '\n')
-        f.write(''.join(i + '\n' for i in jobspecs.prescript))
-        f.write(' '.join(script.main) + '\n')
-        f.write(''.join(i + '\n' for i in jobspecs.postscript))
-        f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
-        f.write(script.rmdir(script.scrdir) + '\n')
-        f.write(''.join(i + '\n' for i in hostspecs.offscript))
-
-    if options.common.dry:
-        messages.success('Se procesó el trabajo', q(names.job), 'y se generaron los archivos para el envío en', hiddendir, option='--dry')
-    else:
-        try:
-            jobid = jobsubmit(jobscript)
-        except RuntimeError as error:
-            messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(names.job), p(error))
-            return
+        relparent = os.path.relpath(outdir, paths.home)
+        remotecwd = formpath(options.remote.root, names.user + '@' + names.host, relparent)
+        remoteargs.switches.add('jobname')
+        remoteargs.constants.update({'cwd': remotecwd})
+        remoteargs.constants.update({'outdir': remotecwd})
+        filelist = []
+        for key in jobspecs.filekeys:
+            if os.path.isfile(formpath(outdir, (basename, key))):
+                filelist.append(formpath(paths.home, '.', relparent, (basename, key)))
+        arglist = [__file__, '-qt', options.remote.host]
+        arglist.extend(env + '=' + val for env, val in environ.items())
+        arglist.append(options.remote.cmd)
+        arglist.append(names.command)
+        arglist.extend(o(opt) for opt in remoteargs.switches)
+        arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
+        arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)
+        arglist.append(basename)
+        if options.common.debug:
+            print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
+            print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
-            messages.success('El trabajo', q(names.job), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-            with open(buildpath(hiddendir, 'jobid'), 'w') as f:
-                f.write(jobid)
+            try:
+                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + formpath(options.remote.root, names.user + '@' + names.host)])
+            except CalledProcessError as e:
+                messages.error(e.output.decode(sys.stdout.encoding).strip())
+            os.execv('/usr/bin/ssh', arglist)
+
+    else:
+
+        jobscript = formpath(hiddendir, 'jobscript')
+
+        with open(jobscript, 'w') as f:
+            f.write('#!/bin/bash' + '\n')
+            f.write(hostspecs.jobname.format(jobname) + '\n')
+            f.write(''.join(i + '\n' for i in script.header))
+            f.write(''.join(i + '\n' for i in script.setup))
+            f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
+            f.write(script.setenv('job', jobname) + '\n')
+            f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
+            f.write(script.mkdir(script.scrdir) + '\n')
+            f.write(''.join(script.fetch(i, j) + '\n' for i, j in inputfiles))
+            f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
+            f.write(script.chdir(script.scrdir) + '\n')
+            f.write(''.join(i + '\n' for i in jobspecs.prescript))
+            f.write(' '.join(script.main) + '\n')
+            f.write(''.join(i + '\n' for i in jobspecs.postscript))
+            f.write(''.join(script.remit(i, j) + '\n' for i, j in outputfiles))
+            f.write(script.rmdir(script.scrdir) + '\n')
+            f.write(''.join(i + '\n' for i in hostspecs.offscript))
+    
+        if options.common.debug:
+            messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', hiddendir)
+        else:
+            try:
+                jobid = jobsubmit(jobscript)
+            except RuntimeError as error:
+                messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
+                return
+            else:
+                messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
+                with open(formpath(hiddendir, 'jobid'), 'w') as f:
+                    f.write(jobid)
     
 parameterpaths = []
 script = Bunch()

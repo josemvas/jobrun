@@ -1,5 +1,8 @@
 General
 -------
+- Usar diccionarios de dos vias para agrupar mas facilmente las opciones
+- Implementar una conexxiona maestra para todas las llamadas de ssh y rsync
+- Mover names y paths a su propio modulo de espacio de nombres
 - Usar el modulo runutils en vez de bulletin
 - Usar JSON5 en los archivos de especificaciones
 - Add suport for dialog boxes (-X/--xdialog option)
@@ -17,6 +20,7 @@ General
 
 console.py
 ----------
+- Usar diccionarios de dos vias para relacionar los nombres y las llaves de los archivos de specificaciones
 - Usar un menú interactivo para seleccionar el scheduler (y todas las demás opciones de configuración)
 - Mover hostspec.json y queuespec.json dentro del directorio jobspecs y eliminar los links dentro de las carpetas de programa
 - Manejar los permisos denegados cuando se instalan los programas
