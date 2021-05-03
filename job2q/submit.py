@@ -68,16 +68,16 @@ def initialize():
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if not 'scratchdir' in hostspecs.defaults:
-        messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scratchdir')
+    if not 'scrdir' in hostspecs.defaults:
+        messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scrdir')
 
     if 'scratch' in options.common:
         script.scrdir = AbsPath(formpath(options.common.scratch, hostspecs.envars.jobid))
     else:
         try:
-            script.scrdir = AbsPath(formpath(hostspecs.defaults.scratchdir, hostspecs.envars.jobid)).setkeys(names).validate()
+            script.scrdir = AbsPath(formpath(hostspecs.defaults.scrdir, hostspecs.envars.jobid)).setkeys(names).validate()
         except NotAbsolutePath:
-            messages.error(hostspecs.defaults.scratchdir, 'no es una ruta absoluta', spec='defaults.scratchdir')
+            messages.error(hostspecs.defaults.scrdir, 'no es una ruta absoluta', spec='defaults.scrdir')
 
     if 'queue' not in options.common:
         if hostspecs.defaults.queue:
@@ -247,6 +247,12 @@ def initialize():
         script.fetchdir = 'cp -r "{}/." "{}"'.format
         script.remit = 'cp "{}" "{}"'.format
     elif hostspecs.filesync == 'remote':
+        script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
+        script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.fetch = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.fetchdir = 'for host in ${{hostlist[*]}}; do rsh $head tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.remit = 'rcp "{}" $head:"\'{}\'"'.format
+    elif hostspecs.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.fetch = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format

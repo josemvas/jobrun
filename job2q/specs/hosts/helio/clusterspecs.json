@@ -2,12 +2,12 @@
    "clustername" : "Helio",
    "headname": "helio",
    "scheduler": "Lava LSF",
-   "filesync": "remote",
+   "filesync": "local",
    "logdir": "/tmp",
 
    "defaults": {
       "queue": "auto",
-      "scratchdir": "/scratch",
+      "scrdir": "/scratch",
       "wait": "1"
    },
    "offscript": [

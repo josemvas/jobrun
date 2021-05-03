@@ -2,12 +2,12 @@
    "clustername" : "Miztli",
    "headname": "mn328",
    "scheduler": "IBM LSF",
-   "filesync": "remote",
+   "filesync": "local",
    "logdir": "/tmp",
 
    "defaults": {
       "queue": "q_htc",
-      "scratchdir": "/tmpu/{group}/{user}",
+      "scrdir": "/tmpu/{group}/{user}",
       "wait": "3"
    },
    "offscript": [
