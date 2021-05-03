@@ -37,12 +37,12 @@ class ArgList:
             parentdir = AbsPath(options.common.cwd)
             for key in jobspecs.infiles:
                 if AbsPath(formpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
-                    filename = formpath(parentdir, (self.current, jobspecs.shortname))
+                    filename = formpath((self.current, jobspecs.shortname))
                     break
             else:
                 for key in jobspecs.infiles:
                     if AbsPath(formpath(parentdir, (self.current, key))).isfile():
-                        filename = formpath(parentdir, (self.current, jobspecs.shortname))
+                        filename = self.current
                         break
                 else:
                     messages.failure('No hay archivos de entrada asociados al trabjo', self.current)
@@ -72,6 +72,7 @@ class ArgList:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
+        print(filename)
         filebools = {key: AbsPath(formpath(parentdir, (filename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
         for conflict, message in jobspecs.conflicts.items():
             if BoolParser(conflict).evaluate(filebools):
