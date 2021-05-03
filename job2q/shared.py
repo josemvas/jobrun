@@ -33,41 +33,51 @@ class ArgList:
             self.current = self.args.pop(0)
         except IndexError:
             raise StopIteration
-        if options.common.jobname:
-            basename = self.current
-            rootdir = AbsPath(options.common.cwd)
-        else:
-            abspath = AbsPath(self.current, cwd=options.common.cwd)
-            rootdir = abspath.parent()
-            filename = abspath.name
+        if options.common.jobargs:
+            parentdir = AbsPath(options.common.cwd)
             for key in jobspecs.infiles:
-                if filename.endswith('.' + key):
-                    basename = filename[:-len('.' + key)]
+                if AbsPath(formpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
+                    filename = formpath(parentdir, (self.current, jobspecs.shortname))
                     break
             else:
-                messages.failure('La extensión del archivo de entrada', q(filename), 'no está asociada a', jobspecs.packagename)
-                return next(self)
-            #TODO: Move file checking to AbsPath class
-            if not abspath.isfile():
-                if not abspath.exists():
-                    messages.failure('El archivo de entrada', abspath, 'no existe')
-                elif abspath.isdir():
-                    messages.failure('El archivo de entrada', abspath, 'es un directorio')
+                for key in jobspecs.infiles:
+                    if AbsPath(formpath(parentdir, (self.current, key))).isfile():
+                        filename = formpath(parentdir, (self.current, jobspecs.shortname))
+                        break
                 else:
-                    messages.failure('El archivo de entrada', abspath, 'no es un archivo regular')
+                    messages.failure('No hay archivos de entrada asociados al trabjo', self.current)
+                    return next(self)
+        else:
+            path = AbsPath(self.current, cwd=options.common.cwd)
+            parentdir = path.parent()
+            for key in jobspecs.infiles:
+                if path.name.endswith('.' + key):
+                    filename = path.name[:-len('.' + key)]
+                    break
+            else:
+                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', jobspecs.packagename)
                 return next(self)
-        filtermatch = self.filter.fullmatch(basename)
-        #TODO: Make filtergroups available to other functions
+            #TODO Move file checking to AbsPath class
+            if not path.isfile():
+                if not path.exists():
+                    messages.failure('El archivo de entrada', path, 'no existe')
+                elif path.isdir():
+                    messages.failure('El archivo de entrada', path, 'es un directorio')
+                else:
+                    messages.failure('El archivo de entrada', path, 'no es un archivo regular')
+                return next(self)
+        filtermatch = self.filter.fullmatch(filename)
+        #TODO Make filtergroups available to other functions
         if filtermatch:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
-        filebools = {key: AbsPath(formpath(rootdir, (basename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
+        filebools = {key: AbsPath(formpath(parentdir, (filename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
         for conflict, message in jobspecs.conflicts.items():
             if BoolParser(conflict).evaluate(filebools):
-                messages.error(message, p(basename))
+                messages.error(message, p(filename))
                 return next(self)
-        return rootdir, basename
+        return parentdir, filename
 
 class ArgGroups:
     def __init__(self):

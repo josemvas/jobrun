@@ -88,7 +88,7 @@ try:
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-d', '--defaults', action='store_true', help='Ignorar las opciones predeterminadas y preguntar.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
-    group2.add_argument('-j', '--jobname', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
+    group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
     group2.add_argument('-o', '--outdir', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
@@ -100,8 +100,6 @@ try:
     group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
     group2.add_argument('--scratch', metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
-    group2.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group2.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group2.add_argument('--debug', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
@@ -136,6 +134,8 @@ try:
     molgroup = group6.add_mutually_exclusive_group()
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Agregar el paso final del archivo MOLFILE a las coordenadas de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
+    group6.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    group6.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
 
     group7 = parser.add_argument_group('Opciones de interpolación')
     group7.name = 'interpolationdict'
@@ -174,33 +174,24 @@ try:
     if options.remote.host:
 
         try:
-            output = check_output(['ssh', options.remote.host, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'], stderr=STDOUT)
-        except CalledProcessError as exc:
-            messages.error(exc.output.decode(sys.stdout.encoding).strip())
+            output = check_output(['ssh', options.remote.host, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'])
+        except CalledProcessError as e:
+            messages.error(e.output.decode(sys.stdout.encoding).strip())
         options.remote.cmd, options.remote.root = output.decode(sys.stdout.encoding).strip().split(':')
         if not options.remote.root or not options.remote.cmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
 
-#        #TODO: Consider include trjmol and mol paths in optionalfiles
-#        if 'trjmol' in options.interpolation:
-#            filelist.append(formpath(paths.home, '.', os.path.relpath(options.interpolation.trjmol, paths.home)))
-#        for path in options.interpolation.mol:
-#            filelist.append(formpath(paths.home, '.', os.path.relpath(path, paths.home)))
-#        #TODO: (done?) Make default empty dict for optionalfiles so no test is needed
-#        for path in options.optionalfiles.values():
-#            filelist.append(formpath(paths.home, '.', os.path.relpath(path, paths.home)))
-
     initialize()
 
     try:
-        basedir, basename = next(arglist)
+        parentdir, inputname = next(arglist)
     except StopIteration:
         sys.exit()
 
-    submit(basedir, basename)
-    for basedir, basename in arglist:
+    submit(parentdir, inputname)
+    for parentdir, inputname in arglist:
         sleep(options.common.wait)
-        submit(basedir, basename)
+        submit(parentdir, inputname)
     
 except KeyboardInterrupt:
     messages.error('Interrumpido por el usuario')

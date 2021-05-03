@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from subprocess import check_output, CalledProcessError
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formpath, remove, makedirs, copyfile
@@ -23,7 +24,7 @@ def initialize():
                 path = AbsPath(path, cwd=options.common.cwd)
                 coords = readmol(path)[-1]
                 options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
-            if not 'prefix' in options.common:
+            if not 'prefix' in options.interpolation:
                 if len(options.interpolation.mol) == 1:
                     options.prefix = path.stem
                 else:
@@ -34,11 +35,10 @@ def initialize():
             for coords in readmol(path):
                 index += 1
                 options.interpolationdict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
-            prefix.append(path.stem)
-            if not 'prefix' in options.common:
+            if not 'prefix' in options.interpolation:
                 options.prefix = path.stem
         else:
-            if not 'prefix' in options.common and not 'suffix' in options.common:
+            if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
     else:
         if options.interpolationdict or options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
@@ -57,7 +57,7 @@ def initialize():
     if 'nodes' not in options.common:
         options.common.nodes = 1
 
-#TODO: Add suport for dialog boxes
+#TODO Add suport for dialog boxes
 #    if options.common.xdialog:
 #        try:
 #            from tkdialog import TkDialog
@@ -120,7 +120,7 @@ def initialize():
     if 'jobkind' in hostspecs:
         script.header.append(hostspecs.jobkind.format(jobspecs.packagename))
 
-    #TODO: MPI support for Slurm
+    #TODO MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
             if 'nodelist' in options.common:
@@ -259,9 +259,9 @@ def initialize():
     parameterdict.update(jobspecs.defaults.parameters)
     parameterdict.update(options.parameters)
 
-#    #TODO: Move this code to the submit function
-#    #TODO: Use filter groups to set parameters
-#    #TODO: Use template strings to interpolate
+#    #TODO Move this code to the submit function
+#    #TODO Use filter groups to set parameters
+#    #TODO Use template strings to interpolate
 #    for key, value in options.parameterdict.items():
 #        if value.startswith('%'):
 #            try:
@@ -287,29 +287,29 @@ def initialize():
         else:
             messages.error('La ruta', path, 'no existe', spec='defaults.parameterpaths')
 
-    if 'prefix' in options.common:
+    if 'prefix' in options.interpolation:
         try:
-            options.prefix = substitute(options.common.prefix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
+            options.prefix = substitute(options.interpolation.prefix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
         except KeyError as e:
             messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
 
-    if 'suffix' in options.common:
+    if 'suffix' in options.interpolation:
         try:
-            options.suffix = substitute(options.common.suffix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
+            options.suffix = substitute(options.interpolation.suffix, subdict=options.interpolationdict, sublist=options.interpolation.vars)
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
         except KeyError as e:
             messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
 
 
-def submit(basedir, basename):
+def submit(parentdir, inputname):
 
-    if basename.endswith('.' + jobspecs.shortname):
-        jobname = basename[:-len(jobspecs.shortname)-1]
+    if inputname.endswith('.' + jobspecs.shortname):
+        jobname = inputname[:-len(jobspecs.shortname)-1]
     else:
-        jobname = basename
+        jobname = inputname
 
     if 'prefix' in options:
         jobname = options.prefix + '.' + jobname
@@ -317,18 +317,18 @@ def submit(basedir, basename):
     if 'suffix' in options:
         jobname = jobname +  '.' + options.suffix
 
-    #TODO: Append program version to output file extension if option is enabled
-    if basename.endswith('.' + jobspecs.shortname):
-        filename = jobname + '.' + jobspecs.shortname
+    #TODO Append program version to output file extension if option is enabled
+    if inputname.endswith('.' + jobspecs.shortname):
+        outputname = jobname + '.' + jobspecs.shortname
     else:
-        filename = jobname
+        outputname = jobname
 
     if 'outdir' in options.common:
-        outdir = AbsPath(options.common.outdir, cwd=basedir)
+        outdir = AbsPath(options.common.outdir, cwd=parentdir)
     elif jobspecs.defaults.jobdir:
-        outdir = AbsPath(jobname, cwd=basedir)
+        outdir = AbsPath(jobname, cwd=parentdir)
     else:
-        outdir = AbsPath(basedir)
+        outdir = AbsPath(parentdir)
 
     hiddendir = AbsPath(formpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
@@ -336,11 +336,11 @@ def submit(basedir, basename):
     inputdirs = []
 
     for key in options.optionalfiles:
-        inputfiles.append((formpath(outdir, (filename, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+        inputfiles.append((formpath(outdir, (outputname, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for key in jobspecs.infiles:
-        if AbsPath(formpath(basedir, (basename, key))).isfile():
-            inputfiles.append((formpath(outdir, (filename, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
+        if AbsPath(formpath(parentdir, (inputname, key))).isfile():
+            inputfiles.append((formpath(outdir, (outputname, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
     
     for path in parameterpaths:
         if path.isfile():
@@ -351,7 +351,7 @@ def submit(basedir, basename):
     outputfiles = []
 
     for key in jobspecs.outfiles:
-        outputfiles.append((formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (filename, key))))
+        outputfiles.append((formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
     
     if outdir.isdir():
         if hiddendir.isdir():
@@ -369,15 +369,15 @@ def submit(basedir, basename):
             return
         else:
             makedirs(hiddendir)
-        if not set(outdir.listdir()).isdisjoint(formpath((filename, k)) for k in jobspecs.outfiles):
+        if not set(outdir.listdir()).isdisjoint(formpath((outputname, k)) for k in jobspecs.outfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in jobspecs.outfiles:
-            remove(formpath(outdir, (filename, key)))
-        if basedir != outdir:
+            remove(formpath(outdir, (outputname, key)))
+        if parentdir != outdir:
             for key in jobspecs.infiles:
-                remove(formpath(outdir, (filename, key)))
+                remove(formpath(outdir, (outputname, key)))
     elif outdir.exists():
         messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -386,10 +386,10 @@ def submit(basedir, basename):
         makedirs(hiddendir)
 
     for key in options.optionalfiles:
-        options.optionalfiles[key].linkto(formpath(outdir, (filename, jobspecs.fileoptions[key])))
+        options.optionalfiles[key].linkto(formpath(outdir, (outputname, jobspecs.fileoptions[key])))
 
     for key in jobspecs.infiles:
-        inputpath = AbsPath(formpath(basedir, (basename, key)))
+        inputpath = AbsPath(formpath(parentdir, (inputname, key)))
         if inputpath.isfile():
             if options.interpolation.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(inputpath, 'r') as fr:
@@ -397,29 +397,29 @@ def submit(basedir, basename):
                 try:
                     template = substitute(template, subdict=options.interpolationdict, sublist=options.interpolation.vars)
                 except ValueError:
-                    messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((basename, key)))
+                    messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((inputname, key)))
                     return
                 except KeyError as e:
-                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((basename, key)), var=e.args[0])
+                    messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((inputname, key)), var=e.args[0])
                     return
-                with open(formpath(outdir, (filename, key)), 'w') as fw:
+                with open(formpath(outdir, (outputname, key)), 'w') as fw:
                     fw.write(template)
-            elif basedir != outdir:
-                inputpath.copyto(formpath(outdir, (filename, key)))
+            elif parentdir != outdir:
+                inputpath.copyto(formpath(outdir, (outputname, key)))
             if options.common.delete:
-                remove(formpath(basedir, (basename, key)))
+                remove(formpath(parentdir, (inputname, key)))
 
     if options.remote.host:
 
         relparent = os.path.relpath(outdir, paths.home)
         remotecwd = formpath(options.remote.root, names.user + '@' + names.host, relparent)
-        remoteargs.switches.add('jobname')
+        remoteargs.switches.add('jobargs')
         remoteargs.constants.update({'cwd': remotecwd})
         remoteargs.constants.update({'outdir': remotecwd})
         filelist = []
         for key in jobspecs.filekeys:
-            if os.path.isfile(formpath(outdir, (filename, key))):
-                filelist.append(formpath(paths.home, '.', relparent, (filename, key)))
+            if os.path.isfile(formpath(outdir, (outputname, key))):
+                filelist.append(formpath(paths.home, '.', relparent, (outputname, key)))
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -427,7 +427,7 @@ def submit(basedir, basename):
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
         arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)
-        arglist.append(basename)
+        arglist.append(jobname)
         if options.common.debug:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
