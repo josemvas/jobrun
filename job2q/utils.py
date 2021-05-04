@@ -32,7 +32,7 @@ class _(Template):
 class DefaultStr(str):
     pass
 
-def substitute(template, delim='%', sublist=[], subdict={}):
+def substitute(template, delim='%', keylist=[], keydict={}):
     class ATemplate(Template):
         delimiter = delim
         idpattern = r'[a-z][_a-z0-9]*'
@@ -40,9 +40,9 @@ def substitute(template, delim='%', sublist=[], subdict={}):
         delimiter = delim
         idpattern = r'[1-9]'
     try:
-        return ATemplate(template).substitute(subdict)
+        return ATemplate(template).substitute(keydict)
     except ValueError:
-        return DTemplate(template).substitute({str(i):v for i,v in enumerate(sublist, 1)})
+        return DTemplate(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
 
 def o(key, value=None):
     if value is not None:

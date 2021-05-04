@@ -93,12 +93,12 @@ try:
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
-    group2.add_argument('-o', '--outdir', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
     group2.add_argument('--cwd', action=StoreAbsPath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
+    group2.add_argument('--out', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
     group2.add_argument('--scratch', metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     group2.add_argument('--dryrun', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
@@ -122,22 +122,22 @@ try:
     for key in jobspecs.parameters:
         group4.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
+    group6 = parser.add_argument_group('Opciones de interpolación')
+    group6.name = 'interpolation'
+    group6.remote = False
+#    group6.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    group6.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
+    molgroup = group6.add_mutually_exclusive_group()
+    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
+    molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
+    group6.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    group6.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
+
     group5 = parser.add_argument_group('Archivos opcionales')
     group5.name = 'targetfiles'
     group5.remote = False
     for key, value in jobspecs.fileoptions.items():
         group5.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
-
-    group6 = parser.add_argument_group('Opciones de interpolación')
-    group6.name = 'interpolation'
-    group6.remote = False
-    group6.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group6.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
-    molgroup = group6.add_mutually_exclusive_group()
-    molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Agregar el paso final del archivo MOLFILE a las coordenadas de interpolación.')
-    molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
-    group6.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group6.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)

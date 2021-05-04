@@ -1,5 +1,6 @@
 General
 -------
+- Permitir leer los archivos de entrada de un directorio diferente al de salida y crear opción para eliminarlos
 - Usar diccionarios de dos vias para agrupar mas facilmente las opciones
 - Implementar una conexxiona maestra para todas las llamadas de ssh y rsync
 - Mover names y paths a su propio modulo de espacio de nombres

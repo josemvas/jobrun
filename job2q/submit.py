@@ -31,6 +31,9 @@ def initialize():
         if not options.remote.root or not options.remote.cmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
 
+    if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
+        options.interpolation.interpolate = True
+
     if options.interpolation.interpolate:
         options.interpolation.list = []
         options.interpolation.dict = {}
@@ -67,9 +70,6 @@ def initialize():
         else:
             if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
-    else:
-        if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
-            messages.error('Se especificaron variables de interpolación pero no se va a interpolar nada')
 
     if options.common.defaults:
         jobspecs.defaults.pop('version', None)
@@ -324,8 +324,8 @@ def initialize():
         try:
             options.prefix = substitute(
                 options.interpolation.prefix,
-                sublist=options.interpolation.list,
-                subdict=options.interpolation.dict,
+                keylist=options.interpolation.list,
+                keydict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
@@ -336,8 +336,8 @@ def initialize():
         try:
             options.suffix = substitute(
                 options.interpolation.suffix,
-                sublist=options.interpolation.list,
-                subdict=options.interpolation.dict,
+                keylist=options.interpolation.list,
+                keydict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
@@ -364,8 +364,8 @@ def submit(parentdir, inputname):
     else:
         outputname = jobname
 
-    if 'outdir' in options.common:
-        outdir = AbsPath(options.common.outdir, cwd=parentdir)
+    if 'out' in options.common:
+        outdir = AbsPath(options.common.out, cwd=parentdir)
     elif jobspecs.defaults.jobdir:
         outdir = AbsPath(jobname, cwd=parentdir)
     else:
@@ -401,21 +401,34 @@ def submit(parentdir, inputname):
         inputpath = AbsPath(formpath(parentdir, (inputname, key)))
         outputpath = formpath(outdir, (outputname, key))
         if inputpath.isfile() and inputpath != outputpath:
-            if options.interpolation.interpolate and 'interpolable' in jobspecs and key in jobspecs.interpolable:
+            if 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(inputpath, 'r') as f:
                     contents = f.read()
-                    try:
-                        interpolatedinputs[outputpath] = substitute(
-                            contents,
-                            sublist=options.interpolation.list,
-                            subdict=options.interpolation.dict,
-                        )
-                    except ValueError:
-                        messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((inputname, key)))
-                        return
-                    except KeyError as e:
-                        messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((inputname, key)), key=e.args[0])
-                        return
+                    if options.interpolation.interpolate:
+                        try:
+                            interpolatedinputs[outputpath] = substitute(
+                                contents,
+                                keylist=options.interpolation.list,
+                                keydict=options.interpolation.dict,
+                            )
+                        except KeyError as e:
+                            messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((inputname, key)), key=e.args[0])
+                            return
+                        except ValueError:
+                            messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((inputname, key)))
+                            return
+                    else:
+                        try:
+                            interpolatedinputs[outputpath] = substitute(
+                                contents,
+                                keylist=options.interpolation.list,
+                                keydict=options.interpolation.dict,
+                            )
+                        except KeyError as e:
+                            if not dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formpath((inputname, key)),'¿desea continuar de todas formas?')):
+                                return
+                        except ValueError:
+                            pass
             else:
                 literalfiles[outputpath] = inputpath
 
@@ -468,7 +481,7 @@ def submit(parentdir, inputname):
         remotecwd = formpath(remotehome, relparent)
         remoteargs.switches.add('jobargs')
         remoteargs.constants.update({'cwd': remotecwd})
-        remoteargs.constants.update({'outdir': remotecwd})
+        remoteargs.constants.update({'out': remotecwd})
         filelist = []
         for key in jobspecs.filekeys:
             if os.path.isfile(formpath(outdir, (outputname, key))):

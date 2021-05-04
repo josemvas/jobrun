@@ -50,15 +50,15 @@ class AbsPath(str):
         copyfile(self, os.path.join(*dest))
     def joinpath(self, path):
         return AbsPath(os.path.join(self, path))
-    def setkeys(self, keydict):
+    def setkeys(self, formatkeys):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if key is None:
                 formatted += lit
 #            elif spec:
-#                formatted += lit + keydict.get(key, '{' + key + ':' + spec + '}')
+#                formatted += lit + formatkeys.get(key, '{' + key + ':' + spec + '}')
             else:
-                formatted += lit + keydict.get(key, '{' + key + '}')
+                formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def validate(self):
         formatted = ''
