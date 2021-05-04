@@ -14,7 +14,7 @@
 
    "filekeys": {
       "inp": "deMon.inp",
-      "modinp": "deMon.inp",
+      "inp.new": "deMon.inp",
       "rst": "deMon.rst",
       "trj": "deMon.trj",
       "oldtrj": "deMon.trj",
@@ -38,7 +38,7 @@
    ],
 
    "outputfiles": [
-      "modinp",
+      "inp.new",
       "trj",
       "out",
       "mol",

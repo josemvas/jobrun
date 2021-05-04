@@ -14,7 +14,7 @@
 
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
-      "mod_dftb_in.hsd": "dftb_in.hsd",
+      "dftb_in.hsd.new": "dftb_in.hsd",
       "charges.bin": "charges.bin",
       "charges_end.bin": "charges.bin",
       "dftb_pin.hsd": "dftb_pin.hsd",
@@ -54,7 +54,7 @@
    ],
 
    "outputfiles": [
-      "mod_dftb_in.hsd",
+      "dftb_in.hsd.new",
       "charges_end.bin",
       "dftb_pin.hsd",
       "dftb_out.log",
