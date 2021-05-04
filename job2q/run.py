@@ -175,5 +175,6 @@ try:
         submit(parentdir, inputname)
     
 except KeyboardInterrupt:
+
     messages.error('Interrumpido por el usuario')
 
