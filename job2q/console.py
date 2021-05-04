@@ -56,7 +56,7 @@ def install(relpath=False):
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
     
-    if not os.path.isfile(formpath(etcdir, 'clusterspecs.json')) or readspec(formpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+    if not os.path.isfile(formpath(etcdir, 'clusterspecs.json')) or readspec(formpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
         copyfile(formpath(hostspecdir, selhost, 'clusterspecs.json'), formpath(etcdir, 'clusterspecs.json'))
 
     for specname in os.listdir(queuespecdir):
