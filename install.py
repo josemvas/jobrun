@@ -4,4 +4,4 @@ from job2q import console
 try:
     console.install()
 except KeyboardInterrupt:
-    print('No se completó la instalación')
+    print(colors.red + 'No se completó la instalación' + colors.default)
