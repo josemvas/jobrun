@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 from subprocess import check_output, CalledProcessError
 from socket import gethostname
 from . import dialogs, messages
