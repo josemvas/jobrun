@@ -1,7 +1,6 @@
 {
    "clustername" : "Otro",
-   "clusterhead": "",
-   "filesync": "remote",
+   "filesync": "local",
    "logdir": "/tmp",
 
    "defaults": {
