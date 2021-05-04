@@ -28,7 +28,7 @@
       "inp": "inp"
    },
 
-   "infiles": [
+   "inputfiles": [
       "inp"
    ],
 
@@ -36,7 +36,7 @@
       "inp"
    ],
 
-   "outfiles": [
+   "outputfiles": [
       "inp",
       "gbw",
       "out",

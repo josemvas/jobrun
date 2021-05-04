@@ -45,7 +45,7 @@
       "log": "logfile"
    },
 
-   "infiles": [
+   "inputfiles": [
       "INCAR",
       "POSCAR",
       "KPOINTS",
@@ -54,7 +54,7 @@
       "WAVECAR"
    ],
 
-   "outfiles": [
+   "outputfiles": [
       "CHG",
       "CHGCAR",
       "CONTCAR",

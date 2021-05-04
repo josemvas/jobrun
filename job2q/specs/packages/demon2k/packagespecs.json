@@ -31,13 +31,13 @@
       "trjfile": "oldtrj"
    },
 
-   "infiles": [
+   "inputfiles": [
       "inp",
       "rst",
       "oldtrj"
    ],
 
-   "outfiles": [
+   "outputfiles": [
       "modinp",
       "trj",
       "out",

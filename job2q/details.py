@@ -9,8 +9,8 @@ wrappers = (
 listags = (
     'load',
     'source',
-    'infiles',
-    'outfiles',
+    'inputfiles',
+    'outputfiles',
     'posargs',
     'offscript',
     'prescript',

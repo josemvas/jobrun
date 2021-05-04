@@ -5,7 +5,6 @@ from pwd import getpwnam
 from grp import getgrgid
 from string import Template
 from getpass import getuser 
-from socket import gethostname
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
 from .fileutils import AbsPath, formpath
@@ -35,12 +34,12 @@ class ArgList:
             raise StopIteration
         if options.common.jobargs:
             parentdir = AbsPath(options.common.cwd)
-            for key in jobspecs.infiles:
+            for key in jobspecs.inputfiles:
                 if AbsPath(formpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
                     filename = formpath((self.current, jobspecs.shortname))
                     break
             else:
-                for key in jobspecs.infiles:
+                for key in jobspecs.inputfiles:
                     if AbsPath(formpath(parentdir, (self.current, key))).isfile():
                         filename = self.current
                         break
@@ -50,7 +49,7 @@ class ArgList:
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent()
-            for key in jobspecs.infiles:
+            for key in jobspecs.inputfiles:
                 if path.name.endswith('.' + key):
                     filename = path.name[:-len('.' + key)]
                     break
@@ -72,7 +71,7 @@ class ArgList:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
-        filebools = {key: AbsPath(formpath(parentdir, (filename, key))).isfile() or key in options.optionalfiles for key in jobspecs.filekeys}
+        filebools = {key: AbsPath(formpath(parentdir, (filename, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
         for conflict, message in jobspecs.conflicts.items():
             if BoolParser(conflict).evaluate(filebools):
                 messages.error(message, p(filename))
@@ -101,7 +100,6 @@ class ArgGroups:
 names = Bunch()
 names.user = getuser()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-names.host = gethostname()
 
 paths = Bunch()
 paths.home = os.path.expanduser('~')

@@ -32,19 +32,17 @@ class _(Template):
 class DefaultStr(str):
     pass
 
-class ANTemplate(Template):
-    delimiter = '%'
-    idpattern = r'[a-z][_a-z0-9]*'
-
-class NTemplate(Template):
-    delimiter = '%'
-    idpattern = r'[1-9]'
-
-def substitute(template, sublist=[], subdict={}):
+def substitute(template, delim='%', sublist=[], subdict={}):
+    class ATemplate(Template):
+        delimiter = delim
+        idpattern = r'[a-z][_a-z0-9]*'
+    class DTemplate(Template):
+        delimiter = delim
+        idpattern = r'[1-9]'
     try:
-        return ANTemplate(template).substitute(subdict)
+        return ATemplate(template).substitute(subdict)
     except ValueError:
-        return NTemplate(template).substitute({str(i):v for i,v in enumerate(sublist, 1)})
+        return DTemplate(template).substitute({str(i):v for i,v in enumerate(sublist, 1)})
 
 def o(key, value=None):
     if value is not None:

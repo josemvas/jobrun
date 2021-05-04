@@ -2,8 +2,8 @@
 import os
 import sys
 from time import sleep
+from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
-from subprocess import check_output, CalledProcessError, STDOUT
 from . import messages
 from .readspec import readspec
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
@@ -30,17 +30,17 @@ class LsOptions(Action):
             printtree(jobspecs.interpolationkeywords, level=1)
         raise SystemExit()
 
-class SetCwd(Action):
+class StorePath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
-class AppendKey(Action):
+class StoreAbsPath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        getattr(namespace, self.const).update({self.dest:values[0]})
+        setattr(namespace, self.dest, AbsPath(values[0]))
 
 try:
 
@@ -65,13 +65,15 @@ try:
     if os.path.isfile(userspecdir):
         jobspecs.merge(readspec(userspecdir))
     
-    try: names.cluster = hostspecs.clustername
+    try:
+        names.cluster = hostspecs.clustername
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='clustername')
 
-    try: names.head = hostspecs.headname
+    try:
+        names.head = hostspecs.clusterhead
     except AttributeError:
-        messages.error('No se definió el nombre del nodo maestro', spec='clustername')
+        names.head = gethostname()
 
     parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 
@@ -96,11 +98,10 @@ try:
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    group2.add_argument('--cwd', action=SetCwd, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
+    group2.add_argument('--cwd', action=StoreAbsPath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
     group2.add_argument('--scratch', metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
-    group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
-    group2.add_argument('--debug', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    group2.add_argument('--dryrun', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
@@ -108,6 +109,7 @@ try:
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
+#    group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
 
     group3 = parser.add_argument_group('Opciones remotas')
     group3.name = 'remote'
@@ -121,10 +123,10 @@ try:
         group4.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
     group5 = parser.add_argument_group('Archivos opcionales')
-    group5.name = 'optionalfiles'
+    group5.name = 'targetfiles'
     group5.remote = False
     for key, value in jobspecs.fileoptions.items():
-        group5.add_argument(o(key), metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+        group5.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group6 = parser.add_argument_group('Opciones de interpolación')
     group6.name = 'interpolation'
@@ -136,12 +138,6 @@ try:
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Usar todos los pasos del archivo MOLFILE como coordenadas de interpolación.')
     group6.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group6.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
-
-    group7 = parser.add_argument_group('Opciones de interpolación')
-    group7.name = 'interpolationdict'
-    group7.remote = False
-    for key in jobspecs.interpolationkeywords:
-        group7.add_argument(o(key), metavar=key.upper(), default=SUPPRESS, help='Variable de interpolación.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)
@@ -161,25 +157,10 @@ try:
     else:
         messages.error('Debe especificar al menos un archivo de entrada')
 
-    for key in options.optionalfiles:
-        options.optionalfiles[key] = AbsPath(options.optionalfiles[key], cwd=options.common.cwd)
-        if not options.optionalfiles[key].isfile():
-            messages.error('El archivo de entrada', options.optionalfiles[key], 'no existe', option=o(key))
-
     try:
         environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
-
-    if options.remote.host:
-
-        try:
-            output = check_output(['ssh', options.remote.host, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'])
-        except CalledProcessError as e:
-            messages.error(e.output.decode(sys.stdout.encoding).strip())
-        options.remote.cmd, options.remote.root = output.decode(sys.stdout.encoding).strip().split(':')
-        if not options.remote.root or not options.remote.cmd:
-            messages.error('El servidor remoto no acepta trabajos de otro servidor')
 
     initialize()
 

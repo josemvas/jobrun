@@ -48,12 +48,12 @@
       "chargefile": "charges.bin"
    },
 
-   "infiles": [
+   "inputfiles": [
       "dftb_in.hsd",
       "charges.bin"
    ],
 
-   "outfiles": [
+   "outputfiles": [
       "mod_dftb_in.hsd",
       "charges_end.bin",
       "dftb_pin.hsd",

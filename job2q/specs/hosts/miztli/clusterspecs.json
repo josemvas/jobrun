@@ -1,6 +1,6 @@
 {
    "clustername" : "Miztli",
-   "headname": "mn328",
+   "clusterhead": "mn328",
    "scheduler": "IBM LSF",
    "filesync": "local",
    "logdir": "/tmp",
