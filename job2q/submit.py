@@ -11,6 +11,9 @@ from .shared import names, paths, environ, hostspecs, jobspecs, options, remotea
 from .details import wrappers
 from .readmol import readmol
 
+parameterpaths = []
+script = Bunch()
+
 def initialize():
 
     script.main = []
@@ -379,7 +382,7 @@ def submit(parentdir, inputname):
     else:
         outdir = AbsPath(parentdir)
 
-    if 'inp' in options.common:
+    if 'stage' in options.common:
         stagedir = options.common.stage
     else:
         stagedir = outdir
@@ -551,6 +554,3 @@ def submit(parentdir, inputname):
                 with open(formatpath(hiddendir, 'jobid'), 'w') as f:
                     f.write(jobid)
     
-parameterpaths = []
-script = Bunch()
-
