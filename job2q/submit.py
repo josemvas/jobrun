@@ -483,18 +483,18 @@ def submit(parentdir, inputname):
 
     if options.remote.host:
 
-        relparent = os.path.relpath(outdir, paths.home)
+        reloutdir = os.path.relpath(outdir, paths.home)
         remoteroot = formpath(options.remote.dir, names.user + '@' + gethostname())
         remotetmp = formpath(remoteroot, 'tmp')
         remotehome = formpath(remoteroot, 'home')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': formpath(remotetmp, relparent)})
-        remoteargs.constants.update({'out': formpath(remotehome, relparent)})
+        remoteargs.constants.update({'cwd': formpath(remotetmp, reloutdir)})
+        remoteargs.constants.update({'out': formpath(remotehome, reloutdir)})
         filelist = []
         for key in jobspecs.filekeys:
             if os.path.isfile(formpath(outdir, (outputname, key))):
-                filelist.append(formpath(paths.home, '.', relparent, mirrorname, (outputname, key)))
+                filelist.append(formpath(paths.home, '.', reloutdir, (outputname, key)))
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
