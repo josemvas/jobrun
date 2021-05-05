@@ -5,9 +5,6 @@ import string
 from . import messages
 from .utils import DefaultStr, deepjoin, printtree, getformatkeys
 
-class T(string.Template):
-    delimiter = '%'
-
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
@@ -89,13 +86,13 @@ class AbsPath(str):
 #                yield first[0] + '{' + first[1] + '}' + suffix
 
 #TODO Handle template exceptions
-#TODO Check each component
+#TODO Check format of each component
 def formatpath(*parts, **keys):
-    formatted = deepjoin(parts, iter((os.path.sep, '.')))
+    path = deepjoin(parts, iter((os.path.sep, '.')))
     if keys:
-        return T(formatted).substitute(keys)
+        return path.format(**keys)
     else:
-        return formatted
+        return path
 
 def splitpath(path):
     if path:
