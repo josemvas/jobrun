@@ -380,7 +380,7 @@ def submit(parentdir, inputname):
         outdir = AbsPath(parentdir)
 
     if 'inp' in options.common:
-        stagedir = options.common.inp
+        stagedir = options.common.stage
     else:
         stagedir = outdir
 
