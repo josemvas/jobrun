@@ -5,6 +5,7 @@ from pwd import getpwnam
 from grp import getgrgid
 from string import Template
 from getpass import getuser 
+from socket import gethostname
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
 from .fileutils import AbsPath, formatpath
@@ -100,6 +101,7 @@ class ArgGroups:
 names = Bunch()
 names.user = getuser()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+names.host = gethostname()
 
 paths = Bunch()
 paths.home = os.path.expanduser('~')

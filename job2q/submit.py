@@ -2,7 +2,6 @@
 import os
 import sys
 from subprocess import check_output, CalledProcessError
-from socket import gethostname
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, makedirs, copyfile
@@ -30,8 +29,8 @@ def initialize():
             output = check_output(['ssh', options.remote.host, 'echo $JOBCOMMAND:$JOBSYNCDIR'])
         except CalledProcessError as e:
             messages.error(e.output.decode(sys.stdout.encoding).strip())
-        options.remote.cmd, options.remote.dir = output.decode(sys.stdout.encoding).strip().split(':')
-        if not options.remote.dir or not options.remote.cmd:
+        options.remote.cmd, options.remote.root = output.decode(sys.stdout.encoding).strip().split(':')
+        if not options.remote.root or not options.remote.cmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
 
     if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
@@ -470,14 +469,13 @@ def submit(parentdir, inputname):
     if options.remote.host:
 
         reloutdir = os.path.relpath(outdir, paths.home)
-        remoteroot = formatpath(options.remote.dir, names.user + '@' + gethostname())
-        remotestage = formatpath(remoteroot, 'tmpdata')
-        remoteoutput = formatpath(remoteroot, 'output')
+        remotehome = formatpath(options.remote.root, (names.user, names.host))
+        remotetemp = formatpath(options.remote.root, (names.user, names.host, 'temp'))
         remoteargs.switches.add('plain')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': formatpath(remotestage, reloutdir)})
-        remoteargs.constants.update({'out': formatpath(remoteoutput, reloutdir)})
+        remoteargs.constants.update({'cwd': formatpath(remotetemp, reloutdir)})
+        remoteargs.constants.update({'out': formatpath(remotehome, reloutdir)})
         filelist = []
         for key in jobspecs.filekeys:
             if os.path.isfile(formatpath(outdir, (outputname, key))):
@@ -495,7 +493,8 @@ def submit(parentdir, inputname):
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotestage])
+                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotetemp])
+                check_output(['rsync', '-qRLtz', '-f-! */'] + filelist + [options.remote.host + ':' + remotehome])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
             os.execv('/usr/bin/ssh', arglist)
