@@ -97,22 +97,19 @@ def initialize():
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if not 'scrdir' in hostspecs.defaults:
-        messages.error('No se especificó el directorio temporal de escritura por defecto', spec='defaults.scrdir')
+    if not 'scratch' in hostspecs.defaults:
+        messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        script.scrdir = AbsPath(formpath(options.common.scratch, hostspecs.envars.jobid))
+        options.jobscratch = options.common.scratch // hostspecs.envars.jobid
     else:
-        try:
-            script.scrdir = AbsPath(formpath(hostspecs.defaults.scrdir, hostspecs.envars.jobid)).setkeys(names).validate()
-        except NotAbsolutePath:
-            messages.error(hostspecs.defaults.scrdir, 'no es una ruta absoluta', spec='defaults.scrdir')
+        options.jobscratch = AbsPath(formpath(hostspecs.defaults.scratch, **names)) // hostspecs.envars.jobid
 
     if 'queue' not in options.common:
-        if hostspecs.defaults.queue:
+        if 'queue' in hostspecs.defaults:
             options.common.queue = hostspecs.defaults.queue
         else:
-            messages.error('No se especificó la cola por defecto', spec='defaults.queue')
+            messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
     if not 'packagename' in jobspecs:
         messages.error('No se especificó el nombre del programa', spec='packagename')
@@ -204,11 +201,11 @@ def initialize():
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
     for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(path, cwd=script.scrdir).setkeys(names).validate()
+        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
     for envar, path in jobspecs.append.items() | jobspecs.versions[options.common.version].append.items():
-        abspath = AbsPath(path, cwd=script.scrdir).setkeys(names).validate()
+        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
     for path in jobspecs.source + jobspecs.versions[options.common.version].source:
@@ -382,40 +379,45 @@ def submit(parentdir, inputname):
     else:
         outdir = AbsPath(parentdir)
 
-    hiddendir = AbsPath(formpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
+    if 'inp' in options.common:
+        stagedir = options.common.inp
+    else:
+        stagedir = outdir
+
+    hiddendir = AbsPath(formpath(stagedir, jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
     imports = []
     exports = []
 
     for key in jobspecs.inputfiles:
         if AbsPath(formpath(parentdir, (inputname, key))).isfile():
-            imports.append(script.simport(formpath(outdir, (outputname, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
+            imports.append(script.simport(formpath(stagedir, (outputname, key)), formpath(options.jobscratch, jobspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.simport(formpath(outdir, (outputname, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+        imports.append(script.simport(formpath(stagedir, (outputname, jobspecs.fileoptions[key])), formpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
-            imports.append(script.simport(path, formpath(script.scrdir, path.name)))
+            imports.append(script.simport(path, formpath(options.jobscratch, path.name)))
         elif path.isdir():
-            imports.append(script.rimport(formpath(path), script.scrdir))
+            imports.append(script.rimport(formpath(path), options.jobscratch))
 
     for key in jobspecs.outputfiles:
-        exports.append(script.sexport(formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
+        exports.append(script.sexport(formpath(options.jobscratch, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
 
     literalfiles = {}
     interpolated = {}
 
     for key in jobspecs.inputfiles:
-        inputpath = AbsPath(formpath(parentdir, (inputname, key)))
-        outputpath = formpath(outdir, (outputname, key))
-        if inputpath.isfile() and inputpath != outputpath:
+        srcpath = AbsPath(formpath(parentdir, (inputname, key)))
+        destpath = formpath(stagedir, (outputname, key))
+        if srcpath.isfile() and srcpath != destpath:
             if 'interpolable' in jobspecs and key in jobspecs.interpolable:
-                with open(inputpath, 'r') as f:
+                with open(srcpath, 'r') as f:
                     contents = f.read()
                     if options.interpolation.interpolate:
                         try:
-                            interpolated[outputpath] = substitute(
+                            interpolated[destpath] = substitute(
                                 contents,
                                 keylist=options.interpolation.list,
                                 keydict=options.interpolation.dict,
@@ -428,16 +430,16 @@ def submit(parentdir, inputname):
                             return
                     else:
                         try:
-                            interpolated[outputpath] = substitute(contents)
+                            interpolated[destpath] = substitute(contents)
                         except KeyError as e:
                             if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formpath((inputname, key)),'¿desea continuar sin interpolar?'):
-                                literalfiles[outputpath] = inputpath
+                                literalfiles[destpath] = srcpath
                             else:
                                 return
                         except ValueError:
                             pass
             else:
-                literalfiles[outputpath] = inputpath
+                literalfiles[destpath] = srcpath
 
     if outdir.isdir():
         if hiddendir.isdir():
@@ -471,26 +473,27 @@ def submit(parentdir, inputname):
         makedirs(outdir)
         makedirs(hiddendir)
 
-    for outputpath, literalfile in literalfiles.items():
-        literalfile.copyto(outputpath)
+    for destpath, literalfile in literalfiles.items():
+        literalfile.copyto(destpath)
 
-    for outputpath, interpolatedinput in interpolated.items():
-        with open(outputpath, 'w') as f:
-            f.write(interpolatedinput)
+    for destpath, contents in interpolated.items():
+        with open(destpath, 'w') as f:
+            f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(formpath(outdir, (outputname, jobspecs.fileoptions[key])))
+        targetfile.linkto(formpath(stagedir, (outputname, jobspecs.fileoptions[key])))
 
     if options.remote.host:
 
         reloutdir = os.path.relpath(outdir, paths.home)
         remoteroot = formpath(options.remote.dir, names.user + '@' + gethostname())
-        remotetmp = formpath(remoteroot, 'tmp')
-        remotehome = formpath(remoteroot, 'home')
+        remotestage = formpath(remoteroot, 'stage')
+        remoteoutput = formpath(remoteroot, 'output')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': formpath(remotetmp, reloutdir)})
-        remoteargs.constants.update({'out': formpath(remotehome, reloutdir)})
+        remoteargs.constants.update({'cwd': formpath(remotestage, reloutdir)})
+        remoteargs.constants.update({'stg': formpath(remotestage, reloutdir)})
+        remoteargs.constants.update({'out': formpath(remoteoutput, reloutdir)})
         filelist = []
         for key in jobspecs.filekeys:
             if os.path.isfile(formpath(outdir, (outputname, key))):
@@ -508,7 +511,7 @@ def submit(parentdir, inputname):
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotetmp])
+                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotestage])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
             os.execv('/usr/bin/ssh', arglist)
@@ -525,14 +528,14 @@ def submit(parentdir, inputname):
             f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
             f.write(script.setenv('job', jobname) + '\n')
             f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
-            f.write(script.mkdir(script.scrdir) + '\n')
+            f.write(script.mkdir(options.jobscratch) + '\n')
             f.write(''.join(i + '\n' for i in imports))
-            f.write(script.chdir(script.scrdir) + '\n')
+            f.write(script.chdir(options.jobscratch) + '\n')
             f.write(''.join(i + '\n' for i in jobspecs.prescript))
             f.write(' '.join(script.main) + '\n')
             f.write(''.join(i + '\n' for i in jobspecs.postscript))
             f.write(''.join(i + '\n' for i in exports))
-            f.write(script.rmdir(script.scrdir) + '\n')
+            f.write(script.rmdir(options.jobscratch) + '\n')
             f.write(''.join(i + '\n' for i in hostspecs.offscript))
     
         if options.debug.dryrun:

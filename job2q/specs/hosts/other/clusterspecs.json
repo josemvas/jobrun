@@ -5,7 +5,7 @@
 
    "defaults": {
       "queue": "",
-      "scrdir": "/scratch",
+      "scratch": "/scratch",
       "wait": "1"
    }
 }

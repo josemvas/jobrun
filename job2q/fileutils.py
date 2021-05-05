@@ -3,7 +3,10 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import DefaultStr, deepjoin, pathseps, printtree, getformatkeys
+from .utils import DefaultStr, deepjoin, printtree, getformatkeys
+
+class T(string.Template):
+    delimiter = '%'
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -54,11 +57,11 @@ class AbsPath(str):
         for lit, key, spec, _ in string.Formatter.parse(None, self):
             if key is None:
                 formatted += lit
-#            elif spec:
-#                formatted += lit + formatkeys.get(key, '{' + key + ':' + spec + '}')
             else:
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
+    def __floordiv__(self, right):
+        return AbsPath(formpath(self, right))
     def validate(self):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
@@ -85,18 +88,26 @@ class AbsPath(str):
 #                        raise PathKeyError(part, 'has parts with multiple keys')
 #                yield first[0] + '{' + first[1] + '}' + suffix
 
-def formpath(*args):
-    return deepjoin(args, iter(pathseps))
+#TODO Handle template exceptions
+#TODO Check each component
+def formpath(*parts, **keys):
+    formatted = os.path.normpath(deepjoin(parts, iter((os.path.sep, '.'))))
+    if keys:
+        return T(formatted).substitute(keys)
+    else:
+        return formatted
 
 def splitpath(path):
     if path:
-        path = os.path.normpath(path)
         if path == os.path.sep:
-            return [os.path.sep]
-        if path.startswith(os.path.sep):
-            return [os.path.sep] + path[1:].split(os.path.sep)
+            parts = [os.path.sep]
+        elif path.startswith(os.path.sep):
+            parts = [os.path.sep] + path[1:].split(os.path.sep)
         else:
-            return path.split(os.path.sep)
+            parts = path.split(os.path.sep)
+        if '' in parts:
+            raise Exception('Path has empty parts')
+        return parts
     else:
         return []
 

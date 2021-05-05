@@ -56,7 +56,7 @@ def install(relpath=False):
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
     
-    if not os.path.isfile(formpath(etcdir, 'clusterspecs.json')) or readspec(formpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+    if not os.path.isfile(formpath(etcdir, 'clusterspecs.json')) or readspec(formpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
         copyfile(formpath(hostspecdir, selhost, 'clusterspecs.json'), formpath(etcdir, 'clusterspecs.json'))
 
     for specname in os.listdir(queuespecdir):
@@ -96,7 +96,7 @@ def install(relpath=False):
         symlink(formpath(etcdir, 'queuespecs.json'), formpath(specdir, package, 'queuespecs.json'))
         copyfile(formpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), formpath(specdir, package, 'packagespecs.json'))
         copypathspec = True
-        if packagename not in configured or not os.path.isfile(formpath(specdir, package, 'packageconf.json')) or readspec(formpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(formpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?', default=False):
+        if packagename not in configured or not os.path.isfile(formpath(specdir, package, 'packageconf.json')) or readspec(formpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(formpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?'):
             copyfile(formpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), formpath(specdir, package, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():

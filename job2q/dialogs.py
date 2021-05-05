@@ -5,7 +5,7 @@ import readline
 from glob import glob
 from . import messages
 from .fileutils import AbsPath, NotAbsolutePath
-from .utils import override_function, join_args, wordseps
+from .utils import override_function, join_args
 
 try:
     import bulletin

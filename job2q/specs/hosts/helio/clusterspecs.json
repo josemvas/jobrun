@@ -7,7 +7,7 @@
 
    "defaults": {
       "queue": "auto",
-      "scrdir": "/scratch",
+      "scratch": "/scratch",
       "wait": "1"
    },
    "offscript": [

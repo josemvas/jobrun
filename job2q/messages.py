@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from . import colors
-from .utils import join_args, join_allargs, wordseps
+from .utils import join_args, join_allargs
 
 @join_allargs
 def success(message, details):

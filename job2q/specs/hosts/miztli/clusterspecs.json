@@ -7,7 +7,7 @@
 
    "defaults": {
       "queue": "q_htc",
-      "scrdir": "/tmpu/{group}/{user}",
+      "scratch": "/tmpu/{group}/{user}",
       "wait": "3"
    },
    "offscript": [

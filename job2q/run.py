@@ -11,7 +11,7 @@ from .fileutils import AbsPath, NotAbsolutePath, formpath, findbranches
 from .shared import ArgList, names, paths, environ, hostspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
-class LsOptions(Action):
+class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
@@ -36,11 +36,12 @@ class StorePath(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
-class StoreAbsPath(Action):
+#TODO How to append value to list?
+class AppendPath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0]))
+        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
 try:
 
@@ -91,17 +92,18 @@ try:
     group2.add_argument('-d', '--defaults', action='store_true', help='Ignorar las opciones predeterminadas y preguntar.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
-    group2.add_argument('-l', '--list', action=LsOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
+    group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    group2.add_argument('--out', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
-    group2.add_argument('--lib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
-    group2.add_argument('--cwd', action=StoreAbsPath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
-    group2.add_argument('--scratch', metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
-    group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio de salida tras enviar el trabajo.')
+    group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
+    group2.add_argument('--inp', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de entrada en el directorio PATH.')
+    group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
+    group2.add_argument('--lib', action=AppendPath, metavar='PATH', default=[], help='Agregar la biblioteca de parámetros PATH.')
+    group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
+    group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
@@ -133,7 +135,7 @@ try:
     group5.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group5.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
 
-    group6 = parser.add_argument_group('Archivos opcionales')
+    group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
     for key, value in jobspecs.fileoptions.items():

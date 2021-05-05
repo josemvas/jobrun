@@ -2,11 +2,9 @@
 import os
 import re
 import sys
+import string
 from . import colors
-from string import Formatter, Template
 
-wordseps = (' ', '')
-pathseps = (os.path.sep, '.')
 boolstrs = {'True' : True, 'False' : False}
 
 class IdentityList(list):
@@ -24,25 +22,26 @@ class Bunch(dict):
     def __setattr__(self, item, value):
         self.__setitem__(item, value)
 
-class _(Template):
-    format = Template.safe_substitute
+class _(string.Template):
     def __str__(self):
         return(self.safe_substitute())
+    def format(self, **keys):
+        return self.safe_substitute(keys)
 
 class DefaultStr(str):
     pass
 
 def substitute(template, delim='%', keylist=[], keydict={}):
-    class ATemplate(Template):
+    class A(string.Template):
         delimiter = delim
         idpattern = r'[a-z][_a-z0-9]*'
-    class DTemplate(Template):
+    class B(string.Template):
         delimiter = delim
         idpattern = r'[1-9]'
     try:
-        return ATemplate(template).substitute(keydict)
+        return A(template).substitute(keydict)
     except ValueError:
-        return DTemplate(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
+        return B(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
 
 def o(key, value=None):
     if value is not None:
@@ -107,4 +106,4 @@ def printtree(tree, level=0):
             printtree(branch, level + 1)
 
 def getformatkeys(formatstr):
-    return [i[1] for i in Formatter().parse(formatstr)  if i[1] is not None]
+    return [i[1] for i in string.Formatter().parse(formatstr) if i[1] is not None]
