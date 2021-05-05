@@ -20,7 +20,7 @@ class LsOptions(Action):
             printtree([DefaultStr(i) if i == jobspecs.defaults.version else str(i) for i in jobspecs.versions], level=1)
         for path in jobspecs.defaults.parameterpaths:
             dirtree = {}
-            partlist = AbsPath(path).setkeys(names).parts()
+            partlist = AbsPath(path).setkeys(names).parts
             findbranches(AbsPath(next(partlist)), partlist, jobspecs.defaults.parameters, dirtree)
             if dirtree:
                print(_('Parámetros en $path:').format(path=path.format(**{i: '*' for i in getformatkeys(path)})))
@@ -97,11 +97,11 @@ try:
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
     group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
-    group2.add_argument('--cwd', action=StoreAbsPath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
-    group2.add_argument('--parlib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
+    group2.add_argument('--lib', metavar='PATH', action='append', default=[], help='Agregar la biblioteca de parámetros PATH.')
+    group2.add_argument('--cwd', action=StoreAbsPath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--scratch', metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
-    group2.add_argument('--dryrun', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio de salida tras enviar el trabajo.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
@@ -122,22 +122,27 @@ try:
     for key in jobspecs.parameters:
         group4.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
-    group6 = parser.add_argument_group('Opciones de interpolación')
-    group6.name = 'interpolation'
-    group6.remote = False
-#    group6.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
-    group6.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
-    molgroup = group6.add_mutually_exclusive_group()
+    group5 = parser.add_argument_group('Opciones de interpolación')
+    group5.name = 'interpolation'
+    group5.remote = False
+#    group5.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
+    group5.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
+    molgroup = group5.add_mutually_exclusive_group()
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
-    group6.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group6.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
+    group5.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    group5.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
 
-    group5 = parser.add_argument_group('Archivos opcionales')
-    group5.name = 'targetfiles'
-    group5.remote = False
+    group6 = parser.add_argument_group('Archivos opcionales')
+    group6.name = 'targetfiles'
+    group6.remote = False
     for key, value in jobspecs.fileoptions.items():
-        group5.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+        group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+
+    group7 = parser.add_argument_group('Opciones de depuración')
+    group7.name = 'debug'
+    group7.remote = False
+    group7.add_argument('--dryrun', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)

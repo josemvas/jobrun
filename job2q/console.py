@@ -33,7 +33,7 @@ def install(relpath=False):
     mkdir(etcdir)
     mkdir(specdir)
     
-    sourcedir = AbsPath(__file__).parent()
+    sourcedir = AbsPath(__file__).parent
     hostspecdir = formpath(sourcedir, 'specs', 'hosts')
     queuespecdir = formpath(sourcedir, 'specs', 'queues')
 

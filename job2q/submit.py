@@ -13,10 +13,10 @@ from .readmol import readmol
 
 def initialize():
 
-    script.header = []
-    script.setup = []
-    script.envars = []
     script.main = []
+    script.setup = []
+    script.header = []
+    script.envars = []
 
     for key, path in options.targetfiles.items():
         if not path.isfile():
@@ -24,15 +24,17 @@ def initialize():
 
     if options.remote.host:
         try:
-            output = check_output(['ssh', options.remote.host, 'echo $JOB2Q_CMD:$JOB2Q_ROOT'])
+            output = check_output(['ssh', options.remote.host, 'echo $JOBCOMMAND:$JOBSYNCDIR'])
         except CalledProcessError as e:
             messages.error(e.output.decode(sys.stdout.encoding).strip())
-        options.remote.cmd, options.remote.root = output.decode(sys.stdout.encoding).strip().split(':')
-        if not options.remote.root or not options.remote.cmd:
+        options.remote.cmd, options.remote.dir = output.decode(sys.stdout.encoding).strip().split(':')
+        if not options.remote.dir or not options.remote.cmd:
             messages.error('El servidor remoto no acepta trabajos de otro servidor')
 
     if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
         options.interpolation.interpolate = True
+    else:
+        options.interpolation.interpolate = False
 
     if options.interpolation.interpolate:
         options.interpolation.list = []
@@ -270,21 +272,30 @@ def initialize():
     if hostspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
-        script.fetch = 'cp "{}" "{}"'.format
-        script.fetchdir = 'cp -r "{}/." "{}"'.format
-        script.remit = 'cp "{}" "{}"'.format
+        if options.common.dispose:
+            script.simport = 'mv "{}" "{}"'.format
+        else:
+            script.simport = 'cp "{}" "{}"'.format
+        script.rimport = 'cp -r "{}/." "{}"'.format
+        script.sexport = 'cp "{}" "{}"'.format
     elif hostspecs.filesync == 'remote':
         script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.fetch = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.fetchdir = 'for host in ${{hostlist[*]}}; do rsh $head tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.remit = 'rcp "{}" $head:"\'{}\'"'.format
+        if options.common.dispose:
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'" && rsh $head rm "\'{0}\'"; done'.format
+        else:
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $head tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'rcp "{}" $head:"\'{}\'"'.format
     elif hostspecs.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.fetch = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.fetchdir = 'for host in ${{hostlist[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.remit = 'scp "{}" $head:"\'{}\'"'.format
+        if options.common.dispose:
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'" && ssh $head rm "\'{0}\'"; done'.format
+        else:
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'scp "{}" $head:"\'{}\'"'.format
     else:
         messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
 
@@ -306,7 +317,7 @@ def initialize():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        partlist = AbsPath(path, cwd=options.common.cwd).setkeys(names).parts()
+        partlist = AbsPath(path, cwd=options.common.cwd).setkeys(names).parts
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
@@ -373,29 +384,27 @@ def submit(parentdir, inputname):
 
     hiddendir = AbsPath(formpath(outdir, '.' + jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
-    exportfiles = []
-    inputdirs = []
+    imports = []
+    exports = []
 
     for key in jobspecs.inputfiles:
         if AbsPath(formpath(parentdir, (inputname, key))).isfile():
-            exportfiles.append((formpath(outdir, (outputname, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
+            imports.append(script.simport(formpath(outdir, (outputname, key)), formpath(script.scrdir, jobspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        exportfiles.append((formpath(outdir, (outputname, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+        imports.append(script.simport(formpath(outdir, (outputname, jobspecs.fileoptions[key])), formpath(script.scrdir, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
-            exportfiles.append((path, formpath(script.scrdir, path.name)))
+            imports.append(script.simport(path, formpath(script.scrdir, path.name)))
         elif path.isdir():
-            inputdirs.append((formpath(path), script.scrdir))
-
-    importfiles = []
+            imports.append(script.rimport(formpath(path), script.scrdir))
 
     for key in jobspecs.outputfiles:
-        importfiles.append((formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
+        exports.append(script.sexport(formpath(script.scrdir, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
 
     literalfiles = {}
-    interpolatedinputs = {}
+    interpolated = {}
 
     for key in jobspecs.inputfiles:
         inputpath = AbsPath(formpath(parentdir, (inputname, key)))
@@ -406,7 +415,7 @@ def submit(parentdir, inputname):
                     contents = f.read()
                     if options.interpolation.interpolate:
                         try:
-                            interpolatedinputs[outputpath] = substitute(
+                            interpolated[outputpath] = substitute(
                                 contents,
                                 keylist=options.interpolation.list,
                                 keydict=options.interpolation.dict,
@@ -419,13 +428,11 @@ def submit(parentdir, inputname):
                             return
                     else:
                         try:
-                            interpolatedinputs[outputpath] = substitute(
-                                contents,
-                                keylist=options.interpolation.list,
-                                keydict=options.interpolation.dict,
-                            )
+                            interpolated[outputpath] = substitute(contents)
                         except KeyError as e:
-                            if not dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formpath((inputname, key)),'¿desea continuar de todas formas?')):
+                            if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formpath((inputname, key)),'¿desea continuar sin interpolar?'):
+                                literalfiles[outputpath] = inputpath
+                            else:
                                 return
                         except ValueError:
                             pass
@@ -465,9 +472,9 @@ def submit(parentdir, inputname):
         makedirs(hiddendir)
 
     for outputpath, literalfile in literalfiles.items():
-        literalfile.linkto(outputpath)
+        literalfile.copyto(outputpath)
 
-    for outputpath, interpolatedinput in interpolatedinputs.items():
+    for outputpath, interpolatedinput in interpolated.items():
         with open(outputpath, 'w') as f:
             f.write(interpolatedinput)
 
@@ -477,15 +484,17 @@ def submit(parentdir, inputname):
     if options.remote.host:
 
         relparent = os.path.relpath(outdir, paths.home)
-        remotehome = formpath(options.remote.root, names.user + '@' + gethostname())
-        remotecwd = formpath(remotehome, relparent)
+        remoteroot = formpath(options.remote.dir, names.user + '@' + gethostname())
+        remotetmp = formpath(remoteroot, 'tmp')
+        remotehome = formpath(remoteroot, 'home')
         remoteargs.switches.add('jobargs')
-        remoteargs.constants.update({'cwd': remotecwd})
-        remoteargs.constants.update({'out': remotecwd})
+        remoteargs.switches.add('dispose')
+        remoteargs.constants.update({'cwd': formpath(remotetmp, relparent)})
+        remoteargs.constants.update({'out': formpath(remotehome, relparent)})
         filelist = []
         for key in jobspecs.filekeys:
             if os.path.isfile(formpath(outdir, (outputname, key))):
-                filelist.append(formpath(paths.home, '.', relparent, (outputname, key)))
+                filelist.append(formpath(paths.home, '.', relparent, mirrorname, (outputname, key)))
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -494,12 +503,12 @@ def submit(parentdir, inputname):
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
         arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)
         arglist.append(jobname)
-        if options.common.dryrun:
+        if options.debug.dryrun:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotehome])
+                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotetmp])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
             os.execv('/usr/bin/ssh', arglist)
@@ -517,17 +526,16 @@ def submit(parentdir, inputname):
             f.write(script.setenv('job', jobname) + '\n')
             f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
             f.write(script.mkdir(script.scrdir) + '\n')
-            f.write(''.join(script.fetch(i, j) + '\n' for i, j in exportfiles))
-            f.write(''.join(script.fetchdir(i, j) + '\n' for i, j in inputdirs))
+            f.write(''.join(i + '\n' for i in imports))
             f.write(script.chdir(script.scrdir) + '\n')
             f.write(''.join(i + '\n' for i in jobspecs.prescript))
             f.write(' '.join(script.main) + '\n')
             f.write(''.join(i + '\n' for i in jobspecs.postscript))
-            f.write(''.join(script.remit(i, j) + '\n' for i, j in importfiles))
+            f.write(''.join(i + '\n' for i in exports))
             f.write(script.rmdir(script.scrdir) + '\n')
             f.write(''.join(i + '\n' for i in hostspecs.offscript))
     
-        if options.common.dryrun:
+        if options.debug.dryrun:
             messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', hiddendir)
         else:
             try:

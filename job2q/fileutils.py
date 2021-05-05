@@ -28,12 +28,11 @@ class AbsPath(str):
         obj = str.__new__(cls, path)
         obj.name = os.path.basename(path)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
+        obj.parts = iter(splitpath(obj))
         return obj
-    #TODO parent and parts shoud be attributes not methods but, how to avoid infinite recursion?
+    @property
     def parent(self):
         return AbsPath(os.path.dirname(self))
-    def parts(self):
-        return iter(splitpath(self))
     def listdir(self):
         return os.listdir(self)
     def hasext(self, suffix):

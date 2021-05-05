@@ -48,7 +48,7 @@ class ArgList:
                     return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
-            parentdir = path.parent()
+            parentdir = path.parent
             for key in jobspecs.inputfiles:
                 if path.name.endswith('.' + key):
                     filename = path.name[:-len('.' + key)]
