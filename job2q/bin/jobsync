@@ -6,7 +6,7 @@ red=$(tput setaf 1)
 
 sync_files () {
     test -z "$1" && return
-    rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/output/" "$HOME" <<< "$1"
+    rsync -ztvh --partial-dir=.rsynctmp --progress --files-from=- "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/" "$HOME" <<< "$1"
 }
 
 remove_files () {
@@ -17,7 +17,7 @@ remove_files () {
         case "$answer" in
           [oO][kK])
             echo -n $yellow\Eliminando archivos $2... $normal
-            rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/output/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
+            rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
             echo Hecho
             break;;
           *) break;;
@@ -47,9 +47,9 @@ else
     exit
 fi
 
-#including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/output/" "$HOME")
-#excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/output/" "$HOME")
-files=$(rsync -rntii --exclude='.*' "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/output/" "$HOME")
+#including=$(rsync -rntii --exclude='.*' ${expat:+--exclude="$expat"} "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/" "$HOME")
+#excluding=$(rsync -rntii ${expat:+--include="$expat"} --include='*/' --exclude='*' "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/" "$HOME")
+files=$(rsync -rntii --exclude='.*' "$host":"\$JOBSYNCDIR/$USER@$HOSTNAME/" "$HOME")
 
 synced=$(echo "$files" | sed -n 's,^\.f          ,,p')
 unsynced=$(echo "$files" | sed -n 's,^>f+++++++++ ,,p')
