@@ -7,7 +7,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
-from .fileutils import AbsPath, NotAbsolutePath, formpath, findbranches
+from .fileutils import AbsPath, NotAbsolutePath, formatpath, findbranches
 from .shared import ArgList, names, paths, environ, hostspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
@@ -55,13 +55,13 @@ try:
     parsedargs, remainingargs = parser.parse_known_args()
     names.command = parsedargs.program
     
-    hostspecs.merge(readspec(formpath(specdir, names.command, 'clusterspecs.json')))
-    hostspecs.merge(readspec(formpath(specdir, names.command, 'queuespecs.json')))
+    hostspecs.merge(readspec(formatpath(specdir, names.command, 'clusterspecs.json')))
+    hostspecs.merge(readspec(formatpath(specdir, names.command, 'queuespecs.json')))
 
-    jobspecs.merge(readspec(formpath(specdir, names.command, 'packagespecs.json')))
-    jobspecs.merge(readspec(formpath(specdir, names.command, 'packageconf.json')))
+    jobspecs.merge(readspec(formatpath(specdir, names.command, 'packagespecs.json')))
+    jobspecs.merge(readspec(formatpath(specdir, names.command, 'packageconf.json')))
     
-    userspecdir = formpath(paths.home, '.jobspecs', names.command + '.json')
+    userspecdir = formatpath(paths.home, '.jobspecs', names.command + '.json')
     
     if os.path.isfile(userspecdir):
         jobspecs.merge(readspec(userspecdir))

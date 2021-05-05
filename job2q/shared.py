@@ -7,7 +7,7 @@ from string import Template
 from getpass import getuser 
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
-from .fileutils import AbsPath, formpath
+from .fileutils import AbsPath, formatpath
 from .parsing import BoolParser
 from . import messages
 
@@ -35,12 +35,12 @@ class ArgList:
         if options.common.jobargs:
             parentdir = AbsPath(options.common.cwd)
             for key in jobspecs.inputfiles:
-                if AbsPath(formpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
-                    filename = formpath((self.current, jobspecs.shortname))
+                if AbsPath(formatpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
+                    filename = formatpath((self.current, jobspecs.shortname))
                     break
             else:
                 for key in jobspecs.inputfiles:
-                    if AbsPath(formpath(parentdir, (self.current, key))).isfile():
+                    if AbsPath(formatpath(parentdir, (self.current, key))).isfile():
                         filename = self.current
                         break
                 else:
@@ -71,7 +71,7 @@ class ArgList:
             filtergroups = filtermatch.groups()
         else:
             return next(self)
-        filebools = {key: AbsPath(formpath(parentdir, (filename, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
+        filebools = {key: AbsPath(formatpath(parentdir, (filename, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
         for conflict, message in jobspecs.conflicts.items():
             if BoolParser(conflict).evaluate(filebools):
                 messages.error(message, p(filename))

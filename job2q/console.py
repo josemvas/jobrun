@@ -8,7 +8,7 @@ from . import dialogs
 from . import messages
 from .utils import q
 from .readspec import readspec
-from .fileutils import AbsPath, NotAbsolutePath, formpath, mkdir, copyfile, symlink
+from .fileutils import AbsPath, NotAbsolutePath, formatpath, mkdir, copyfile, symlink
 
 def install(relpath=False):
 
@@ -25,29 +25,29 @@ def install(relpath=False):
     defaults = {}
     
     rootdir = dialogs.inputpath('Escriba la ruta donde se instalarán los programas', check=os.path.isdir)
-    bindir = formpath(rootdir, 'bin')
-    etcdir = formpath(rootdir, 'etc')
-    specdir = formpath(etcdir, 'jobspecs')
+    bindir = formatpath(rootdir, 'bin')
+    etcdir = formatpath(rootdir, 'etc')
+    specdir = formatpath(etcdir, 'jobspecs')
 
     mkdir(bindir)
     mkdir(etcdir)
     mkdir(specdir)
     
     sourcedir = AbsPath(__file__).parent
-    hostspecdir = formpath(sourcedir, 'specs', 'hosts')
-    queuespecdir = formpath(sourcedir, 'specs', 'queues')
+    hostspecdir = formatpath(sourcedir, 'specs', 'hosts')
+    queuespecdir = formatpath(sourcedir, 'specs', 'queues')
 
     for specname in os.listdir(hostspecdir):
-        if not os.path.isfile(formpath(hostspecdir, specname, 'clusterspecs.json')):
+        if not os.path.isfile(formatpath(hostspecdir, specname, 'clusterspecs.json')):
             messages.warning('El directorio', specname, 'no contiene ningún archivo de configuración')
-        clusterspecs = readspec(formpath(hostspecdir, specname, 'clusterspecs.json'))
+        clusterspecs = readspec(formatpath(hostspecdir, specname, 'clusterspecs.json'))
         clusternames[specname] = clusterspecs.clustername
         clusterspeckeys[clusterspecs.clustername] = specname
         if 'scheduler' in clusterspecs:
             clusterschedulers[specname] = clusterspecs.scheduler
 
-    if os.path.isfile(formpath(etcdir, 'clusterspecs.json')):
-        defaulthost = readspec(formpath(etcdir, 'clusterspecs.json')).clustername
+    if os.path.isfile(formatpath(etcdir, 'clusterspecs.json')):
+        defaulthost = readspec(formatpath(etcdir, 'clusterspecs.json')).clustername
         if defaulthost not in clusternames.values():
             defaulthost = 'Otro'
     else:
@@ -56,16 +56,16 @@ def install(relpath=False):
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
     
-    if not os.path.isfile(formpath(etcdir, 'clusterspecs.json')) or readspec(formpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-        copyfile(formpath(hostspecdir, selhost, 'clusterspecs.json'), formpath(etcdir, 'clusterspecs.json'))
+    if not os.path.isfile(formatpath(etcdir, 'clusterspecs.json')) or readspec(formatpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formatpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        copyfile(formatpath(hostspecdir, selhost, 'clusterspecs.json'), formatpath(etcdir, 'clusterspecs.json'))
 
     for specname in os.listdir(queuespecdir):
-        queuespecs = readspec(formpath(queuespecdir, specname, 'queuespecs.json'))
+        queuespecs = readspec(formatpath(queuespecdir, specname, 'queuespecs.json'))
         schedulernames[specname] = queuespecs.schedulername
         schedulerspeckeys[queuespecs.schedulername] = specname
 
-    if os.path.isfile(formpath(etcdir, 'queuespecs.json')):
-        defaultscheduler = readspec(formpath(etcdir, 'queuespecs.json')).schedulername
+    if os.path.isfile(formatpath(etcdir, 'queuespecs.json')):
+        defaultscheduler = readspec(formatpath(etcdir, 'queuespecs.json')).schedulername
     elif selhost in clusterschedulers:
         defaultscheduler = clusterschedulers[selhost]
     else:
@@ -73,10 +73,10 @@ def install(relpath=False):
 
     selschedulername = dialogs.chooseone('Seleccione el gestor de trabajos adecuado', choices=sorted(schedulernames.values()), default=defaultscheduler)
     selscheduler = schedulerspeckeys[selschedulername]
-    copyfile(formpath(sourcedir, 'specs', 'queues', selscheduler, 'queuespecs.json'), formpath(etcdir, 'queuespecs.json'))
+    copyfile(formatpath(sourcedir, 'specs', 'queues', selscheduler, 'queuespecs.json'), formatpath(etcdir, 'queuespecs.json'))
          
-    for specname in os.listdir(formpath(hostspecdir, selhost, 'packages')):
-        packagespecs = readspec(formpath(sourcedir, 'specs', 'packages', specname, 'packagespecs.json'))
+    for specname in os.listdir(formatpath(hostspecdir, selhost, 'packages')):
+        packagespecs = readspec(formatpath(sourcedir, 'specs', 'packages', specname, 'packagespecs.json'))
         packagenames[specname] = (packagespecs.packagename)
         packagespeckeys[packagespecs.packagename] = specname
 
@@ -85,19 +85,19 @@ def install(relpath=False):
         raise SystemExit()
 
     for specname in os.listdir(specdir):
-        configured.append(readspec(formpath(specdir, specname, 'packagespecs.json')).packagename)
+        configured.append(readspec(formatpath(specdir, specname, 'packagespecs.json')).packagename)
 
     selpackagenames = dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)
 
     for packagename in selpackagenames:
         package = packagespeckeys[packagename]
-        mkdir(formpath(specdir, package))
-        symlink(formpath(etcdir, 'clusterspecs.json'), formpath(specdir, package, 'clusterspecs.json'))
-        symlink(formpath(etcdir, 'queuespecs.json'), formpath(specdir, package, 'queuespecs.json'))
-        copyfile(formpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), formpath(specdir, package, 'packagespecs.json'))
+        mkdir(formatpath(specdir, package))
+        symlink(formatpath(etcdir, 'clusterspecs.json'), formatpath(specdir, package, 'clusterspecs.json'))
+        symlink(formatpath(etcdir, 'queuespecs.json'), formatpath(specdir, package, 'queuespecs.json'))
+        copyfile(formatpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), formatpath(specdir, package, 'packagespecs.json'))
         copypathspec = True
-        if packagename not in configured or not os.path.isfile(formpath(specdir, package, 'packageconf.json')) or readspec(formpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(formpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?'):
-            copyfile(formpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), formpath(specdir, package, 'packageconf.json'))
+        if packagename not in configured or not os.path.isfile(formatpath(specdir, package, 'packageconf.json')) or readspec(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(formatpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+            copyfile(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), formatpath(specdir, package, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
@@ -118,18 +118,18 @@ def install(relpath=False):
         specdir = specdir,
     )
 
-    with open(formpath(sourcedir, 'bin', 'job2q'), 'r') as r, open(formpath(bindir, 'job2q'), 'w') as w:
+    with open(formatpath(sourcedir, 'bin', 'job2q'), 'r') as r, open(formatpath(bindir, 'job2q'), 'w') as w:
         w.write(r.read().format(**installation))
 
-    with open(formpath(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(formpath(bindir, 'job2q.target'), 'w') as w:
+    with open(formatpath(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(formatpath(bindir, 'job2q.target'), 'w') as w:
         w.write(r.read().format(**installation))
 
     for specname in os.listdir(specdir):
-        symlink(formpath(bindir, 'job2q.target'), formpath(bindir, specname))
+        symlink(formatpath(bindir, 'job2q.target'), formatpath(bindir, specname))
 
-    copyfile(formpath(sourcedir, 'bin','jobsync'), formpath(bindir, 'jobsync'))
+    copyfile(formatpath(sourcedir, 'bin','jobsync'), formatpath(bindir, 'jobsync'))
 
-    os.chmod(formpath(bindir, 'job2q'), 0o755)
-    os.chmod(formpath(bindir, 'job2q.target'), 0o755)
-    os.chmod(formpath(bindir, 'jobsync'), 0o755)
+    os.chmod(formatpath(bindir, 'job2q'), 0o755)
+    os.chmod(formatpath(bindir, 'job2q.target'), 0o755)
+    os.chmod(formatpath(bindir, 'jobsync'), 0o755)
 

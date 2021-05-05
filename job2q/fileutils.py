@@ -61,7 +61,7 @@ class AbsPath(str):
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def __floordiv__(self, right):
-        return AbsPath(formpath(self, right))
+        return AbsPath(formatpath(self, right))
     def validate(self):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
@@ -90,8 +90,8 @@ class AbsPath(str):
 
 #TODO Handle template exceptions
 #TODO Check each component
-def formpath(*parts, **keys):
-    formatted = os.path.normpath(deepjoin(parts, iter((os.path.sep, '.'))))
+def formatpath(*parts, **keys):
+    formatted = deepjoin(parts, iter((os.path.sep, '.')))
     if keys:
         return T(formatted).substitute(keys)
     else:

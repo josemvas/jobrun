@@ -5,7 +5,7 @@ from subprocess import check_output, CalledProcessError
 from socket import gethostname
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, formpath, remove, makedirs, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, paths, environ, hostspecs, jobspecs, options, remoteargs
 from .details import wrappers
@@ -103,7 +103,7 @@ def initialize():
     if 'scratch' in options.common:
         options.jobscratch = options.common.scratch // hostspecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(formpath(hostspecs.defaults.scratch, **names)) // hostspecs.envars.jobid
+        options.jobscratch = AbsPath(formatpath(hostspecs.defaults.scratch, **names)) // hostspecs.envars.jobid
 
     if 'queue' not in options.common:
         if 'queue' in hostspecs.defaults:
@@ -384,33 +384,33 @@ def submit(parentdir, inputname):
     else:
         stagedir = outdir
 
-    hiddendir = AbsPath(formpath(stagedir, jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
+    hiddendir = AbsPath(formatpath(stagedir, jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
 
     imports = []
     exports = []
 
     for key in jobspecs.inputfiles:
-        if AbsPath(formpath(parentdir, (inputname, key))).isfile():
-            imports.append(script.simport(formpath(stagedir, (outputname, key)), formpath(options.jobscratch, jobspecs.filekeys[key])))
+        if AbsPath(formatpath(parentdir, (inputname, key))).isfile():
+            imports.append(script.simport(formatpath(stagedir, (outputname, key)), formatpath(options.jobscratch, jobspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.simport(formpath(stagedir, (outputname, jobspecs.fileoptions[key])), formpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+        imports.append(script.simport(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])), formatpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
-            imports.append(script.simport(path, formpath(options.jobscratch, path.name)))
+            imports.append(script.simport(path, formatpath(options.jobscratch, path.name)))
         elif path.isdir():
-            imports.append(script.rimport(formpath(path), options.jobscratch))
+            imports.append(script.rimport(formatpath(path), options.jobscratch))
 
     for key in jobspecs.outputfiles:
-        exports.append(script.sexport(formpath(options.jobscratch, jobspecs.filekeys[key]), formpath(outdir, (outputname, key))))
+        exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
 
     literalfiles = {}
     interpolated = {}
 
     for key in jobspecs.inputfiles:
-        srcpath = AbsPath(formpath(parentdir, (inputname, key)))
-        destpath = formpath(stagedir, (outputname, key))
+        srcpath = AbsPath(formatpath(parentdir, (inputname, key)))
+        destpath = formatpath(stagedir, (outputname, key))
         if srcpath.isfile() and srcpath != destpath:
             if 'interpolable' in jobspecs and key in jobspecs.interpolable:
                 with open(srcpath, 'r') as f:
@@ -423,16 +423,16 @@ def submit(parentdir, inputname):
                                 keydict=options.interpolation.dict,
                             )
                         except KeyError as e:
-                            messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formpath((inputname, key)), key=e.args[0])
+                            messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
                             return
                         except ValueError:
-                            messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formpath((inputname, key)))
+                            messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formatpath((inputname, key)))
                             return
                     else:
                         try:
                             interpolated[destpath] = substitute(contents)
                         except KeyError as e:
-                            if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formpath((inputname, key)),'¿desea continuar sin interpolar?'):
+                            if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formatpath((inputname, key)),'¿desea continuar sin interpolar?'):
                                 literalfiles[destpath] = srcpath
                             else:
                                 return
@@ -444,7 +444,7 @@ def submit(parentdir, inputname):
     if outdir.isdir():
         if hiddendir.isdir():
             try:
-                with open(formpath(hiddendir, 'jobid'), 'r') as f:
+                with open(formatpath(hiddendir, 'jobid'), 'r') as f:
                     jobid = f.read()
                 jobstate = jobstat(jobid)
                 if jobstate is not None:
@@ -457,15 +457,15 @@ def submit(parentdir, inputname):
             return
         else:
             makedirs(hiddendir)
-        if not set(outdir.listdir()).isdisjoint(formpath((outputname, k)) for k in jobspecs.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(formatpath((outputname, k)) for k in jobspecs.outputfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in jobspecs.outputfiles:
-            remove(formpath(outdir, (outputname, key)))
+            remove(formatpath(outdir, (outputname, key)))
         if parentdir != outdir:
             for key in jobspecs.inputfiles:
-                remove(formpath(outdir, (outputname, key)))
+                remove(formatpath(outdir, (outputname, key)))
     elif outdir.exists():
         messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
         return
@@ -481,23 +481,23 @@ def submit(parentdir, inputname):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(formpath(stagedir, (outputname, jobspecs.fileoptions[key])))
+        targetfile.linkto(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])))
 
     if options.remote.host:
 
         reloutdir = os.path.relpath(outdir, paths.home)
-        remoteroot = formpath(options.remote.dir, names.user + '@' + gethostname())
-        remotestage = formpath(remoteroot, 'stage')
-        remoteoutput = formpath(remoteroot, 'output')
+        remoteroot = formatpath(options.remote.dir, names.user + '@' + gethostname())
+        remotestage = formatpath(remoteroot, 'stage')
+        remoteoutput = formatpath(remoteroot, 'output')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': formpath(remotestage, reloutdir)})
-        remoteargs.constants.update({'stg': formpath(remotestage, reloutdir)})
-        remoteargs.constants.update({'out': formpath(remoteoutput, reloutdir)})
+        remoteargs.constants.update({'cwd': formatpath(remotestage, reloutdir)})
+        remoteargs.constants.update({'stage': formatpath(remotestage, reloutdir)})
+        remoteargs.constants.update({'out': formatpath(remoteoutput, reloutdir)})
         filelist = []
         for key in jobspecs.filekeys:
-            if os.path.isfile(formpath(outdir, (outputname, key))):
-                filelist.append(formpath(paths.home, '.', reloutdir, (outputname, key)))
+            if os.path.isfile(formatpath(outdir, (outputname, key))):
+                filelist.append(formatpath(paths.home, '.', reloutdir, (outputname, key)))
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -518,7 +518,7 @@ def submit(parentdir, inputname):
 
     else:
 
-        jobscript = formpath(hiddendir, 'jobscript')
+        jobscript = formatpath(hiddendir, 'jobscript')
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
@@ -548,7 +548,7 @@ def submit(parentdir, inputname):
                 return
             else:
                 messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-                with open(formpath(hiddendir, 'jobid'), 'w') as f:
+                with open(formatpath(hiddendir, 'jobid'), 'w') as f:
                     f.write(jobid)
     
 parameterpaths = []
