@@ -7,10 +7,6 @@
       "not dpf": "Debe existir un archivo dpf"
    },
 
-   "defaults" : {
-      "jobdir": "False"
-   },
-
    "filekeys": {
       "dpf": "job.dpf",
       "dlg": "job.dlg"

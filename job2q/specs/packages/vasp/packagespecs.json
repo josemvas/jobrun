@@ -9,9 +9,6 @@
    },
 
    "stdoutput": "log",
-   "defaults" : {
-      "jobdir": "True"
-   },
 
    "filekeys": {
       "INCAR": "INCAR",

@@ -377,77 +377,58 @@ def submit(parentdir, inputname):
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, cwd=parentdir)
-    elif jobspecs.defaults.jobdir:
+    else:
         outdir = AbsPath(jobname, cwd=parentdir)
-    else:
-        outdir = AbsPath(parentdir)
 
-    if 'stage' in options.common:
-        stagedir = options.common.stage
-    else:
-        stagedir = outdir
-
-    hiddendir = AbsPath(formatpath(stagedir, jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())))
-
-    imports = []
-    exports = []
-
-    for key in jobspecs.inputfiles:
-        if AbsPath(formatpath(parentdir, (inputname, key))).isfile():
-            imports.append(script.simport(formatpath(stagedir, (outputname, key)), formatpath(options.jobscratch, jobspecs.filekeys[key])))
-
-    for key in options.targetfiles:
-        imports.append(script.simport(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])), formatpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
-
-    for path in parameterpaths:
-        if path.isfile():
-            imports.append(script.simport(path, formatpath(options.jobscratch, path.name)))
-        elif path.isdir():
-            imports.append(script.rimport(formatpath(path), options.jobscratch))
-
-    for key in jobspecs.outputfiles:
-        exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
-
-    literalfiles = {}
+    rawfiles = {}
     interpolated = {}
 
-    for key in jobspecs.inputfiles:
-        srcpath = AbsPath(formatpath(parentdir, (inputname, key)))
-        destpath = formatpath(stagedir, (outputname, key))
-        if srcpath.isfile() and srcpath != destpath:
-            if 'interpolable' in jobspecs and key in jobspecs.interpolable:
-                with open(srcpath, 'r') as f:
-                    contents = f.read()
-                    if options.interpolation.interpolate:
-                        try:
-                            interpolated[destpath] = substitute(
-                                contents,
-                                keylist=options.interpolation.list,
-                                keydict=options.interpolation.dict,
-                            )
-                        except KeyError as e:
-                            messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
-                            return
-                        except ValueError:
-                            messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formatpath((inputname, key)))
-                            return
-                    else:
-                        try:
-                            interpolated[destpath] = substitute(contents)
-                        except KeyError as e:
-                            if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formatpath((inputname, key)),'¿desea continuar sin interpolar?'):
-                                literalfiles[destpath] = srcpath
-                            else:
+    if options.common.plain:
+        stagedir = parentdir
+    else:
+        if outdir == parentdir:
+            messages.failure('El directorio de salida debe ser distinto al directorio padre')
+        stagedir = outdir
+        for key in jobspecs.inputfiles:
+            srcpath = AbsPath(formatpath(parentdir, (inputname, key)))
+            destpath = formatpath(stagedir, (outputname, key))
+            if srcpath.isfile():
+                if 'interpolable' in jobspecs and key in jobspecs.interpolable:
+                    with open(srcpath, 'r') as f:
+                        contents = f.read()
+                        if options.interpolation.interpolate:
+                            try:
+                                interpolated[destpath] = substitute(
+                                    contents,
+                                    keylist=options.interpolation.list,
+                                    keydict=options.interpolation.dict,
+                                )
+                            except KeyError as e:
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
                                 return
-                        except ValueError:
-                            pass
-            else:
-                literalfiles[destpath] = srcpath
+                            except ValueError:
+                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formatpath((inputname, key)))
+                                return
+                        else:
+                            try:
+                                interpolated[destpath] = substitute(contents)
+                            except KeyError as e:
+                                if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formatpath((inputname, key)),'¿desea continuar sin interpolar?'):
+                                    rawfiles[destpath] = srcpath
+                                else:
+                                    return
+                            except ValueError:
+                                pass
+                else:
+                    rawfiles[destpath] = srcpath
+
+    jobcode = jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())
+    jobdir = AbsPath(formatpath(stagedir, jobcode))
 
     if outdir.isdir():
-        if hiddendir.isdir():
+        if jobdir.isdir():
             try:
-                with open(formatpath(hiddendir, 'jobid'), 'r') as f:
+                with open(formatpath(jobdir, 'jobid'), 'r') as f:
                     jobid = f.read()
                 jobstate = jobstat(jobid)
                 if jobstate is not None:
@@ -455,11 +436,11 @@ def submit(parentdir, inputname):
                     return
             except FileNotFoundError:
                 pass
-        elif hiddendir.exists():
-            messages.failure('No se puede crear la carpeta', hiddendir, 'porque hay un archivo con ese mismo nombre')
+        elif jobdir.exists():
+            messages.failure('No se puede crear la carpeta', jobdir, 'porque hay un archivo con ese mismo nombre')
             return
         else:
-            makedirs(hiddendir)
+            makedirs(jobdir)
         if not set(outdir.listdir()).isdisjoint(formatpath((outputname, k)) for k in jobspecs.outputfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
@@ -474,9 +455,9 @@ def submit(parentdir, inputname):
         return
     else:
         makedirs(outdir)
-        makedirs(hiddendir)
+        makedirs(jobdir)
 
-    for destpath, literalfile in literalfiles.items():
+    for destpath, literalfile in rawfiles.items():
         literalfile.copyto(destpath)
 
     for destpath, contents in interpolated.items():
@@ -490,12 +471,12 @@ def submit(parentdir, inputname):
 
         reloutdir = os.path.relpath(outdir, paths.home)
         remoteroot = formatpath(options.remote.dir, names.user + '@' + gethostname())
-        remotestage = formatpath(remoteroot, 'stage')
+        remotestage = formatpath(remoteroot, 'tmpdata')
         remoteoutput = formatpath(remoteroot, 'output')
+        remoteargs.switches.add('plain')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
         remoteargs.constants.update({'cwd': formatpath(remotestage, reloutdir)})
-        remoteargs.constants.update({'stage': formatpath(remotestage, reloutdir)})
         remoteargs.constants.update({'out': formatpath(remoteoutput, reloutdir)})
         filelist = []
         for key in jobspecs.filekeys:
@@ -521,7 +502,26 @@ def submit(parentdir, inputname):
 
     else:
 
-        jobscript = formatpath(hiddendir, 'jobscript')
+        imports = []
+        exports = []
+    
+        for key in jobspecs.inputfiles:
+            if AbsPath(formatpath(parentdir, (inputname, key))).isfile():
+                imports.append(script.simport(formatpath(stagedir, (outputname, key)), formatpath(options.jobscratch, jobspecs.filekeys[key])))
+    
+        for key in options.targetfiles:
+            imports.append(script.simport(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])), formatpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+    
+        for path in parameterpaths:
+            if path.isfile():
+                imports.append(script.simport(path, formatpath(options.jobscratch, path.name)))
+            elif path.isdir():
+                imports.append(script.rimport(formatpath(path), options.jobscratch))
+    
+        for key in jobspecs.outputfiles:
+            exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
+
+        jobscript = formatpath(jobdir, 'jobscript')
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
@@ -542,7 +542,7 @@ def submit(parentdir, inputname):
             f.write(''.join(i + '\n' for i in hostspecs.offscript))
     
         if options.debug.dryrun:
-            messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', hiddendir)
+            messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
         else:
             try:
                 jobid = jobsubmit(jobscript)
@@ -551,6 +551,6 @@ def submit(parentdir, inputname):
                 return
             else:
                 messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-                with open(formatpath(hiddendir, 'jobid'), 'w') as f:
+                with open(formatpath(jobdir, 'jobid'), 'w') as f:
                     f.write(jobid)
     

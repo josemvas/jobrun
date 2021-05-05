@@ -8,13 +8,9 @@
       "not dftb_in.hsd": "Debe existir un archivo dftb_in.hsd"
    },
 
-   "defaults": {
-      "jobdir": "True"
-   },
-
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
-      "dftb_in.hsd.new": "dftb_in.hsd",
+      "dftb_in.hsd.mod": "dftb_in.hsd",
       "charges.bin": "charges.bin",
       "charges_end.bin": "charges.bin",
       "dftb_pin.hsd": "dftb_pin.hsd",
@@ -54,7 +50,7 @@
    ],
 
    "outputfiles": [
-      "dftb_in.hsd.new",
+      "dftb_in.hsd.mod",
       "charges_end.bin",
       "dftb_pin.hsd",
       "dftb_out.log",

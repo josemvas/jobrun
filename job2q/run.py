@@ -85,12 +85,12 @@ try:
     group2 = parser.add_argument_group('Opciones comunes')
     group2.name = 'common'
     group2.remote = True
-    group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-d', '--defaults', action='store_true', help='Ignorar las opciones predeterminadas y preguntar.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
+    group2.add_argument('-p', '--plain', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
@@ -98,7 +98,6 @@ try:
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--lib', action=AppendPath, metavar='PATH', default=[], help='Agregar la biblioteca de parámetros PATH.')
-    group2.add_argument('--stage', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos generados por el script en el directorio PATH.')
     group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()

@@ -8,13 +8,9 @@
       "not inp": "Debe existir un archivo inp"
    },
 
-   "defaults" : {
-      "jobdir": "True"
-   },
-
    "filekeys": {
       "inp": "deMon.inp",
-      "inp.new": "deMon.inp",
+      "inp.mod": "deMon.inp",
       "rst": "deMon.rst",
       "trj": "deMon.trj",
       "oldtrj": "deMon.trj",
@@ -38,7 +34,7 @@
    ],
 
    "outputfiles": [
-      "inp.new",
+      "inp.mod",
       "trj",
       "out",
       "mol",

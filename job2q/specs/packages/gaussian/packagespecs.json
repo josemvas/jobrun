@@ -8,15 +8,11 @@
       "not com and not gjf": "Debe existir un archivo com o gjf"
    },
 
-   "defaults" : {
-      "jobdir": "True"
-   },
-
    "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",
-      "com.new": "job.com",
-      "gjf.new": "job.gjf",
+      "com.mod": "job.com",
+      "gjf.mod": "job.gjf",
       "log": "job.log",
       "chk": "job.chk",
       "fchk": "job.fchk",
@@ -49,8 +45,8 @@
       "fchk",
       "wfn",
       "cub",
-      "com.new",
-      "gjf.new"
+      "com.mod",
+      "gjf.mod"
    ],
 
    "interpolable": [
