@@ -32,6 +32,8 @@ class SpecBunch(Bunch):
             return SpecBunch()
         elif item in listags:
             return SpecList()
+        else:
+            raise AttributeError()
     def merge(self, other):
         for i in other:
             if i in self:

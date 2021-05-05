@@ -234,7 +234,7 @@ def initialize():
 
     script.envars.extend(names.items())
     script.envars.extend(hostspecs.envars.items())
-    script.envars.extend((i, jobspecs.filekeys[i]) for i in jobspecs.filevars)
+    script.envars.extend((k, jobspecs.filekeys[v]) for k, v in jobspecs.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))

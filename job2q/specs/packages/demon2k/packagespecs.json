@@ -52,16 +52,6 @@
       "inp"
    ],
 
-   "interpolationkeywords": [
-      "title",
-      "method",
-      "basis",
-      "auxis",
-      "ecps",
-      "charge",
-      "spin"
-   ],
-
    "parameters": [
       "bases"
    ]

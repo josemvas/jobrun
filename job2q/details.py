@@ -15,7 +15,6 @@ listags = (
     'offscript',
     'prescript',
     'postscript',
-    'interpolationkeywords',
 )
 
 dictags = (

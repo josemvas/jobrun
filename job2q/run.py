@@ -25,10 +25,7 @@ class ListOptions(Action):
             if dirtree:
                print(_('Parámetros en $path:').format(path=path.format(**{i: '*' for i in getformatkeys(path)})))
                printtree(dirtree, level=1)
-        if jobspecs.interpolationkeywords:
-            print(_('Variables de interpolación:'))
-            printtree(jobspecs.interpolationkeywords, level=1)
-        raise SystemExit()
+        sys.exit()
 
 class StorePath(Action):
     def __init__(self, **kwargs):
