@@ -48,7 +48,7 @@ class ArgList:
                     messages.failure('No hay archivos de entrada asociados al trabjo', self.current)
                     return next(self)
         else:
-            path = AbsPath(self.current, root=options.common.cwd)
+            path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
             for key in jobspecs.inputfiles:
                 if path.name.endswith('.' + key):

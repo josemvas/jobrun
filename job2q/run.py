@@ -31,14 +31,14 @@ class StorePath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], root=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
 #TODO How to append value to list?
 class AppendPath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], root=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
 try:
 

@@ -55,7 +55,7 @@ def initialize():
             index = 0
             for path in options.interpolation.mol:
                 index += 1
-                path = AbsPath(path, root=options.common.cwd)
+                path = AbsPath(path, cwd=options.common.cwd)
                 coords = readmol(path)[-1]
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.interpolation:
@@ -65,7 +65,7 @@ def initialize():
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
         elif 'trjmol' in options.interpolation:
             index = 0
-            path = AbsPath(options.common.molall, root=options.common.cwd)
+            path = AbsPath(options.common.molall, cwd=options.common.cwd)
             for coords in readmol(path):
                 index += 1
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
@@ -203,11 +203,11 @@ def initialize():
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
     for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(path, root=options.jobscratch).setkeys(names).validate()
+        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
     for envar, path in jobspecs.append.items() | jobspecs.versions[options.common.version].append.items():
-        abspath = AbsPath(path, root=options.jobscratch).setkeys(names).validate()
+        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
     for path in jobspecs.source + jobspecs.versions[options.common.version].source:
@@ -315,7 +315,7 @@ def initialize():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        partlist = AbsPath(path, root=options.common.cwd).setkeys(names).parts
+        partlist = AbsPath(path, cwd=options.common.cwd).setkeys(names).parts
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
@@ -374,9 +374,9 @@ def submit(parentdir, inputname):
         outputname = jobname
 
     if 'out' in options.common:
-        outdir = AbsPath(options.common.out, root=parentdir)
+        outdir = AbsPath(options.common.out, cwd=parentdir)
     else:
-        outdir = AbsPath(jobname, root=parentdir)
+        outdir = AbsPath(jobname, cwd=parentdir)
 
     rawfiles = {}
     interpolated = {}

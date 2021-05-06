@@ -18,20 +18,18 @@ class EmptyDirectoryError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, path, root=None):
+    def __new__(cls, path, cwd=None):
         if not isinstance(path, str):
             raise Exception('Path must be a string')
-        if root is None:
-            if not os.path.isabs(root):
+        if cwd is None:
+            if not os.path.isabs(path):
                 raise NotAbsolutePath()
-        else:
-            if not isinstance(root, str):
+        elif not os.path.isabs(path):
+            if not isinstance(cwd, str):
                 raise Exception('Root must be a string')
-            if not os.path.isabs(root):
+            if not os.path.isabs(cwd):
                 raise Exception('Root must be an absolute path')
-            if os.path.isabs(path):
-                raise Exception('Can not change the root of an absolute path')
-            path = os.path.join(root, path)
+            path = os.path.join(cwd, path)
         obj = str.__new__(cls, os.path.normpath(path))
         obj.parts = iter(splitpath(obj))
         obj.name = os.path.basename(obj)
@@ -65,7 +63,9 @@ class AbsPath(str):
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def __floordiv__(self, right):
-        return AbsPath(right, root=self)
+        if os.path.isabs(right):
+            raise Exception('Can not join two absolute paths')
+        return AbsPath(right, cwd=self)
     def validate(self):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
