@@ -6,7 +6,7 @@ from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, makedirs, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
-from .shared import names, paths, environ, hostspecs, jobspecs, options, remoteargs
+from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .details import wrappers
 from .readmol import readmol
 
@@ -81,7 +81,7 @@ def initialize():
     
     if 'wait' not in options.common:
         try:
-            options.common.wait = float(hostspecs.defaults.wait)
+            options.common.wait = float(clusterspecs.defaults.wait)
         except AttributeError:
             options.common.wait = 0
     
@@ -99,17 +99,17 @@ def initialize():
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if not 'scratch' in hostspecs.defaults:
+    if not 'scratch' in clusterspecs.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        options.jobscratch = options.common.scratch // hostspecs.envars.jobid
+        options.jobscratch = options.common.scratch // clusterspecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(formatpath(hostspecs.defaults.scratch, **names)) // hostspecs.envars.jobid
+        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, **names)) // clusterspecs.envars.jobid
 
     if 'queue' not in options.common:
-        if 'queue' in hostspecs.defaults:
-            options.common.queue = hostspecs.defaults.queue
+        if 'queue' in clusterspecs.defaults:
+            options.common.queue = clusterspecs.defaults.queue
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
@@ -145,41 +145,41 @@ def initialize():
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
 
-    if 'jobkind' in hostspecs:
-        script.header.append(hostspecs.jobkind.format(jobspecs.packagename))
+    if 'jobkind' in clusterspecs:
+        script.header.append(clusterspecs.jobkind.format(jobspecs.packagename))
 
     #TODO MPI support for Slurm
     if jobspecs.parallelib:
         if jobspecs.parallelib.lower() == 'none':
             if 'nodelist' in options.common:
-                for item in hostspecs.serialat:
+                for item in clusterspecs.serialat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in hostspecs.serial:
+                for item in clusterspecs.serial:
                     script.header.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() == 'openmp':
             if 'nodelist' in options.common:
-                for item in hostspecs.singlehostat:
+                for item in clusterspecs.singlehostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in hostspecs.singlehost:
+                for item in clusterspecs.singlehost:
                     script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif jobspecs.parallelib.lower() == 'standalone':
             if 'nodelist' in options.common:
-                for item in hostspecs.multihostat:
+                for item in clusterspecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in hostspecs.multihost:
+                for item in clusterspecs.multihost:
                     script.header.append(item.format(**options.common))
         elif jobspecs.parallelib.lower() in wrappers:
             if 'nodelist' in options.common:
-                for item in hostspecs.multihostat:
+                for item in clusterspecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in hostspecs.multihost:
+                for item in clusterspecs.multihost:
                     script.header.append(item.format(**options.common))
-            script.main.append(hostspecs.mpilauncher[jobspecs.parallelib])
+            script.main.append(clusterspecs.mpilauncher[jobspecs.parallelib])
         else:
             messages.error('El tipo de paralelización', jobspecs.parallelib, 'no está soportado', spec='parallelib')
     else:
@@ -224,14 +224,15 @@ def initialize():
     except NotAbsolutePath:
         script.main.append(jobspecs.versions[options.common.version].executable)
 
-    for path in hostspecs.logfiles:
-        script.header.append(path.format(AbsPath(hostspecs.logdir).setkeys(names).validate()))
+    for path in clusterspecs.logfiles:
+        script.header.append(path.format(AbsPath(clusterspecs.logdir).setkeys(names).validate()))
 
     script.setup.append("shopt -s nullglob extglob")
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(hostspecs.envars.items())
+    script.envars.extend(environ.items())
+    script.envars.extend(clusterspecs.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k, jobspecs.filekeys[v]) for k, v in jobspecs.filevars.items())
 
@@ -267,7 +268,7 @@ def initialize():
             messages.error('La clave', q(jobspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    if hostspecs.filesync == 'local':
+    if clusterspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         if options.common.dispose:
@@ -276,26 +277,26 @@ def initialize():
             script.simport = 'cp "{}" "{}"'.format
         script.rimport = 'cp -r "{}/." "{}"'.format
         script.sexport = 'cp "{}" "{}"'.format
-    elif hostspecs.filesync == 'remote':
+    elif clusterspecs.filesync == 'remote':
         script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $linodename:"\'{0}\'" $host:"\'{1}\'" && rsh $linodename rm "\'{0}\'"; done'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'" && rsh $headname rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $linodename:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $linodename tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'rcp "{}" $linodename:"\'{}\'"'.format
-    elif hostspecs.filesync == 'secure':
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'rcp "{}" $headname:"\'{}\'"'.format
+    elif clusterspecs.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $linodename:"\'{0}\'" $host:"\'{1}\'" && ssh $linodename rm "\'{0}\'"; done'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'" && ssh $headname rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $linodename:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $linodename tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'scp "{}" $linodename:"\'{}\'"'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'scp "{}" $headname:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
+        messages.error('El método de copia', q(clusterspecs.filesync), 'no es válido', spec='filesync')
 
     parameterdict = {}
     parameterdict.update(jobspecs.defaults.parameters)
@@ -381,7 +382,7 @@ def submit(parentdir, inputname):
     rawfiles = {}
     interpolated = {}
 
-    if options.common.plain:
+    if options.common.raw:
         stagedir = parentdir
     else:
         if outdir == parentdir:
@@ -470,7 +471,7 @@ def submit(parentdir, inputname):
         reloutdir = os.path.relpath(outdir, paths.home)
         remotehome = formatpath(options.remote.root, (names.user, names.host))
         remotetemp = formatpath(options.remote.root, (names.user, names.host, 'temp'))
-        remoteargs.switches.add('plain')
+        remoteargs.switches.add('raw')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
         remoteargs.constants.update({'cwd': formatpath(remotetemp, reloutdir)})
@@ -523,7 +524,7 @@ def submit(parentdir, inputname):
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
-            f.write(hostspecs.jobname.format(jobname) + '\n')
+            f.write(clusterspecs.jobname.format(jobname) + '\n')
             f.write(''.join(i + '\n' for i in script.header))
             f.write(''.join(i + '\n' for i in script.setup))
             f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
@@ -537,7 +538,7 @@ def submit(parentdir, inputname):
             f.write(''.join(i + '\n' for i in jobspecs.postscript))
             f.write(''.join(i + '\n' for i in exports))
             f.write(script.rmdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in hostspecs.offscript))
+            f.write(''.join(i + '\n' for i in clusterspecs.offscript))
     
         if options.debug.dryrun:
             messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)

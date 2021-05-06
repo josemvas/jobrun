@@ -58,6 +58,8 @@ class AbsPath(str):
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def __floordiv__(self, right):
+        if isinstance(right, AbsPath):
+            raise Exception('Can not join two absolute paths')
         return AbsPath(formatpath(self, right))
     def validate(self):
         formatted = ''

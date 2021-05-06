@@ -15,13 +15,13 @@ def tokenize(expr):
 class Node:
 
     def __init__(self, left, right, name):
-        self.left=left
-        self.right=right
-        self.name=name
+        self.left = left
+        self.right = right
+        self.name = name
 
     def pr(self):
         a = '('
-        if self.left!=None:
+        if self.left != None:
             a += self.left.pr()
         a += ' ' + self.name + ' '
         if self.right != None:
@@ -30,11 +30,11 @@ class Node:
         return a
 
     def evaluate(self, values):
-        if self.name=='not':
+        if self.name == 'not':
             return not self.right.evaluate(values)
-        elif self.name=='and':
+        elif self.name == 'and':
             return self.left.evaluate(values) and self.right.evaluate(values)
-        elif self.name=='or':
+        elif self.name == 'or':
             return self.left.evaluate(values) or self.right.evaluate(values)
         elif self.name in values:
             return values[self.name]

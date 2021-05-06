@@ -37,17 +37,17 @@ def install(relpath=False):
     hostspecdir = formatpath(sourcedir, 'specs', 'hosts')
     queuespecdir = formatpath(sourcedir, 'specs', 'queues')
 
-    for specname in os.listdir(hostspecdir):
-        if not os.path.isfile(formatpath(hostspecdir, specname, 'clusterspecs.json')):
-            messages.warning('El directorio', specname, 'no contiene ningún archivo de configuración')
-        clusterspecs = readspec(formatpath(hostspecdir, specname, 'clusterspecs.json'))
-        clusternames[specname] = clusterspecs.clustername
-        clusterspeckeys[clusterspecs.clustername] = specname
+    for specfilename in os.listdir(hostspecdir):
+        if not os.path.isfile(formatpath(hostspecdir, specfilename, 'clusterspecs.json')):
+            messages.warning('El directorio', specfilename, 'no contiene ningún archivo de configuración')
+        clusterspecs = readspec(formatpath(hostspecdir, specfilename, 'clusterspecs.json'))
+        clusternames[specfilename] = clusterspecs.name
+        clusterspeckeys[clusterspecs.name] = specfilename
         if 'scheduler' in clusterspecs:
-            clusterschedulers[specname] = clusterspecs.scheduler
+            clusterschedulers[specfilename] = clusterspecs.scheduler
 
     if os.path.isfile(formatpath(etcdir, 'clusterspecs.json')):
-        defaulthost = readspec(formatpath(etcdir, 'clusterspecs.json')).clustername
+        defaulthost = readspec(formatpath(etcdir, 'clusterspecs.json')).name
         if defaulthost not in clusternames.values():
             defaulthost = 'Otro'
     else:
@@ -56,13 +56,16 @@ def install(relpath=False):
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
     
-    if not os.path.isfile(formatpath(etcdir, 'clusterspecs.json')) or readspec(formatpath(hostspecdir, selhost, 'clusterspecs.json')) == readspec(formatpath(etcdir, 'clusterspecs.json')) or dialogs.yesno('La configuración local del sistema difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+    if defaulthost is None:
         copyfile(formatpath(hostspecdir, selhost, 'clusterspecs.json'), formatpath(etcdir, 'clusterspecs.json'))
+    elif selhostname != defaulthost and readspec(formatpath(hostspecdir, selhost, 'clusterspecs.json')) != readspec(formatpath(etcdir, 'clusterspecs.json')):
+        if dialogs.yesno('Desea sobreescribir la configuración local del sistema?'):
+            copyfile(formatpath(hostspecdir, selhost, 'clusterspecs.json'), formatpath(etcdir, 'clusterspecs.json'))
 
-    for specname in os.listdir(queuespecdir):
-        queuespecs = readspec(formatpath(queuespecdir, specname, 'queuespecs.json'))
-        schedulernames[specname] = queuespecs.schedulername
-        schedulerspeckeys[queuespecs.schedulername] = specname
+    for specfilename in os.listdir(queuespecdir):
+        queuespecs = readspec(formatpath(queuespecdir, specfilename, 'queuespecs.json'))
+        schedulernames[specfilename] = queuespecs.schedulername
+        schedulerspeckeys[queuespecs.schedulername] = specfilename
 
     if os.path.isfile(formatpath(etcdir, 'queuespecs.json')):
         defaultscheduler = readspec(formatpath(etcdir, 'queuespecs.json')).schedulername
@@ -75,17 +78,17 @@ def install(relpath=False):
     selscheduler = schedulerspeckeys[selschedulername]
     copyfile(formatpath(sourcedir, 'specs', 'queues', selscheduler, 'queuespecs.json'), formatpath(etcdir, 'queuespecs.json'))
          
-    for specname in os.listdir(formatpath(hostspecdir, selhost, 'packages')):
-        packagespecs = readspec(formatpath(sourcedir, 'specs', 'packages', specname, 'packagespecs.json'))
-        packagenames[specname] = (packagespecs.packagename)
-        packagespeckeys[packagespecs.packagename] = specname
+    for specfilename in os.listdir(formatpath(hostspecdir, selhost, 'packages')):
+        packagespecs = readspec(formatpath(sourcedir, 'specs', 'packages', specfilename, 'packagespecs.json'))
+        packagenames[specfilename] = (packagespecs.packagename)
+        packagespeckeys[packagespecs.packagename] = specfilename
 
     if not packagenames:
         messages.warning('No hay programas preconfigurados para este host')
         raise SystemExit()
 
-    for specname in os.listdir(specdir):
-        configured.append(readspec(formatpath(specdir, specname, 'packagespecs.json')).packagename)
+    for specfilename in os.listdir(specdir):
+        configured.append(readspec(formatpath(specdir, specfilename, 'packagespecs.json')).packagename)
 
     selpackagenames = dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)
 
@@ -96,8 +99,11 @@ def install(relpath=False):
         symlink(formatpath(etcdir, 'queuespecs.json'), formatpath(specdir, package, 'queuespecs.json'))
         copyfile(formatpath(sourcedir, 'specs', 'packages', package, 'packagespecs.json'), formatpath(specdir, package, 'packagespecs.json'))
         copypathspec = True
-        if packagename not in configured or not os.path.isfile(formatpath(specdir, package, 'packageconf.json')) or readspec(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) == readspec(formatpath(specdir, package, 'packageconf.json')) or dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+        if not os.path.isfile(formatpath(specdir, package, 'packageconf.json')):
             copyfile(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), formatpath(specdir, package, 'packageconf.json'))
+#        elif readspec(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json')) != readspec(formatpath(specdir, package, 'packageconf.json')):
+#            if dialogs.yesno('La configuración local del programa', q(packagenames[package]), 'difiere de la configuración por defecto, ¿desea sobreescribirla?'):
+#                copyfile(formatpath(hostspecdir, selhost, 'packages', package, 'packageconf.json'), formatpath(specdir, package, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
@@ -124,8 +130,8 @@ def install(relpath=False):
     with open(formatpath(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(formatpath(bindir, 'job2q.target'), 'w') as w:
         w.write(r.read().format(**installation))
 
-    for specname in os.listdir(specdir):
-        symlink(formatpath(bindir, 'job2q.target'), formatpath(bindir, specname))
+    for specfilename in os.listdir(specdir):
+        symlink(formatpath(bindir, 'job2q.target'), formatpath(bindir, specfilename))
 
     copyfile(formatpath(sourcedir, 'bin','jobsync'), formatpath(bindir, 'jobsync'))
 

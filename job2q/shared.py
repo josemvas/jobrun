@@ -104,7 +104,7 @@ environ = Bunch()
 options = Bunch()
 remoteargs = ArgGroups()
 jobspecs = SpecBunch()
-hostspecs = SpecBunch()
+clusterspecs = SpecBunch()
 
 names.user = getuser()
 names.host = gethostname()

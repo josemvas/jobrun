@@ -8,7 +8,7 @@ from . import messages
 from .readspec import readspec
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, findbranches
-from .shared import ArgList, names, paths, environ, hostspecs, jobspecs, options, remoteargs
+from .shared import ArgList, names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
@@ -52,8 +52,8 @@ try:
     parsedargs, remainingargs = parser.parse_known_args()
     names.program = parsedargs.program
     
-    hostspecs.merge(readspec(formatpath(specdir, names.program, 'clusterspecs.json')))
-    hostspecs.merge(readspec(formatpath(specdir, names.program, 'queuespecs.json')))
+    clusterspecs.merge(readspec(formatpath(specdir, names.program, 'clusterspecs.json')))
+    clusterspecs.merge(readspec(formatpath(specdir, names.program, 'queuespecs.json')))
 
     jobspecs.merge(readspec(formatpath(specdir, names.program, 'packagespecs.json')))
     jobspecs.merge(readspec(formatpath(specdir, names.program, 'packageconf.json')))
@@ -64,14 +64,14 @@ try:
         jobspecs.merge(readspec(userspecdir))
     
     try:
-        names.cluster = hostspecs.clustername
+        names.cluster = clusterspecs.name
     except AttributeError:
-        messages.error('No se definió el nombre del clúster', spec='clustername')
+        messages.error('No se definió el nombre del clúster', spec='name')
 
     try:
-        names.linode = hostspecs.login_node
+        names.head = clusterspecs.head
     except AttributeError:
-        names.linode = names.host
+        names.head = names.host
 
     parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 
@@ -90,7 +90,6 @@ try:
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
-    group2.add_argument('-p', '--plain', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
@@ -98,6 +97,7 @@ try:
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--lib', action=AppendPath, metavar='PATH', default=[], help='Agregar la biblioteca de parámetros PATH.')
+    group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
@@ -161,6 +161,7 @@ try:
         messages.error('Debe especificar al menos un archivo de entrada')
 
     try:
+        environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']
         environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
