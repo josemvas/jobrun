@@ -6,8 +6,8 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
+from .fileutils import AbsPath, formatpath, findbranches
 from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
-from .fileutils import AbsPath, NotAbsolutePath, formatpath, findbranches
 from .shared import ArgList, names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
@@ -31,14 +31,14 @@ class StorePath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], root=os.getcwd()))
 
 #TODO How to append value to list?
 class AppendPath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], root=os.getcwd()))
 
 try:
 

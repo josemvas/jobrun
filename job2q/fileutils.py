@@ -18,17 +18,24 @@ class EmptyDirectoryError(Exception):
         super().__init__(' '.join(message))
 
 class AbsPath(str):
-    def __new__(cls, path, cwd=None):
-        if not os.path.isabs(path):
-            if isinstance(cwd, str) and os.path.isabs(cwd):
-                path = os.path.join(cwd, path)
-            else:
-                raise NotAbsolutePath(path, 'is not an absolute path')
-        path = os.path.normpath(path)
-        obj = str.__new__(cls, path)
-        obj.name = os.path.basename(path)
-        obj.stem, obj.suffix = os.path.splitext(obj.name)
+    def __new__(cls, path, root=None):
+        if not isinstance(path, str):
+            raise Exception('Path must be a string')
+        if root is None:
+            if not os.path.isabs(root):
+                raise NotAbsolutePath()
+        else:
+            if not isinstance(root, str):
+                raise Exception('Root must be a string')
+            if not os.path.isabs(root):
+                raise Exception('Root must be an absolute path')
+            if os.path.isabs(path):
+                raise Exception('Can not change the root of an absolute path')
+            path = os.path.join(root, path)
+        obj = str.__new__(cls, os.path.normpath(path))
         obj.parts = iter(splitpath(obj))
+        obj.name = os.path.basename(obj)
+        obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
     @property
     def parent(self):
@@ -58,9 +65,7 @@ class AbsPath(str):
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
     def __floordiv__(self, right):
-        if isinstance(right, AbsPath):
-            raise Exception('Can not join two absolute paths')
-        return AbsPath(formatpath(self, right))
+        return AbsPath(right, root=self)
     def validate(self):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):

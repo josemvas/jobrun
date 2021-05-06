@@ -4,7 +4,7 @@ import sys
 import readline
 from glob import glob
 from . import messages
-from .fileutils import AbsPath, NotAbsolutePath
+from .fileutils import AbsPath
 from .utils import override_function, join_args
 
 try:
@@ -35,7 +35,7 @@ def inputpath(prompt='', check=lambda _:True):
         readline.set_completer(tabCompleter().tcpath)
         answer = input(prompt + ': ')
         if answer:
-            anspath = AbsPath(answer, cwd=os.getcwd())
+            anspath = AbsPath(answer, root=os.getcwd())
             if check(anspath):
                 return anspath
             else:

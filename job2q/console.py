@@ -8,7 +8,7 @@ from . import dialogs
 from . import messages
 from .utils import q
 from .readspec import readspec
-from .fileutils import AbsPath, NotAbsolutePath, formatpath, mkdir, copyfile, symlink
+from .fileutils import AbsPath, formatpath, mkdir, copyfile, symlink
 
 def install(relpath=False):
 
