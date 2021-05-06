@@ -10,6 +10,7 @@
       "scratch": "/tmpu/{group}/{user}",
       "wait": "3"
    },
+
    "offscript": [
       "test -n \"$TELEGRAM_BOT_URL\" && test -n \"$TELEGRAM_CHAT_ID\" && curl -1 -X POST $TELEGRAM_BOT_URL -d chat_id=$TELEGRAM_CHAT_ID --data-urlencode text=\"Tu cálculo \\\"$jobname\\\" en $clustername ha finalizado\""
    ]

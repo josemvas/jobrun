@@ -453,7 +453,6 @@ def submit(parentdir, inputname):
         return
     else:
         makedirs(outdir)
-        makedirs(jobdir)
 
     for destpath, literalfile in rawfiles.items():
         literalfile.copyto(destpath)
@@ -519,6 +518,7 @@ def submit(parentdir, inputname):
         for key in jobspecs.outputfiles:
             exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
 
+        makedirs(jobdir)
         jobscript = formatpath(jobdir, 'jobscript')
 
         with open(jobscript, 'w') as f:
