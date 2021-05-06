@@ -99,16 +99,15 @@ class ArgGroups:
         return repr(self.__dict__)
 
 names = Bunch()
-names.user = getuser()
-names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
-names.host = gethostname()
-
 paths = Bunch()
-paths.home = os.path.expanduser('~')
-
 environ = Bunch()
 options = Bunch()
 remoteargs = ArgGroups()
 jobspecs = SpecBunch()
 hostspecs = SpecBunch()
+
+names.user = getuser()
+names.host = gethostname()
+names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
+paths.home = os.path.expanduser('~')
 

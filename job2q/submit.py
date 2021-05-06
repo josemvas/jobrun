@@ -231,8 +231,8 @@ def initialize():
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(names.items())
     script.envars.extend(hostspecs.envars.items())
+    script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k, jobspecs.filekeys[v]) for k, v in jobspecs.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
@@ -267,7 +267,6 @@ def initialize():
             messages.error('La clave', q(jobspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    script.execute = 'ssh $head "{}"'.format
     if hostspecs.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
@@ -281,20 +280,20 @@ def initialize():
         script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'" && rsh $head rm "\'{0}\'"; done'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $linodename:"\'{0}\'" $host:"\'{1}\'" && rsh $linodename rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $head tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'rcp "{}" $head:"\'{}\'"'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do rcp $linodename:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $linodename tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'rcp "{}" $linodename:"\'{}\'"'.format
     elif hostspecs.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'" && ssh $head rm "\'{0}\'"; done'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $linodename:"\'{0}\'" $host:"\'{1}\'" && ssh $linodename rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $head:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $head tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'scp "{}" $head:"\'{}\'"'.format
+            script.simport = 'for host in ${{hostlist[*]}}; do scp $linodename:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $linodename tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.sexport = 'scp "{}" $linodename:"\'{}\'"'.format
     else:
         messages.error('El método de copia', q(hostspecs.filesync), 'no es válido', spec='filesync')
 
@@ -483,7 +482,7 @@ def submit(parentdir, inputname):
         arglist = [__file__, '-qt', options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
-        arglist.append(names.command)
+        arglist.append(names.program)
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
         arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)

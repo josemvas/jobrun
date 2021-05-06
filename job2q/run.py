@@ -50,15 +50,15 @@ try:
     parser = ArgumentParser(add_help=False)
     parser.add_argument('program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
-    names.command = parsedargs.program
+    names.program = parsedargs.program
     
-    hostspecs.merge(readspec(formatpath(specdir, names.command, 'clusterspecs.json')))
-    hostspecs.merge(readspec(formatpath(specdir, names.command, 'queuespecs.json')))
+    hostspecs.merge(readspec(formatpath(specdir, names.program, 'clusterspecs.json')))
+    hostspecs.merge(readspec(formatpath(specdir, names.program, 'queuespecs.json')))
 
-    jobspecs.merge(readspec(formatpath(specdir, names.command, 'packagespecs.json')))
-    jobspecs.merge(readspec(formatpath(specdir, names.command, 'packageconf.json')))
+    jobspecs.merge(readspec(formatpath(specdir, names.program, 'packagespecs.json')))
+    jobspecs.merge(readspec(formatpath(specdir, names.program, 'packageconf.json')))
     
-    userspecdir = formatpath(paths.home, '.jobspecs', names.command + '.json')
+    userspecdir = formatpath(paths.home, '.jobspecs', names.program + '.json')
     
     if os.path.isfile(userspecdir):
         jobspecs.merge(readspec(userspecdir))
@@ -69,11 +69,11 @@ try:
         messages.error('No se definió el nombre del clúster', spec='clustername')
 
     try:
-        names.head = hostspecs.clusterhead
+        names.linode = hostspecs.login_node
     except AttributeError:
-        names.head = gethostname()
+        names.linode = names.host
 
-    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
+    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
