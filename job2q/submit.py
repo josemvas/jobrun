@@ -4,7 +4,7 @@ import sys
 from subprocess import check_output, CalledProcessError
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, makedirs, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, mkdir, copyfile
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .details import wrappers
@@ -386,6 +386,7 @@ def submit(parentdir, inputname):
     else:
         if outdir == parentdir:
             messages.failure('El directorio de salida debe ser distinto al directorio padre')
+            return
         stagedir = outdir
         for key in jobspecs.inputfiles:
             srcpath = AbsPath(formatpath(parentdir, (inputname, key)))
@@ -434,11 +435,6 @@ def submit(parentdir, inputname):
                     return
             except FileNotFoundError:
                 pass
-        elif jobdir.exists():
-            messages.failure('No se puede crear la carpeta', jobdir, 'porque hay un archivo con ese mismo nombre')
-            return
-        else:
-            makedirs(jobdir)
         if not set(outdir.listdir()).isdisjoint(formatpath((outputname, k)) for k in jobspecs.outputfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
@@ -448,11 +444,12 @@ def submit(parentdir, inputname):
         if parentdir != outdir:
             for key in jobspecs.inputfiles:
                 remove(formatpath(outdir, (outputname, key)))
-    elif outdir.exists():
-        messages.failure('No se puede crear la carpeta', outdir, 'porque hay un archivo con ese mismo nombre')
-        return
     else:
-        makedirs(outdir)
+        try:
+            mkdir(outdir)
+        except FileExistsError:
+            messages.failure('No se puede crear la carpeta', outdir, 'porque ya existe un archivo con ese nombre')
+            return
 
     for destpath, literalfile in rawfiles.items():
         literalfile.copyto(destpath)
@@ -518,7 +515,12 @@ def submit(parentdir, inputname):
         for key in jobspecs.outputfiles:
             exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
 
-        makedirs(jobdir)
+        try:
+            mkdir(jobdir)
+        except FileExistsError:
+            messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
+            return
+
         jobscript = formatpath(jobdir, 'jobscript')
 
         with open(jobscript, 'w') as f:

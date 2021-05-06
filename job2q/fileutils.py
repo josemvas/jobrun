@@ -113,18 +113,24 @@ def splitpath(path):
 def mkdir(path):
     try: os.mkdir(path)
     except FileExistsError:
-        pass
+        if os.path.isdir(path):
+            pass
+        else:
+            raise
     except FileNotFoundError:
         messages.error('No se puede crear el directorio', path, 'porque la ruta no existe')
     except PermissionError:
-        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso')
+        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso de escribir en esta ruta')
 
 def makedirs(path):
     try: os.makedirs(path)
     except FileExistsError:
-        pass
+        if os.path.isdir(path):
+            pass
+        else:
+            raise
     except PermissionError:
-        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso')
+        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso de escribir en esta ruta')
 
 def remove(path):
     try: os.remove(path)
