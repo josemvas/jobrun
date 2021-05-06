@@ -527,7 +527,7 @@ def submit(parentdir, inputname):
             f.write(''.join(i + '\n' for i in script.header))
             f.write(''.join(i + '\n' for i in script.setup))
             f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
-            f.write(script.setenv('job', jobname) + '\n')
+            f.write(script.setenv('jobname', jobname) + '\n')
             f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
             f.write(script.mkdir(options.jobscratch) + '\n')
             f.write(''.join(i + '\n' for i in imports))
