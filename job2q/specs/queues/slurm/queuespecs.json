@@ -1,6 +1,6 @@
 {
    "schedulername": "SLURM",
-   "submitcmd": [ "sbatch" ],
+   "submitcmd": [ "sbatch", "--export=ALL" ],
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
    "submitre": ".* ([0-9]+)",
    "statre": "(.+)",

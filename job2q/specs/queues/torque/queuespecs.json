@@ -1,6 +1,6 @@
 {
    "schedulername": "TORQUE",
-   "submitcmd": [ "qsub" ],
+   "submitcmd": [ "qsub", "-V" ],
    "statcmd": [ "qstat", "-x" ],
    "submitre": "([0-9]+)\\.[^.]+",
    "statre": ".*<job_state>([^<]+)</job_state>.*",

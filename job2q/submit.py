@@ -231,7 +231,6 @@ def initialize():
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(environ.items())
     script.envars.extend(clusterspecs.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k, jobspecs.filekeys[v]) for k, v in jobspecs.filevars.items())
