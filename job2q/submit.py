@@ -4,7 +4,7 @@ import sys
 from subprocess import check_output, CalledProcessError
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove, mkdir, copyfile
+from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
 from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .details import wrappers
@@ -25,13 +25,18 @@ def initialize():
             messages.error('El archivo de entrada', path, 'no existe', option=o(key))
 
     if options.remote.host:
+        paths.socketdir = AbsPath(formatpath(paths.home, '.ssh', 'job2q'))
+        paths.socket = paths.socketdir // options.remote.host
+        paths.socketdir.makedirs()
         try:
-            output = check_output(['ssh', options.remote.host, 'echo $JOBCOMMAND:$JOBSYNCDIR'])
+            environment = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv JOBCOMMAND JOBSYNCDIR'])
         except CalledProcessError as e:
             messages.error(e.output.decode(sys.stdout.encoding).strip())
-        options.remote.cmd, options.remote.root = output.decode(sys.stdout.encoding).strip().split(':')
-        if not options.remote.root or not options.remote.cmd:
-            messages.error('El servidor remoto no acepta trabajos de otro servidor')
+        options.remote.cmd, options.remote.root = environment.decode(sys.stdout.encoding).splitlines()
+        if 'cmd' not in options.remote and 'root' not in options.remote:
+            messages.error('El servidor no está configurado para aceptar trabajos')
+        if 'cmd' not in options.remote or 'root' not in options.remote:
+            messages.error('El servidor no está correctamente configurado para aceptar trabajos')
 
     if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
         options.interpolation.interpolate = True
@@ -319,11 +324,11 @@ def initialize():
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
-                rootpath = rootpath.joinpath(part.format(**parameterdict))
+                rootpath = rootpath // part.format(**parameterdict)
             except KeyError:
                 choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)
-                rootpath = rootpath.joinpath(choice)
+                rootpath = rootpath // choice
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
@@ -446,7 +451,7 @@ def submit(parentdir, inputname):
                 remove(formatpath(outdir, (outputname, key)))
     else:
         try:
-            mkdir(outdir)
+            outdir.mkdir()
         except FileExistsError:
             messages.failure('No se puede crear la carpeta', outdir, 'porque ya existe un archivo con ese nombre')
             return
@@ -475,7 +480,7 @@ def submit(parentdir, inputname):
         for key in jobspecs.filekeys:
             if os.path.isfile(formatpath(outdir, (outputname, key))):
                 filelist.append(formatpath(paths.home, '.', reloutdir, (outputname, key)))
-        arglist = [__file__, '-qt', options.remote.host]
+        arglist = [__file__, '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
         arglist.append(names.program)
@@ -488,8 +493,8 @@ def submit(parentdir, inputname):
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-qRLtz'] + filelist + [options.remote.host + ':' + remotetemp])
-                check_output(['rsync', '-qRLtz', '-f-! */'] + filelist + [options.remote.host + ':' + remotehome])
+                check_output(['rsync', '-qRLtz', '-e', 'ssh -S {}'.format(paths.socket)] + filelist + [options.remote.host + ':' + remotetemp])
+                check_output(['rsync', '-qRLtz', '-f', '-! */', '-e', 'ssh -S {}'.format(paths.socket)] + filelist + [options.remote.host + ':' + remotehome])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
             os.execv('/usr/bin/ssh', arglist)
@@ -516,7 +521,7 @@ def submit(parentdir, inputname):
             exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
 
         try:
-            mkdir(jobdir)
+            jobdir.mkdir()
         except FileExistsError:
             messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
             return

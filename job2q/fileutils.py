@@ -48,12 +48,14 @@ class AbsPath(str):
         return os.path.isfile(self)
     def isdir(self):
         return os.path.isdir(self)
+    def mkdir(self):
+        mkdir(self)
+    def makedirs(self):
+        makedirs(self)
     def linkto(self, *dest):
         symlink(self, os.path.join(*dest))
     def copyto(self, *dest):
         copyfile(self, os.path.join(*dest))
-    def joinpath(self, path):
-        return AbsPath(os.path.join(self, path))
     def setkeys(self, formatkeys):
         formatted = ''
         for lit, key, spec, _ in string.Formatter.parse(None, self):
@@ -215,7 +217,7 @@ def findbranches(parent, partlist, defaults, dirtree):
             for choice in choices:
                 choice = DefaultStr(choice) if choice == default else str(choice)
                 dirtree[choice] = {}
-                findbranches(parent.joinpath(choice), partlist, defaults, dirtree[choice])
+                findbranches(parent // choice, partlist, defaults, dirtree[choice])
         else:
-            findbranches(parent.joinpath(part), partlist, defaults, dirtree)
+            findbranches(parent // part, partlist, defaults, dirtree)
 
