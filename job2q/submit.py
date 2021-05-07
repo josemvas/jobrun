@@ -26,7 +26,7 @@ def initialize():
 
     if options.remote.host:
         paths.socketdir = AbsPath(formatpath(paths.home, '.ssh', 'job2q'))
-        paths.socket = paths.socketdir // options.remote.host
+        paths.socket = paths.socketdir / options.remote.host
         paths.socketdir.makedirs()
         try:
             environment = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv JOBCOMMAND JOBSYNCDIR'])
@@ -108,9 +108,9 @@ def initialize():
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        options.jobscratch = options.common.scratch // clusterspecs.envars.jobid
+        options.jobscratch = options.common.scratch / clusterspecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, **names)) // clusterspecs.envars.jobid
+        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, **names)) / clusterspecs.envars.jobid
 
     if 'queue' not in options.common:
         if 'queue' in clusterspecs.defaults:
@@ -324,11 +324,11 @@ def initialize():
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
-                rootpath = rootpath // part.format(**parameterdict)
+                rootpath = rootpath / part.format(**parameterdict)
             except KeyError:
                 choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)
-                rootpath = rootpath // choice
+                rootpath = rootpath / choice
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:

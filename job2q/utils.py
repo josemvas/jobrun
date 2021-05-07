@@ -94,16 +94,11 @@ def override_function(cls):
         return wrapper
     return decorator
 
-def printtree(tree, level=0):
-    if isinstance(tree, (list, dict)):
-        for branch in natsort(tree):
-            if isinstance(branch, DefaultStr):
-                print(' '*2*level + branch + ' '*3 + '(default)')
-            elif isinstance(branch, str):
-                print(' '*2*level + branch)
-            else:
-                raise SystemExit(colors.red + 'Tree elements must be str or DefaultStr type' + colors.default)
-            printtree(branch, level + 1)
+def printree(tree, level=0):
+    if isinstance(tree, dict):
+        for branch in sorted(tree, key=natkey):
+            print(' '*level + branch)
+            printree(tree[branch], level + 1)
 
 def getformatkeys(formatstr):
     return [i[1] for i in string.Formatter().parse(formatstr) if i[1] is not None]

@@ -7,7 +7,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, formatpath, findbranches
-from .utils import Bunch, DefaultStr, _, o, p, q, printtree, getformatkeys
+from .utils import Bunch, DefaultStr, _, o, p, q, printree, getformatkeys
 from .shared import ArgList, names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
@@ -17,14 +17,15 @@ class ListOptions(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if jobspecs.versions:
             print(_('Versiones del programa:'))
-            printtree([DefaultStr(i) if i == jobspecs.defaults.version else str(i) for i in jobspecs.versions], level=1)
+            for version in jobspecs.versions.keys():
+                print(version)
         for path in jobspecs.defaults.parameterpaths:
             dirtree = {}
             partlist = AbsPath(path).setkeys(names).parts
             findbranches(AbsPath(next(partlist)), partlist, jobspecs.defaults.parameters, dirtree)
             if dirtree:
-               print(_('Parámetros en $path:').format(path=path.format(**{i: '*' for i in getformatkeys(path)})))
-               printtree(dirtree, level=1)
+                print(_('Conjuntos de parámetros:'))
+                printree(dirtree)
         sys.exit()
 
 class StorePath(Action):

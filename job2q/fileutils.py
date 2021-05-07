@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import DefaultStr, deepjoin, printtree, getformatkeys
+from .utils import DefaultStr, deepjoin, getformatkeys
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -64,7 +64,7 @@ class AbsPath(str):
             else:
                 formatted += lit + formatkeys.get(key, '{' + key + '}')
         return AbsPath(formatted)
-    def __floordiv__(self, right):
+    def __truediv__(self, right):
         if os.path.isabs(right):
             raise Exception('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
@@ -196,7 +196,27 @@ def rmtree(path, date):
             delete_newer(os.path.join(parent, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def getpartkey(part):
+def dirbranches(trunk, stem):
+    key = None
+    for token in string.Formatter().parse(stem):
+        if token[1] is None:
+            if key:
+                messages.error('La variable de interpolación no ocupa todo el componente', part)
+        else:
+            if key:
+                messages.error('Hay más de una variable de interpolación en el componente', part)
+            if token[0]:
+                messages.error('La variable de interpolación no ocupa todo el componente', part)
+            if not token[1]:
+                messages.error('La variable de interpolación no puede estar vacía', part)
+            if token[1].isnumeric():
+                messages.error('La variable de interpolación no puede ser numérica', part)
+            key = token[1]
+    if key:
+        return trunk.listdir()
+    else:
+        return [stem]
+        
     formatkeys = getformatkeys(part)
     if formatkeys:
         if len(formatkeys) == 1:
@@ -207,17 +227,11 @@ def getpartkey(part):
         else:
             messages.error('Hay más de una variable de interpolación en el componente', part)
 
-def findbranches(parent, partlist, defaults, dirtree):
-    part = next(partlist, None)
-    if part:
-        key = getpartkey(part)
-        if key:
-            choices = parent.listdir()
-            default = defaults.get(key, None)
-            for choice in choices:
-                choice = DefaultStr(choice) if choice == default else str(choice)
-                dirtree[choice] = {}
-                findbranches(parent // choice, partlist, defaults, dirtree[choice])
-        else:
-            findbranches(parent // part, partlist, defaults, dirtree)
+def findbranches(trunk, stemlist, defaults, dirtree):
+    stem = next(stemlist, None)
+    if stem:
+        branches = dirbranches(trunk, stem)
+        for branch in branches:
+            dirtree[branch] = {}
+            findbranches(trunk/branch, stemlist, defaults, dirtree[branch])
 
