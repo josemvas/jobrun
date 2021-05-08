@@ -16,7 +16,7 @@ remove_files () {
         read -p "${yellow}Escriba OK para eliminarlos o presione ENTER para conservarlos: $normal" answer
         case "$answer" in
           [oO][kK])
-            echo -n $yellow\Eliminando archivos $2... $normal
+            echo -n $yellow\Eliminando los archivos $2...$normal
             rsync -tv --files-from=- --remove-source-files "$host":"\$JOBSYNCDIR/$USER.$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
             echo Hecho
             break;;
