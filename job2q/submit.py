@@ -5,7 +5,7 @@ from subprocess import check_output, CalledProcessError
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove
-from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, substitute
+from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, interpolate
 from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .details import wrappers
 from .readmol import readmol
@@ -323,7 +323,9 @@ def initialize():
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
-                rootpath = rootpath / substitute(part, keydict=parameterdict)
+                rootpath = rootpath / interpolate(part, keydict=parameterdict)
+            except ValueError as e:
+                messages.error('Hay variables de interpolación inválidas en la ruta', path, var=e.args[0])
             except KeyError:
                 choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)
@@ -331,30 +333,30 @@ def initialize():
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
-            messages.error('La ruta', path, 'no existe', spec='defaults.parameterpaths')
+            messages.error('La ruta', path, 'no existe', spec='defaults:parameterpaths')
 
     if 'prefix' in options.interpolation:
         try:
-            options.prefix = substitute(
+            options.prefix = interpolate(
                 options.interpolation.prefix,
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
-        except KeyError as e:
+        except (IndexError, KeyError) as e:
             messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
 
     if 'suffix' in options.interpolation:
         try:
-            options.suffix = substitute(
+            options.suffix = interpolate(
                 options.interpolation.suffix,
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
-        except KeyError as e:
+        except (IndexError, KeyError) as e:
             messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
 
 
@@ -401,27 +403,27 @@ def submit(parentdir, inputname):
                         contents = f.read()
                         if options.interpolation.interpolate:
                             try:
-                                interpolated[destpath] = substitute(
+                                interpolated[destpath] = interpolate(
                                     contents,
                                     keylist=options.interpolation.list,
                                     keydict=options.interpolation.dict,
                                 )
-                            except KeyError as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
-                                return
                             except ValueError:
                                 messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formatpath((inputname, key)))
                                 return
+                            except (IndexError, KeyError) as e:
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
+                                return
                         else:
                             try:
-                                interpolated[destpath] = substitute(contents)
-                            except KeyError as e:
+                                interpolated[destpath] = interpolate(contents)
+                            except ValueError:
+                                pass
+                            except (IndexError, KeyError) as e:
                                 if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formatpath((inputname, key)),'¿desea continuar sin interpolar?'):
                                     rawfiles[destpath] = srcpath
                                 else:
                                     return
-                            except ValueError:
-                                pass
                 else:
                     rawfiles[destpath] = srcpath
 

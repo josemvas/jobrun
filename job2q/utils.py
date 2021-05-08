@@ -28,7 +28,7 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-class FormatDict(dict):
+class TestKeyDict(dict):
     def __init__(self):
         self._key = None
     def __getitem__(self, key):
@@ -37,19 +37,31 @@ class FormatDict(dict):
         self._key = key
         return ''
 
-class AlphaTpl(string.Template):
-    delimiter = '%'
-    idpattern = r'[a-z]*'
+class FormatKeyDict(dict):
+    def __getitem__(self, key):
+        return '{' + key + '}'
 
-class NumTpl(string.Template):
+class DictTemplate(string.Template):
     delimiter = '%'
-    idpattern = r'[1-9]'
+    idpattern = r'[a-z][a-z0-9]*'
 
-def substitute(template, keylist=[], keydict={}):
-    try:
-        return AlphaTpl(template).substitute(keydict)
-    except ValueError:
-        return NumTpl(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
+class ListTemplate(string.Template):
+    delimiter = '%'
+    idpattern = r'[0-9]+'
+
+class DualTemplate(string.Template):
+    delimiter = '%'
+    idpattern = r'[a-z0-9]+'
+
+def interpolate(template, keylist=[], keydict={}):
+    if isinstance(keylist, (tuple, list)):
+        if isinstance(keydict, dict):
+            return DualTemplate(template).substitute(FormatKeyDict()).format(*keylist, **keydict)
+        elif keydict is None:
+            return ListTemplate(template).substitute(FormatKeyDict()).format(*keylist)
+    elif keylist is None:
+        if isinstance(keydict, dict):
+            return DictTemplate(template).substitute(FormatKeyDict()).format(**keydict)
 
 def o(key, value=None):
     if value is not None:
@@ -92,9 +104,9 @@ def join_args(f):
         return f(' '.join(args), **kwargs)
     return wrapper
 
-def join_allargs(f):
+def join_args_and_kwargs(f):
     def wrapper(*args, **kwargs):
-        return f(' '.join(args), ', '.join(key + ' ' + value for key, value in kwargs.items()))
+        return f(' '.join(args), ', '.join('{}: {}'.format(k, v) for k, v in kwargs.items()))
     return wrapper
 
 def catch_keyboard_interrupt(f):

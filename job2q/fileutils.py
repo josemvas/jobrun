@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import AlphaTpl, FormatDict, deepjoin
+from .utils import DictTemplate, TestKeyDict, deepjoin
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -141,8 +141,8 @@ def rmtree(path, date):
     delete_newer(path, date, os.rmdir)
 
 def componentkey(component):
-    d = FormatDict()
-    literal = AlphaTpl(component).substitute(d)
+    d = TestKeyDict()
+    literal = DictTemplate(component).substitute(d)
     if d._key and literal:
         messages.error('La variable de interpolación debe ocupar todo el componente')
     return d._key
