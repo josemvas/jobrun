@@ -409,10 +409,10 @@ def submit(parentdir, inputname):
                                     keydict=options.interpolation.dict,
                                 )
                             except ValueError:
-                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', formatpath((inputname, key)))
+                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', file=formatpath((inputname, key)))
                                 return
                             except (IndexError, KeyError) as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', formatpath((inputname, key)), key=e.args[0])
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', file=formatpath((inputname, key)), key=e.args[0])
                                 return
                         else:
                             try:
