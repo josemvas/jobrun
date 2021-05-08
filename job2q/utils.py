@@ -5,7 +5,7 @@ import sys
 import string
 from . import colors
 
-boolstrs = {'True' : True, 'False' : False}
+booldict = {'True' : True, 'False' : False}
 
 class IdentityList(list):
     def __init__(self, *args):

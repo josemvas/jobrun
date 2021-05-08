@@ -5,7 +5,7 @@ from subprocess import check_output, CalledProcessError
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove
-from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, boolstrs, interpolate
+from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .details import wrappers
 from .readmol import readmol
@@ -129,7 +129,7 @@ def initialize():
             messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in jobspecs:
-        try: jobspecs.mpilaunch = boolstrs[jobspecs.mpilaunch]
+        try: jobspecs.mpilaunch = booldict[jobspecs.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
