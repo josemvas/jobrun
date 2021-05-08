@@ -48,7 +48,7 @@ class ListTemplate(string.Template):
 
 class DualTemplate(string.Template):
     delimiter = '%'
-    idpattern = r'[a-z0-9]+'
+    idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
 
 class _(string.Template):
     def __str__(self):
