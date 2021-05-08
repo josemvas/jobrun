@@ -6,27 +6,27 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
-from .utils import Bunch,  _, o, p, q, printree
+from .utils import Bunch, templatekeys, printoptions, o, p, q, _
 from .fileutils import AbsPath, formatpath, dirbranches
 from .shared import ArgList, names, paths, environ, clusterspecs, jobspecs, options, remoteargs
 from .submit import initialize, submit 
 
-#TODO Indicate default options (jobspecs.defaults.parameters, jobspecs.defaults.version)
 class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         if jobspecs.versions:
             print(_('Versiones del programa:'))
-            for version in jobspecs.versions.keys():
-                print(' ' + version)
+            default = jobspecs.defaults.version if 'version' in jobspecs.defaults else None
+            printoptions(tuple(jobspecs.versions.keys()), [default], level=1)
         for path in jobspecs.defaults.parameterpaths:
             dirtree = {}
             components = AbsPath(formatpath(path, keys=names)).parts
             dirbranches(AbsPath(next(components)), components, dirtree)
+            defaults = [jobspecs.defaults.parameters.get(i, None) for i in templatekeys(path)]
             if dirtree:
                 print(_('Conjuntos de parámetros:'))
-                printree(dirtree, level=1)
+                printoptions(dirtree, defaults, level=1)
         sys.exit()
 
 class StorePath(Action):

@@ -34,7 +34,13 @@ class TestKeyDict(dict):
         self._key = key
         return ''
 
-class FormatKeyDict(dict):
+class CaptureKeysDict(dict):
+    def __init__(self):
+        self._keys = []
+    def __getitem__(self, key):
+        self._keys.append(key)
+
+class FormatKeysDict(dict):
     def __getitem__(self, key):
         return '{' + key + '}'
 
@@ -56,18 +62,20 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-def getformatkeys(formatstr):
-    return [i[1] for i in string.Formatter().parse(formatstr) if i[1] is not None]
+def templatekeys(template):
+    d = CaptureKeysDict()
+    DictTemplate(template).substitute(d)
+    return d._keys
 
 def interpolate(template, keylist=[], keydict={}):
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(FormatKeyDict()).format('', *keylist, **keydict)
+            return DualTemplate(template).substitute(FormatKeysDict()).format('', *keylist, **keydict)
         elif keydict is None:
-            return ListTemplate(template).substitute(FormatKeyDict()).format('', *keylist)
+            return ListTemplate(template).substitute(FormatKeysDict()).format('', *keylist)
     elif keylist is None:
         if isinstance(keydict, dict):
-            return DictTemplate(template).substitute(FormatKeyDict()).format(**keydict)
+            return DictTemplate(template).substitute(FormatKeysDict()).format(**keydict)
         elif keydict is None:
             return None
     raise TypeError()
@@ -114,11 +122,14 @@ def override_function(cls):
         return wrapper
     return decorator
 
-def printree(tree, level=0):
-    if isinstance(tree, dict):
-        for branch in sorted(tree, key=natkey):
-            print(' '*level + branch)
-            printree(tree[branch], level + 1)
+def printoptions(options, defaults=[], level=0):
+    for opt in sorted(options, key=natkey):
+        if defaults and opt == defaults[0]:
+            print(' '*level + opt + '  (default)')
+        else:
+            print(' '*level + opt)
+        if isinstance(options, dict):
+            printoptions(options[opt], defaults[1:], level + 1)
 
 def natkey(string):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
