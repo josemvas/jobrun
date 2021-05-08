@@ -72,7 +72,6 @@ def natkey(string):
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())
 
-#TODO Raise exception if there are upper level separators in nested parts
 def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
     itemlist = []
     delimiter = nextdelimiters.pop(0)
@@ -82,10 +81,10 @@ def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
         elif isinstance(item, str):
             for delim in pastdelimiters:
                 if delim in item:
-                    raise ValueError('Components can not contain higher order delimiters')
+                    raise ValueError('Components can not contain upper delimiters')
             itemlist.append(item)
         else:
-            raise TypeError('Scalars must be of strings')
+            raise TypeError('Components must be strings')
     return delimiter.join(itemlist)
 
 def join_args(f):
