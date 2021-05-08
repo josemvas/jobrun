@@ -78,7 +78,7 @@ def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
         elif isinstance(item, str):
             for delim in pastdelimiters:
                 if delim in item:
-                    raise ValueError('Components can not contain upper delimiters')
+                    raise ValueError('Components can not contain higher level delimiters')
             itemlist.append(item)
         else:
             raise TypeError('Components must be strings')
@@ -130,11 +130,11 @@ def o(key, value=None):
         return('--{}'.format(key.replace('_', '-')))
     
 def p(string):
-    return '({0})'.format(string)
+    return '({})'.format(string)
 
 def q(string):
-    return '"{0}"'.format(string)
+    return '"{}"'.format(string)
 
 def Q(string):
-    return "'{0}'".format(string)
+    return "'{}'".format(string)
 
