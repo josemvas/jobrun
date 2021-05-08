@@ -62,9 +62,9 @@ def getformatkeys(formatstr):
 def interpolate(template, keylist=[], keydict={}):
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(FormatKeyDict()).format(*keylist, **keydict)
+            return DualTemplate(template).substitute(FormatKeyDict()).format('', *keylist, **keydict)
         elif keydict is None:
-            return ListTemplate(template).substitute(FormatKeyDict()).format(*keylist)
+            return ListTemplate(template).substitute(FormatKeyDict()).format('', *keylist)
     elif keylist is None:
         if isinstance(keydict, dict):
             return DictTemplate(template).substitute(FormatKeyDict()).format(**keydict)
