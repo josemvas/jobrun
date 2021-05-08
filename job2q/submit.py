@@ -425,8 +425,7 @@ def submit(parentdir, inputname):
                 else:
                     rawfiles[destpath] = srcpath
 
-    jobcode = jobname + '.' + jobspecs.shortname + '.'.join(options.common.version.split())
-    jobdir = AbsPath(formatpath(stagedir, jobcode))
+    jobdir = AbsPath(formatpath(stagedir, (jobname, jobspecs.shortname + '.'.join(options.common.version.split()))))
 
     if outdir.isdir():
         if jobdir.isdir():
@@ -450,7 +449,7 @@ def submit(parentdir, inputname):
                 remove(formatpath(outdir, (outputname, key)))
     else:
         try:
-            outdir.mkdir()
+            outdir.makedirs()
         except FileExistsError:
             messages.failure('No se puede crear la carpeta', outdir, 'porque ya existe un archivo con ese nombre')
             return
