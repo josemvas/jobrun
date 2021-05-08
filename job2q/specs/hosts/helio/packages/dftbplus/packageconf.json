@@ -1,7 +1,7 @@
 {
    "defaults": {
       "parameterpaths": [
-         "/opt/packages/DFTB+/slako/{slako}"
+         "/opt/packages/DFTB+/slako/%slako"
       ]
    },
    "versions": {

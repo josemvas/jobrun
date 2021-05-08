@@ -110,7 +110,7 @@ def initialize():
     if 'scratch' in options.common:
         options.jobscratch = options.common.scratch / clusterspecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, **names)) / clusterspecs.envars.jobid
+        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, keys=names)) / clusterspecs.envars.jobid
 
     if 'queue' not in options.common:
         if 'queue' in clusterspecs.defaults:
@@ -208,15 +208,15 @@ def initialize():
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
     for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
+        abspath = AbsPath(formatpath(path, keys=names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
     for envar, path in jobspecs.append.items() | jobspecs.versions[options.common.version].append.items():
-        abspath = AbsPath(path, cwd=options.jobscratch).setkeys(names).validate()
+        abspath = AbsPath(formatpath(path, keys=names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
     for path in jobspecs.source + jobspecs.versions[options.common.version].source:
-        script.setup.append('source {}'.format(AbsPath(path).setkeys(names).validate()))
+        script.setup.append('source {}'.format(AbsPath(formatpath(path, keys=names))))
 
     if jobspecs.load or jobspecs.versions[options.common.version].load:
         script.setup.append('module purge')
@@ -225,12 +225,12 @@ def initialize():
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(jobspecs.versions[options.common.version].executable).setkeys(names).validate())
+        script.main.append(AbsPath(formatpath(jobspecs.versions[options.common.version].executable, keys=names)))
     except NotAbsolutePath:
         script.main.append(jobspecs.versions[options.common.version].executable)
 
     for path in clusterspecs.logfiles:
-        script.header.append(path.format(AbsPath(clusterspecs.logdir).setkeys(names).validate()))
+        script.header.append(path.format(AbsPath(formatpath(clusterspecs.logdir, keys=names))))
 
     script.setup.append("shopt -s nullglob extglob")
 
@@ -308,7 +308,6 @@ def initialize():
 
 #    #TODO Move this code to the submit function
 #    #TODO Use filter groups to set parameters
-#    #TODO Use template strings to interpolate
 #    for key, value in options.parameterdict.items():
 #        if value.startswith('%'):
 #            try:
@@ -320,11 +319,11 @@ def initialize():
 #            parameterdict.update({key: filtergroups[index]})
 
     for path in jobspecs.defaults.parameterpaths:
-        partlist = AbsPath(path, cwd=options.common.cwd).setkeys(names).parts
+        partlist = AbsPath(formatpath(path, keys=names), cwd=options.common.cwd).parts
         rootpath = AbsPath(next(partlist))
         for part in partlist:
             try:
-                rootpath = rootpath / part.format(**parameterdict)
+                rootpath = rootpath / substitute(part, keydict=parameterdict)
             except KeyError:
                 choices = rootpath.listdir()
                 choice = dialogs.chooseone('Seleccione una opción', choices=choices)

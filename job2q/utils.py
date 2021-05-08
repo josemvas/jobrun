@@ -28,20 +28,28 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-class DefaultStr(str):
-    pass
+class FormatDict(dict):
+    def __init__(self):
+        self._key = None
+    def __getitem__(self, key):
+        if self._key:
+            raise KeyError('Too many keys')
+        self._key = key
+        return ''
 
-def substitute(template, delim='%', keylist=[], keydict={}):
-    class A(string.Template):
-        delimiter = delim
-        idpattern = r'[a-z][_a-z0-9]*'
-    class B(string.Template):
-        delimiter = delim
-        idpattern = r'[1-9]'
+class AlphaTpl(string.Template):
+    delimiter = '%'
+    idpattern = r'[a-z]*'
+
+class NumTpl(string.Template):
+    delimiter = '%'
+    idpattern = r'[1-9]'
+
+def substitute(template, keylist=[], keydict={}):
     try:
-        return A(template).substitute(keydict)
+        return AlphaTpl(template).substitute(keydict)
     except ValueError:
-        return B(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
+        return NumTpl(template).substitute({str(i):v for i,v in enumerate(keylist, 1)})
 
 def o(key, value=None):
     if value is not None:
@@ -64,8 +72,21 @@ def natkey(string):
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())
 
-def deepjoin(a, i):
-    return next(i).join(x if isinstance(x, str) else deepjoin(x, i) if hasattr(x, '__iter__') else str(x) for x in a if x)
+#TODO Raise exception if there are upper level separators in nested parts
+def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
+    itemlist = []
+    delimiter = nextdelimiters.pop(0)
+    for item in nestedlist:
+        if isinstance(item, (list, tuple)):
+            itemlist.append(deepjoin(item, nextdelimiters, pastdelimiters + [delimiter]))
+        elif isinstance(item, str):
+            for delim in pastdelimiters:
+                if delim in item:
+                    raise ValueError('Components can not contain higher order delimiters')
+            itemlist.append(item)
+        else:
+            raise TypeError('Scalars must be of strings')
+    return delimiter.join(itemlist)
 
 def join_args(f):
     def wrapper(*args, **kwargs):

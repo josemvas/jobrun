@@ -3,7 +3,7 @@ import os
 import shutil
 import string
 from . import messages
-from .utils import DefaultStr, deepjoin, getformatkeys
+from .utils import AlphaTpl, FormatDict, deepjoin
 
 class NotAbsolutePath(Exception):
     def __init__(self, *message):
@@ -56,66 +56,10 @@ class AbsPath(str):
         symlink(self, os.path.join(*dest))
     def copyto(self, *dest):
         copyfile(self, os.path.join(*dest))
-    def setkeys(self, formatkeys):
-        formatted = ''
-        for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if key is None:
-                formatted += lit
-            else:
-                formatted += lit + formatkeys.get(key, '{' + key + '}')
-        return AbsPath(formatted)
     def __truediv__(self, right):
         if os.path.isabs(right):
             raise Exception('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
-    def validate(self):
-        formatted = ''
-        for lit, key, spec, _ in string.Formatter.parse(None, self):
-            if key is None:
-                formatted += lit
-            else:
-                raise PathKeyError(self, 'has undefined keys')
-        return AbsPath(formatted)
-#    def yieldparts(self):
-#        for part in splitpath(self):
-#            items = string.Formatter.parse(None, part)
-#            first = next(items)
-#            if first[1] is None:
-#                yield first[0]
-#            else:
-#                try:
-#                    second = next(items)
-#                except:
-#                    suffix = ''
-#                else:
-#                    if second[1] is None:
-#                        suffix = second[0]
-#                    else:
-#                        raise PathKeyError(part, 'has parts with multiple keys')
-#                yield first[0] + '{' + first[1] + '}' + suffix
-
-#TODO Handle template exceptions
-#TODO Check format of each component
-def formatpath(*parts, **keys):
-    path = deepjoin(parts, iter((os.path.sep, '.')))
-    if keys:
-        return path.format(**keys)
-    else:
-        return path
-
-def splitpath(path):
-    if path:
-        if path == os.path.sep:
-            parts = [os.path.sep]
-        elif path.startswith(os.path.sep):
-            parts = [os.path.sep] + path[1:].split(os.path.sep)
-        else:
-            parts = path.split(os.path.sep)
-        if '' in parts:
-            raise Exception('Path has empty parts')
-        return parts
-    else:
-        return []
 
 def mkdir(path):
     try: os.mkdir(path)
@@ -196,42 +140,42 @@ def rmtree(path, date):
             delete_newer(os.path.join(parent, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def dirbranches(trunk, stem):
-    key = None
-    for token in string.Formatter().parse(stem):
-        if token[1] is None:
-            if key:
-                messages.error('La variable de interpolación no ocupa todo el componente', part)
-        else:
-            if key:
-                messages.error('Hay más de una variable de interpolación en el componente', part)
-            if token[0]:
-                messages.error('La variable de interpolación no ocupa todo el componente', part)
-            if not token[1]:
-                messages.error('La variable de interpolación no puede estar vacía', part)
-            if token[1].isnumeric():
-                messages.error('La variable de interpolación no puede ser numérica', part)
-            key = token[1]
-    if key:
-        return trunk.listdir()
-    else:
-        return [stem]
-        
-    formatkeys = getformatkeys(part)
-    if formatkeys:
-        if len(formatkeys) == 1:
-            if part.format(**{formatkeys[0]: ''}):
-                messages.error('La variable de interpolación no ocupa todo el componente', part)
-            else:
-                return formatkeys[0]
-        else:
-            messages.error('Hay más de una variable de interpolación en el componente', part)
+def componentkey(component):
+    d = FormatDict()
+    literal = AlphaTpl(component).substitute(d)
+    if d._key and literal:
+        messages.error('La variable de interpolación debe ocupar todo el componente')
+    return d._key
 
-def findbranches(trunk, stemlist, defaults, dirtree):
-    stem = next(stemlist, None)
+#TODO Include the defults in parts parameter as tuples
+def dirbranches(trunk, parts, dirtree):
+    stem = next(parts, None)
     if stem:
-        branches = dirbranches(trunk, stem)
-        for branch in branches:
-            dirtree[branch] = {}
-            findbranches(trunk/branch, stemlist, defaults, dirtree[branch])
+        if componentkey(stem):
+            branches = trunk.listdir()
+            for branch in branches:
+                dirtree[branch] = {}
+                dirbranches(trunk/branch, parts, dirtree[branch])
+        else:
+            dirbranches(trunk/stem, parts, dirtree)
+
+def formatpath(*components, keys={}):
+    try:
+        return deepjoin(components, [os.path.sep, '.']).format(**keys)
+    except KeyError as e:
+        messages.error('Hay variables de interpolación sin definir en la ruta', var=e.args[0])
+
+def splitpath(path):
+    if path:
+        if path == os.path.sep:
+            components = [os.path.sep]
+        elif path.startswith(os.path.sep):
+            components = [os.path.sep] + path[1:].split(os.path.sep)
+        else:
+            components = path.split(os.path.sep)
+        if '' in components:
+            raise Exception('Path has empty components')
+        return components
+    else:
+        return []
 

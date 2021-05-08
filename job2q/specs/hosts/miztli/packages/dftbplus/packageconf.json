@@ -1,7 +1,7 @@
 {
    "defaults": {
       "parameterpaths": [
-         "/tmpu/{group}/{user}/share/parameters/DFTB+/slako/{slako}"
+         "/tmpu/{group}/{user}/share/parameters/DFTB+/slako/%slako"
       ]
    },
    "versions": {
