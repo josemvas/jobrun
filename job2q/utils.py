@@ -22,12 +22,6 @@ class Bunch(dict):
     def __setattr__(self, item, value):
         self.__setitem__(item, value)
 
-class _(string.Template):
-    def __str__(self):
-        return(self.safe_substitute())
-    def format(self, **keys):
-        return self.safe_substitute(keys)
-
 class TestKeyDict(dict):
     def __init__(self):
         self._key = None
@@ -53,6 +47,15 @@ class DualTemplate(string.Template):
     delimiter = '%'
     idpattern = r'[a-z0-9]+'
 
+class _(string.Template):
+    def __str__(self):
+        return(self.safe_substitute())
+    def format(self, **keys):
+        return self.safe_substitute(keys)
+
+def getformatkeys(formatstr):
+    return [i[1] for i in string.Formatter().parse(formatstr) if i[1] is not None]
+
 def interpolate(template, keylist=[], keydict={}):
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
@@ -62,27 +65,9 @@ def interpolate(template, keylist=[], keydict={}):
     elif keylist is None:
         if isinstance(keydict, dict):
             return DictTemplate(template).substitute(FormatKeyDict()).format(**keydict)
-
-def o(key, value=None):
-    if value is not None:
-        return('--{}={}'.format(key.replace('_', '-'), value))
-    else:
-        return('--{}'.format(key.replace('_', '-')))
-    
-def p(string):
-    return '({0})'.format(string)
-
-def q(string):
-    return '"{0}"'.format(string)
-
-def Q(string):
-    return "'{0}'".format(string)
-
-def natkey(string):
-    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
-
-def lowalnum(keystr):
-    return ''.join(c.lower() for c in keystr if c.isalnum())
+        elif keydict is None:
+            return None
+    raise TypeError()
 
 def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
     itemlist = []
@@ -132,5 +117,24 @@ def printree(tree, level=0):
             print(' '*level + branch)
             printree(tree[branch], level + 1)
 
-def getformatkeys(formatstr):
-    return [i[1] for i in string.Formatter().parse(formatstr) if i[1] is not None]
+def natkey(string):
+    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
+
+def lowalnum(keystr):
+    return ''.join(c.lower() for c in keystr if c.isalnum())
+
+def o(key, value=None):
+    if value is not None:
+        return('--{}={}'.format(key.replace('_', '-'), value))
+    else:
+        return('--{}'.format(key.replace('_', '-')))
+    
+def p(string):
+    return '({0})'.format(string)
+
+def q(string):
+    return '"{0}"'.format(string)
+
+def Q(string):
+    return "'{0}'".format(string)
+
