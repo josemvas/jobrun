@@ -23,7 +23,7 @@ class AbsPath(str):
                 raise Exception('Root must be an absolute path')
             path = os.path.join(cwd, path)
         obj = str.__new__(cls, os.path.normpath(path))
-        obj.parts = iter(splitpath(obj))
+        obj.parts = splitpath(obj)
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
@@ -160,8 +160,8 @@ def componentkey(component):
 
 #TODO Include the defults in parts parameter as tuples
 def dirbranches(trunk, parts, dirtree):
-    stem = next(parts, None)
-    if stem:
+    if parts:
+        stem = parts.pop(0)
         if componentkey(stem):
             branches = trunk.listdir()
             for branch in branches:
@@ -170,7 +170,7 @@ def dirbranches(trunk, parts, dirtree):
         else:
             dirbranches(trunk/stem, parts, dirtree)
 
-def formatpath(*components, keys={}):
+def pathjoin(*components, keys={}):
     try:
         return deepjoin(components, [os.path.sep, '.']).format(**keys)
     except KeyError as e:
@@ -179,14 +179,14 @@ def formatpath(*components, keys={}):
 def splitpath(path):
     if path:
         if path == os.path.sep:
-            components = [os.path.sep]
+            parts = [os.path.sep]
         elif path.startswith(os.path.sep):
-            components = [os.path.sep] + path[1:].split(os.path.sep)
+            parts = [os.path.sep] + path[1:].split(os.path.sep)
         else:
-            components = path.split(os.path.sep)
-        if '' in components:
-            raise Exception('Path has empty components')
-        return components
+            parts = path.split(os.path.sep)
+        if '' in parts:
+            raise Exception('Path has empty parts')
+        return parts
     else:
         return []
 

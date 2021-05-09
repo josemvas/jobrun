@@ -1,6 +1,6 @@
 {
    "shortname": "AD",
-   "packagename": "AutoDock",
+   "longname": "AutoDock",
    "parallelib": "None",
 
    "conflicts": {

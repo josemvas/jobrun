@@ -8,7 +8,7 @@ from getpass import getuser
 from socket import gethostname
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
-from .fileutils import AbsPath, formatpath
+from .fileutils import AbsPath, pathjoin
 from . import messages
 
 class ArgList:
@@ -34,27 +34,27 @@ class ArgList:
             raise StopIteration
         if options.common.jobargs:
             parentdir = AbsPath(options.common.cwd)
-            for key in jobspecs.inputfiles:
-                if AbsPath(formatpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
-                    inputname = formatpath((self.current, jobspecs.shortname))
+            for key in progspecs.inputfiles:
+                if AbsPath(pathjoin(parentdir, (self.current, progspecs.shortname, key))).isfile():
+                    inputname = pathjoin((self.current, progspecs.shortname))
                     break
             else:
-                for key in jobspecs.inputfiles:
-                    if AbsPath(formatpath(parentdir, (self.current, key))).isfile():
+                for key in progspecs.inputfiles:
+                    if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
                         inputname = self.current
                         break
                 else:
-                    messages.failure('No hay archivos de entrada de', jobspecs.packagename, 'asociados al trabajo', self.current)
+                    messages.failure('No hay archivos de entrada de', progspecs.longname, 'asociados al trabajo', self.current)
                     return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
-            for key in jobspecs.inputfiles:
+            for key in progspecs.inputfiles:
                 if path.name.endswith('.' + key):
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', jobspecs.packagename)
+                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', progspecs.longname)
                 return next(self)
             if not path.isfile():
                 messages.failure(path.failreason)
@@ -90,8 +90,8 @@ paths = Bunch()
 environ = Bunch()
 options = Bunch()
 remoteargs = ArgGroups()
-jobspecs = SpecBunch()
-clusterspecs = SpecBunch()
+progspecs = SpecBunch()
+clusterconf = SpecBunch()
 
 names.user = getuser()
 names.host = gethostname()

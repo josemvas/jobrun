@@ -6,7 +6,7 @@
    "statre": "(.+)",
 
    "jobname": "#SBATCH -J '{}'",
-   "jobkind": "#SBATCH --comment='{}'",
+   "jobinfo": "#SBATCH --comment='{}'",
 
    "logfiles": [
        "#SBATCH -o '{}/%A.out'",

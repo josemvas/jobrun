@@ -1,6 +1,6 @@
 {
    "shortname": "VASP",
-   "packagename": "VASP",
+   "longname": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
 

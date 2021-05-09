@@ -1,6 +1,6 @@
 {
    "shortname": "g",
-   "packagename": "Gaussian",
+   "longname": "Gaussian",
    "parallelib": "openmp",
 
    "conflicts": {

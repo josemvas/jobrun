@@ -7,23 +7,23 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .utils import Bunch, templatekeys, printoptions, o, p, q, _
-from .fileutils import AbsPath, formatpath, dirbranches
-from .shared import ArgList, names, paths, environ, clusterspecs, jobspecs, options, remoteargs
+from .fileutils import AbsPath, pathjoin, dirbranches
+from .shared import ArgList, names, paths, environ, clusterconf, progspecs, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        if jobspecs.versions:
+        if progspecs.versions:
             print(_('Versiones del programa:'))
-            default = jobspecs.defaults.version if 'version' in jobspecs.defaults else None
-            printoptions(tuple(jobspecs.versions.keys()), [default], level=1)
-        for path in jobspecs.defaults.parameterpaths:
+            default = progspecs.defaults.version if 'version' in progspecs.defaults else None
+            printoptions(tuple(progspecs.versions.keys()), [default], level=1)
+        for path in progspecs.defaults.parameterpaths:
             dirtree = {}
-            components = AbsPath(formatpath(path, keys=names)).parts
-            dirbranches(AbsPath(next(components)), components, dirtree)
-            defaults = [jobspecs.defaults.parameters.get(i, None) for i in templatekeys(path)]
+            parts = AbsPath(pathjoin(path, keys=names)).parts
+            dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
+            defaults = [progspecs.defaults.parameters.get(i, None) for i in templatekeys(path)]
             if dirtree:
                 print(_('Conjuntos de parámetros:'))
                 printoptions(dirtree, defaults, level=1)
@@ -45,7 +45,7 @@ class AppendPath(Action):
 try:
 
     try:
-        specdir = os.environ['SPECDIR']
+        paths.specdir = os.environ['SPECDIR']
     except KeyError:
         messages.error('No se definió la variable de entorno SPECDIR')
     
@@ -54,28 +54,33 @@ try:
     parsedargs, remainingargs = parser.parse_known_args()
     names.program = parsedargs.program
     
-    clusterspecs.merge(readspec(formatpath(specdir, names.program, 'clusterspecs.json')))
-    clusterspecs.merge(readspec(formatpath(specdir, names.program, 'queuespecs.json')))
+    clusterconf.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
+    clusterconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
 
-    jobspecs.merge(readspec(formatpath(specdir, names.program, 'packagespecs.json')))
-    jobspecs.merge(readspec(formatpath(specdir, names.program, 'packageconf.json')))
+    progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'progspec.json')))
+    progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
     
-    userspecdir = formatpath(paths.home, '.jobspecs', names.program + '.json')
+    userconfdir = pathjoin(paths.home, '.jobspecs')
+    userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
+    userpackageconf = pathjoin(userconfdir, names.program, 'packageconf.json')
     
-    if os.path.isfile(userspecdir):
-        jobspecs.merge(readspec(userspecdir))
+    if os.path.isfile(userclusterconf):
+        clusterconf.merge(readspec(usersclusterconf))
+
+    if os.path.isfile(userpackageconf):
+        progspecs.merge(readspec(userpackageconf))
     
     try:
-        names.cluster = clusterspecs.name
+        names.cluster = clusterconf.name
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='name')
 
     try:
-        names.head = clusterspecs.head
+        names.head = clusterconf.head
     except AttributeError:
         names.head = names.host
 
-    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(jobspecs.packagename))
+    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.longname))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
@@ -119,7 +124,7 @@ try:
     group4 = parser.add_argument_group('Conjuntos de parámetros')
     group4.name = 'parameters'
     group4.remote = True
-    for key in jobspecs.parameters:
+    for key in progspecs.parameters:
         group4.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
@@ -136,7 +141,7 @@ try:
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
-    for key, value in jobspecs.fileoptions.items():
+    for key, value in progspecs.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')

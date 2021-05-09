@@ -6,7 +6,7 @@
    "statre": "(.+)",
 
    "jobname": "#BSUB -J '{}'",
-   "jobkind": "#BSUB -P '{}'",
+   "jobinfo": "#BSUB -P '{}'",
 
    "logfiles": [
       "#BSUB -o '{}/%J.out'",

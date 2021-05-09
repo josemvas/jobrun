@@ -5,9 +5,9 @@ from subprocess import check_output, CalledProcessError
 from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove
+from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
-from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
+from .shared import names, paths, environ, clusterconf, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -26,7 +26,7 @@ def initialize():
             messages.error('El archivo de entrada', path, 'no existe', option=o(key))
 
     if options.remote.host:
-        paths.socketdir = AbsPath(formatpath(paths.home, '.ssh', 'job2q'))
+        paths.socketdir = AbsPath(pathjoin(paths.home, '.ssh', 'job2q'))
         paths.socket = paths.socketdir / options.remote.host
         paths.socketdir.makedirs()
         try:
@@ -82,12 +82,12 @@ def initialize():
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
     if options.common.defaults:
-        jobspecs.defaults.pop('version', None)
-        jobspecs.defaults.pop('parameterset', None)
+        progspecs.defaults.pop('version', None)
+        progspecs.defaults.pop('parameterset', None)
     
     if 'wait' not in options.common:
         try:
-            options.common.wait = float(clusterspecs.defaults.wait)
+            options.common.wait = float(clusterconf.defaults.wait)
         except AttributeError:
             options.common.wait = 0
     
@@ -105,175 +105,175 @@ def initialize():
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if not 'scratch' in clusterspecs.defaults:
+    if not 'scratch' in clusterconf.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        options.jobscratch = options.common.scratch / clusterspecs.envars.jobid
+        options.jobscratch = options.common.scratch / clusterconf.envars.jobid
     else:
-        options.jobscratch = AbsPath(formatpath(clusterspecs.defaults.scratch, keys=names)) / clusterspecs.envars.jobid
+        options.jobscratch = AbsPath(pathjoin(clusterconf.defaults.scratch, keys=names)) / clusterconf.envars.jobid
 
     if 'queue' not in options.common:
-        if 'queue' in clusterspecs.defaults:
-            options.common.queue = clusterspecs.defaults.queue
+        if 'queue' in clusterconf.defaults:
+            options.common.queue = clusterconf.defaults.queue
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
-    if not 'packagename' in jobspecs:
-        messages.error('No se especificó el nombre del programa', spec='packagename')
+    if not 'longname' in progspecs:
+        messages.error('No se especificó el nombre del programa', spec='longname')
     
-    if not 'shortname' in jobspecs:
+    if not 'shortname' in progspecs:
         messages.error('No se especificó el sufijo del programa', spec='shortname')
     
     for key in options.parameters:
         if '/' in options.parameters[key]:
             messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
 
-    if 'mpilaunch' in jobspecs:
-        try: jobspecs.mpilaunch = booldict[jobspecs.mpilaunch]
+    if 'mpilaunch' in progspecs:
+        try: progspecs.mpilaunch = booldict[progspecs.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
-    if not jobspecs.filekeys:
+    if not progspecs.filekeys:
         messages.error('La lista de archivos del programa no existe o está vacía', spec='filekeys')
     
-    if jobspecs.inputfiles:
-        for key in jobspecs.inputfiles:
-            if not key in jobspecs.filekeys:
+    if progspecs.inputfiles:
+        for key in progspecs.inputfiles:
+            if not key in progspecs.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='inputfiles')
     else:
         messages.error('La lista de archivos de entrada no existe o está vacía', spec='inputfiles')
     
-    if jobspecs.outputfiles:
-        for key in jobspecs.outputfiles:
-            if not key in jobspecs.filekeys:
+    if progspecs.outputfiles:
+        for key in progspecs.outputfiles:
+            if not key in progspecs.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
 
-    if 'jobkind' in clusterspecs:
-        script.header.append(clusterspecs.jobkind.format(jobspecs.packagename))
+    if 'jobinfo' in clusterconf:
+        script.header.append(clusterconf.jobinfo.format(progspecs.longname))
 
     #TODO MPI support for Slurm
-    if jobspecs.parallelib:
-        if jobspecs.parallelib.lower() == 'none':
+    if progspecs.parallelib:
+        if progspecs.parallelib.lower() == 'none':
             if 'nodelist' in options.common:
-                for item in clusterspecs.serialat:
+                for item in clusterconf.serialat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterspecs.serial:
+                for item in clusterconf.serial:
                     script.header.append(item.format(**options.common))
-        elif jobspecs.parallelib.lower() == 'openmp':
+        elif progspecs.parallelib.lower() == 'openmp':
             if 'nodelist' in options.common:
-                for item in clusterspecs.singlehostat:
+                for item in clusterconf.singlehostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterspecs.singlehost:
+                for item in clusterconf.singlehost:
                     script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif jobspecs.parallelib.lower() == 'standalone':
+        elif progspecs.parallelib.lower() == 'standalone':
             if 'nodelist' in options.common:
-                for item in clusterspecs.multihostat:
+                for item in clusterconf.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterspecs.multihost:
+                for item in clusterconf.multihost:
                     script.header.append(item.format(**options.common))
-        elif jobspecs.parallelib.lower() in wrappers:
+        elif progspecs.parallelib.lower() in wrappers:
             if 'nodelist' in options.common:
-                for item in clusterspecs.multihostat:
+                for item in clusterconf.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterspecs.multihost:
+                for item in clusterconf.multihost:
                     script.header.append(item.format(**options.common))
-            script.main.append(clusterspecs.mpilauncher[jobspecs.parallelib])
+            script.main.append(clusterconf.mpilauncher[progspecs.parallelib])
         else:
-            messages.error('El tipo de paralelización', jobspecs.parallelib, 'no está soportado', spec='parallelib')
+            messages.error('El tipo de paralelización', progspecs.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
     
-    if jobspecs.versions:
+    if progspecs.versions:
         if 'version' not in options.common:
-            if 'version' in jobspecs.defaults:
-                if jobspecs.defaults.version in jobspecs.versions:
-                    options.common.version = jobspecs.defaults.version
+            if 'version' in progspecs.defaults:
+                if progspecs.defaults.version in progspecs.versions:
+                    options.common.version = progspecs.defaults.version
                 else:
                     messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
             else:
-                options.common.version = dialogs.chooseone('Seleccione una versión', choices=sorted(jobspecs.versions.keys(), key=natkey))
-        if options.common.version not in jobspecs.versions:
+                options.common.version = dialogs.chooseone('Seleccione una versión', choices=sorted(progspecs.versions.keys(), key=natkey))
+        if options.common.version not in progspecs.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
     else:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
-    if not jobspecs.versions[options.common.version].executable:
+    if not progspecs.versions[options.common.version].executable:
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
     
-    for envar, path in jobspecs.export.items() | jobspecs.versions[options.common.version].export.items():
-        abspath = AbsPath(formatpath(path, keys=names), cwd=options.jobscratch)
+    for envar, path in progspecs.export.items() | progspecs.versions[options.common.version].export.items():
+        abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
-    for envar, path in jobspecs.append.items() | jobspecs.versions[options.common.version].append.items():
-        abspath = AbsPath(formatpath(path, keys=names), cwd=options.jobscratch)
+    for envar, path in progspecs.append.items() | progspecs.versions[options.common.version].append.items():
+        abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
-    for path in jobspecs.source + jobspecs.versions[options.common.version].source:
-        script.setup.append('source {}'.format(AbsPath(formatpath(path, keys=names))))
+    for path in progspecs.source + progspecs.versions[options.common.version].source:
+        script.setup.append('source {}'.format(AbsPath(pathjoin(path, keys=names))))
 
-    if jobspecs.load or jobspecs.versions[options.common.version].load:
+    if progspecs.load or progspecs.versions[options.common.version].load:
         script.setup.append('module purge')
 
-    for module in jobspecs.load + jobspecs.versions[options.common.version].load:
+    for module in progspecs.load + progspecs.versions[options.common.version].load:
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(formatpath(jobspecs.versions[options.common.version].executable, keys=names)))
+        script.main.append(AbsPath(pathjoin(progspecs.versions[options.common.version].executable, keys=names)))
     except NotAbsolutePath:
-        script.main.append(jobspecs.versions[options.common.version].executable)
+        script.main.append(progspecs.versions[options.common.version].executable)
 
-    for path in clusterspecs.logfiles:
-        script.header.append(path.format(AbsPath(formatpath(clusterspecs.logdir, keys=names))))
+    for path in clusterconf.logfiles:
+        script.header.append(path.format(AbsPath(pathjoin(clusterconf.logdir, keys=names))))
 
     script.setup.append("shopt -s nullglob extglob")
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(clusterspecs.envars.items())
+    script.envars.extend(clusterconf.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
-    script.envars.extend((k, jobspecs.filekeys[v]) for k, v in jobspecs.filevars.items())
+    script.envars.extend((k, progspecs.filekeys[v]) for k, v in progspecs.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
     script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
 
-    for key in jobspecs.optargs:
-        if not jobspecs.optargs[key] in jobspecs.filekeys:
+    for key in progspecs.optargs:
+        if not progspecs.optargs[key] in progspecs.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
-        script.main.append('-{key} {val}'.format(key=key, val=jobspecs.filekeys[jobspecs.optargs[key]]))
+        script.main.append('-{key} {val}'.format(key=key, val=progspecs.filekeys[progspecs.optargs[key]]))
     
-    for item in jobspecs.posargs:
+    for item in progspecs.posargs:
         for key in item.split('|'):
-            if not key in jobspecs.filekeys:
+            if not key in progspecs.filekeys:
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
-        script.main.append('@' + p('|'.join(jobspecs.filekeys[i] for i in item.split('|'))))
+        script.main.append('@' + p('|'.join(progspecs.filekeys[i] for i in item.split('|'))))
     
-    if 'stdinput' in jobspecs:
+    if 'stdinput' in progspecs:
         try:
-            script.main.append('0<' + ' ' + jobspecs.filekeys[jobspecs.stdinput])
+            script.main.append('0<' + ' ' + progspecs.filekeys[progspecs.stdinput])
         except KeyError:
-            messages.error('La clave', q(jobspecs.stdinput) ,'no tiene asociado ningún archivo', spec='stdinput')
-    if 'stdoutput' in jobspecs:
+            messages.error('La clave', q(progspecs.stdinput) ,'no tiene asociado ningún archivo', spec='stdinput')
+    if 'stdoutput' in progspecs:
         try:
-            script.main.append('1>' + ' ' + jobspecs.filekeys[jobspecs.stdoutput])
+            script.main.append('1>' + ' ' + progspecs.filekeys[progspecs.stdoutput])
         except KeyError:
-            messages.error('La clave', q(jobspecs.stdoutput) ,'no tiene asociado ningún archivo', spec='stdoutput')
-    if 'stderror' in jobspecs:
+            messages.error('La clave', q(progspecs.stdoutput) ,'no tiene asociado ningún archivo', spec='stdoutput')
+    if 'stderror' in progspecs:
         try:
-            script.main.append('2>' + ' ' + jobspecs.filekeys[jobspecs.stderror])
+            script.main.append('2>' + ' ' + progspecs.filekeys[progspecs.stderror])
         except KeyError:
-            messages.error('La clave', q(jobspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
+            messages.error('La clave', q(progspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    if clusterspecs.filesync == 'local':
+    if clusterconf.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         if options.common.dispose:
@@ -282,7 +282,7 @@ def initialize():
             script.simport = 'cp "{}" "{}"'.format
         script.rimport = 'cp -r "{}/." "{}"'.format
         script.sexport = 'cp "{}" "{}"'.format
-    elif clusterspecs.filesync == 'remote':
+    elif clusterconf.filesync == 'remote':
         script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
@@ -291,7 +291,7 @@ def initialize():
             script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.rimport = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
         script.sexport = 'rcp "{}" $headname:"\'{}\'"'.format
-    elif clusterspecs.filesync == 'secure':
+    elif clusterconf.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
@@ -301,10 +301,10 @@ def initialize():
         script.rimport = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.sexport = 'scp "{}" $headname:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(clusterspecs.filesync), 'no es válido', spec='filesync')
+        messages.error('El método de copia', q(clusterconf.filesync), 'no es válido', spec='filesync')
 
     parameterdict = {}
-    parameterdict.update(jobspecs.defaults.parameters)
+    parameterdict.update(progspecs.defaults.parameters)
     parameterdict.update(options.parameters)
 
 #    #TODO Move this code to the submit function
@@ -319,10 +319,10 @@ def initialize():
 #                messages.error(value, 'El índice está fuera de rango', option=o(key))
 #            parameterdict.update({key: filtergroups[index]})
 
-    for path in jobspecs.defaults.parameterpaths:
-        partlist = AbsPath(formatpath(path, keys=names), cwd=options.common.cwd).parts
-        rootpath = AbsPath(next(partlist))
-        for part in partlist:
+    for path in progspecs.defaults.parameterpaths:
+        parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
+        rootpath = AbsPath(parts.pop(0))
+        for part in parts:
             try:
                 rootpath = rootpath / interpolate(part, keydict=parameterdict)
             except ValueError as e:
@@ -363,13 +363,13 @@ def initialize():
 
 def submit(parentdir, inputname):
 
-    filebools = {key: AbsPath(formatpath(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
-    for conflict, message in jobspecs.conflicts.items():
+    filebools = {key: AbsPath(pathjoin(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in progspecs.filekeys}
+    for conflict, message in progspecs.conflicts.items():
         if BoolParser(conflict).evaluate(filebools):
             messages.error(message, p(inputname))
 
-    if inputname.endswith('.' + jobspecs.shortname):
-        jobname = inputname[:-len(jobspecs.shortname)-1]
+    if inputname.endswith('.' + progspecs.shortname):
+        jobname = inputname[:-len(progspecs.shortname)-1]
     else:
         jobname = inputname
 
@@ -380,8 +380,8 @@ def submit(parentdir, inputname):
         jobname = jobname +  '.' + options.suffix
 
     #TODO Append program version to output file extension if option is enabled
-    if inputname.endswith('.' + jobspecs.shortname):
-        outputname = jobname + '.' + jobspecs.shortname
+    if inputname.endswith('.' + progspecs.shortname):
+        outputname = jobname + '.' + progspecs.shortname
     else:
         outputname = jobname
 
@@ -400,11 +400,11 @@ def submit(parentdir, inputname):
             messages.failure('El directorio de salida debe ser distinto al directorio padre')
             return
         stagedir = outdir
-        for key in jobspecs.inputfiles:
-            srcpath = AbsPath(formatpath(parentdir, (inputname, key)))
-            destpath = formatpath(stagedir, (outputname, key))
+        for key in progspecs.inputfiles:
+            srcpath = AbsPath(pathjoin(parentdir, (inputname, key)))
+            destpath = pathjoin(stagedir, (outputname, key))
             if srcpath.isfile():
-                if 'interpolable' in jobspecs and key in jobspecs.interpolable:
+                if 'interpolable' in progspecs and key in progspecs.interpolable:
                     with open(srcpath, 'r') as f:
                         contents = f.read()
                         if options.interpolation.interpolate:
@@ -415,10 +415,10 @@ def submit(parentdir, inputname):
                                     keydict=options.interpolation.dict,
                                 )
                             except ValueError:
-                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', file=formatpath((inputname, key)))
+                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', file=pathjoin((inputname, key)))
                                 return
                             except (IndexError, KeyError) as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', file=formatpath((inputname, key)), key=e.args[0])
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', file=pathjoin((inputname, key)), key=e.args[0])
                                 return
                         else:
                             try:
@@ -426,19 +426,19 @@ def submit(parentdir, inputname):
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
-                                if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', formatpath((inputname, key)),'¿desea continuar sin interpolar?'):
+                                if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', pathjoin((inputname, key)),'¿desea continuar sin interpolar?'):
                                     rawfiles[destpath] = srcpath
                                 else:
                                     return
                 else:
                     rawfiles[destpath] = srcpath
 
-    jobdir = AbsPath(formatpath(stagedir, (jobname, jobspecs.shortname + '.'.join(options.common.version.split()))))
+    jobdir = AbsPath(pathjoin(stagedir, (jobname, progspecs.shortname + '.'.join(options.common.version.split()))))
 
     if outdir.isdir():
         if jobdir.isdir():
             try:
-                with open(formatpath(jobdir, 'jobid'), 'r') as f:
+                with open(pathjoin(jobdir, 'jobid'), 'r') as f:
                     jobid = f.read()
                 jobstate = jobstat(jobid)
                 if jobstate is not None:
@@ -446,15 +446,15 @@ def submit(parentdir, inputname):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(formatpath((outputname, k)) for k in jobspecs.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((outputname, k)) for k in progspecs.outputfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
-        for key in jobspecs.outputfiles:
-            remove(formatpath(outdir, (outputname, key)))
+        for key in progspecs.outputfiles:
+            remove(pathjoin(outdir, (outputname, key)))
         if parentdir != outdir:
-            for key in jobspecs.inputfiles:
-                remove(formatpath(outdir, (outputname, key)))
+            for key in progspecs.inputfiles:
+                remove(pathjoin(outdir, (outputname, key)))
     else:
         try:
             outdir.makedirs()
@@ -470,22 +470,22 @@ def submit(parentdir, inputname):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])))
+        targetfile.linkto(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])))
 
     if options.remote.host:
 
         reloutdir = os.path.relpath(outdir, paths.home)
-        remotehome = formatpath(options.remote.root, (names.user, names.host))
-        remotetemp = formatpath(options.remote.root, (names.user, names.host, 'temp'))
+        remotehome = pathjoin(options.remote.root, (names.user, names.host))
+        remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))
         remoteargs.switches.add('raw')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': formatpath(remotetemp, reloutdir)})
-        remoteargs.constants.update({'out': formatpath(remotehome, reloutdir)})
+        remoteargs.constants.update({'cwd': pathjoin(remotetemp, reloutdir)})
+        remoteargs.constants.update({'out': pathjoin(remotehome, reloutdir)})
         filelist = []
-        for key in jobspecs.filekeys:
-            if os.path.isfile(formatpath(outdir, (outputname, key))):
-                filelist.append(formatpath(paths.home, '.', reloutdir, (outputname, key)))
+        for key in progspecs.filekeys:
+            if os.path.isfile(pathjoin(outdir, (outputname, key))):
+                filelist.append(pathjoin(paths.home, '.', reloutdir, (outputname, key)))
         arglist = [__file__, '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -510,21 +510,21 @@ def submit(parentdir, inputname):
         imports = []
         exports = []
     
-        for key in jobspecs.inputfiles:
-            if AbsPath(formatpath(parentdir, (inputname, key))).isfile():
-                imports.append(script.simport(formatpath(stagedir, (outputname, key)), formatpath(options.jobscratch, jobspecs.filekeys[key])))
+        for key in progspecs.inputfiles:
+            if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
+                imports.append(script.simport(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
     
         for key in options.targetfiles:
-            imports.append(script.simport(formatpath(stagedir, (outputname, jobspecs.fileoptions[key])), formatpath(options.jobscratch, jobspecs.filekeys[jobspecs.fileoptions[key]])))
+            imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
     
         for path in parameterpaths:
             if path.isfile():
-                imports.append(script.simport(path, formatpath(options.jobscratch, path.name)))
+                imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
             elif path.isdir():
-                imports.append(script.rimport(formatpath(path), options.jobscratch))
+                imports.append(script.rimport(pathjoin(path), options.jobscratch))
     
-        for key in jobspecs.outputfiles:
-            exports.append(script.sexport(formatpath(options.jobscratch, jobspecs.filekeys[key]), formatpath(outdir, (outputname, key))))
+        for key in progspecs.outputfiles:
+            exports.append(script.sexport(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
 
         try:
             jobdir.mkdir()
@@ -532,11 +532,11 @@ def submit(parentdir, inputname):
             messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
             return
 
-        jobscript = formatpath(jobdir, 'jobscript')
+        jobscript = pathjoin(jobdir, 'jobscript')
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
-            f.write(clusterspecs.jobname.format(jobname) + '\n')
+            f.write(clusterconf.jobname.format(jobname) + '\n')
             f.write(''.join(i + '\n' for i in script.header))
             f.write(''.join(i + '\n' for i in script.setup))
             f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
@@ -545,12 +545,12 @@ def submit(parentdir, inputname):
             f.write(script.mkdir(options.jobscratch) + '\n')
             f.write(''.join(i + '\n' for i in imports))
             f.write(script.chdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in jobspecs.prescript))
+            f.write(''.join(i + '\n' for i in progspecs.prescript))
             f.write(' '.join(script.main) + '\n')
-            f.write(''.join(i + '\n' for i in jobspecs.postscript))
+            f.write(''.join(i + '\n' for i in progspecs.postscript))
             f.write(''.join(i + '\n' for i in exports))
             f.write(script.rmdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in clusterspecs.offscript))
+            f.write(''.join(i + '\n' for i in clusterconf.offscript))
     
         if options.debug.dryrun:
             messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
@@ -562,6 +562,6 @@ def submit(parentdir, inputname):
                 return
             else:
                 messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-                with open(formatpath(jobdir, 'jobid'), 'w') as f:
+                with open(pathjoin(jobdir, 'jobid'), 'w') as f:
                     f.write(jobid)
     
