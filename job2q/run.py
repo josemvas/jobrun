@@ -8,22 +8,22 @@ from . import messages
 from .readspec import readspec
 from .utils import Bunch, templatekeys, printoptions, o, p, q, _
 from .fileutils import AbsPath, pathjoin, dirbranches
-from .shared import ArgList, names, paths, environ, clusterconf, progspecs, options, remoteargs
+from .shared import ArgList, names, paths, environ, clusterconf, packageconf, progspecs, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        if progspecs.versions:
+        if packageconf.versions:
             print(_('Versiones del programa:'))
-            default = progspecs.defaults.version if 'version' in progspecs.defaults else None
-            printoptions(tuple(progspecs.versions.keys()), [default], level=1)
-        for path in progspecs.defaults.parameterpaths:
+            default = packageconf.defaults.version if 'version' in packageconf.defaults else None
+            printoptions(tuple(packageconf.versions.keys()), [default], level=1)
+        for path in packageconf.defaults.parameterpaths:
             dirtree = {}
             parts = AbsPath(pathjoin(path, keys=names)).parts
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
-            defaults = [progspecs.defaults.parameters.get(i, None) for i in templatekeys(path)]
+            defaults = [packageconf.defaults.parameters.get(i, None) for i in templatekeys(path)]
             if dirtree:
                 print(_('Conjuntos de parámetros:'))
                 printoptions(dirtree, defaults, level=1)
@@ -54,11 +54,11 @@ try:
     parsedargs, remainingargs = parser.parse_known_args()
     names.program = parsedargs.program
     
-    clusterconf.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
     clusterconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
+    clusterconf.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
 
+    packageconf.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
     progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'progspec.json')))
-    progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
     
     userconfdir = pathjoin(paths.home, '.jobspecs')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')

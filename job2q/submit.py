@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-from subprocess import check_output, CalledProcessError
+from subprocess import CalledProcessError, call, check_output
 from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
-from .shared import names, paths, environ, clusterconf, progspecs, options, remoteargs
+from .shared import names, paths, environ, clusterconf, packageconf, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -82,8 +82,8 @@ def initialize():
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
     if options.common.defaults:
-        progspecs.defaults.pop('version', None)
-        progspecs.defaults.pop('parameterset', None)
+        packageconf.defaults.pop('version', None)
+        packageconf.defaults.pop('parameterset', None)
     
     if 'wait' not in options.common:
         try:
@@ -151,6 +151,35 @@ def initialize():
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
 
+    if 'prefix' in options.interpolation:
+        try:
+            options.prefix = interpolate(
+                options.interpolation.prefix,
+                keylist=options.interpolation.list,
+                keydict=options.interpolation.dict,
+            )
+        except ValueError as e:
+            messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
+        except (IndexError, KeyError) as e:
+            messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
+
+    if 'suffix' in options.interpolation:
+        try:
+            options.suffix = interpolate(
+                options.interpolation.suffix,
+                keylist=options.interpolation.list,
+                keydict=options.interpolation.dict,
+            )
+        except ValueError as e:
+            messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
+        except (IndexError, KeyError) as e:
+            messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
+
+    if options.remote.host:
+        return
+
+    ############ Local execution only ###########
+
     if 'jobinfo' in clusterconf:
         script.header.append(clusterconf.jobinfo.format(progspecs.longname))
 
@@ -190,45 +219,43 @@ def initialize():
             messages.error('El tipo de paralelización', progspecs.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
-    
-    if progspecs.versions:
-        if 'version' not in options.common:
-            if 'version' in progspecs.defaults:
-                if progspecs.defaults.version in progspecs.versions:
-                    options.common.version = progspecs.defaults.version
-                else:
-                    messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
-            else:
-                options.common.version = dialogs.chooseone('Seleccione una versión', choices=sorted(progspecs.versions.keys(), key=natkey))
-        if options.common.version not in progspecs.versions:
-            messages.error('La versión', options.common.version, 'no es válida', option='version')
-    else:
-        messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
-    if not progspecs.versions[options.common.version].executable:
+    if not packageconf.versions:
+        messages.error('La lista de versiones no existe o está vacía', spec='versions')
+    if 'version' not in options.common:
+        if 'version' in packageconf.defaults:
+            if packageconf.defaults.version in packageconf.versions:
+                options.common.version = packageconf.defaults.version
+            else:
+                messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
+        else:
+            options.common.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(packageconf.versions.keys(), key=natkey))
+    if options.common.version not in packageconf.versions:
+        messages.error('La versión', options.common.version, 'no es válida', option='version')
+    if not packageconf.versions[options.common.version].executable:
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
-    
-    for envar, path in progspecs.export.items() | progspecs.versions[options.common.version].export.items():
+
+    for envar, path in progspecs.export.items() | packageconf.versions[options.common.version].export.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
-    for envar, path in progspecs.append.items() | progspecs.versions[options.common.version].append.items():
+    for envar, path in progspecs.append.items() | packageconf.versions[options.common.version].append.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
-    for path in progspecs.source + progspecs.versions[options.common.version].source:
+    for path in progspecs.source + packageconf.versions[options.common.version].source:
         script.setup.append('source {}'.format(AbsPath(pathjoin(path, keys=names))))
 
-    if progspecs.load or progspecs.versions[options.common.version].load:
+    if progspecs.load or packageconf.versions[options.common.version].load:
         script.setup.append('module purge')
 
-    for module in progspecs.load + progspecs.versions[options.common.version].load:
+    for module in progspecs.load + packageconf.versions[options.common.version].load:
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(pathjoin(progspecs.versions[options.common.version].executable, keys=names)))
+        script.main.append(AbsPath(pathjoin(packageconf.versions[options.common.version].executable, keys=names)))
     except NotAbsolutePath:
-        script.main.append(progspecs.versions[options.common.version].executable)
+        script.main.append(packageconf.versions[options.common.version].executable)
 
     for path in clusterconf.logfiles:
         script.header.append(path.format(AbsPath(pathjoin(clusterconf.logdir, keys=names))))
@@ -304,7 +331,7 @@ def initialize():
         messages.error('El método de copia', q(clusterconf.filesync), 'no es válido', spec='filesync')
 
     parameterdict = {}
-    parameterdict.update(progspecs.defaults.parameters)
+    parameterdict.update(packageconf.defaults.parameters)
     parameterdict.update(options.parameters)
 
 #    #TODO Move this code to the submit function
@@ -319,7 +346,7 @@ def initialize():
 #                messages.error(value, 'El índice está fuera de rango', option=o(key))
 #            parameterdict.update({key: filtergroups[index]})
 
-    for path in progspecs.defaults.parameterpaths:
+    for path in packageconf.defaults.parameterpaths:
         parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
         rootpath = AbsPath(parts.pop(0))
         for part in parts:
@@ -329,36 +356,12 @@ def initialize():
                 messages.error('Hay variables de interpolación inválidas en la ruta', path, var=e.args[0])
             except KeyError:
                 choices = rootpath.listdir()
-                choice = dialogs.chooseone('Seleccione una opción', choices=choices)
+                choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
                 rootpath = rootpath / choice
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
             messages.error('La ruta', path, 'no existe', spec='defaults:parameterpaths')
-
-    if 'prefix' in options.interpolation:
-        try:
-            options.prefix = interpolate(
-                options.interpolation.prefix,
-                keylist=options.interpolation.list,
-                keydict=options.interpolation.dict,
-            )
-        except ValueError as e:
-            messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
-        except (IndexError, KeyError) as e:
-            messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
-
-    if 'suffix' in options.interpolation:
-        try:
-            options.suffix = interpolate(
-                options.interpolation.suffix,
-                keylist=options.interpolation.list,
-                keydict=options.interpolation.dict,
-            )
-        except ValueError as e:
-            messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
-        except (IndexError, KeyError) as e:
-            messages.error('Hay variables de interpolación sin definir en el sufijo', opt='--suffix', var=e.args[0])
 
 
 def submit(parentdir, inputname):
@@ -433,12 +436,12 @@ def submit(parentdir, inputname):
                 else:
                     rawfiles[destpath] = srcpath
 
-    jobdir = AbsPath(pathjoin(stagedir, (jobname, progspecs.shortname + '.'.join(options.common.version.split()))))
+    jobdir = AbsPath(pathjoin(stagedir, (jobname, progspecs.shortname, 'job')))
 
     if outdir.isdir():
         if jobdir.isdir():
             try:
-                with open(pathjoin(jobdir, 'jobid'), 'r') as f:
+                with open(pathjoin(jobdir, 'id'), 'r') as f:
                     jobid = f.read()
                 jobstate = jobstat(jobid)
                 if jobstate is not None:
@@ -486,7 +489,8 @@ def submit(parentdir, inputname):
         for key in progspecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (outputname, key))):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (outputname, key)))
-        arglist = [__file__, '-qt', '-S', paths.socket, options.remote.host]
+#        arglist = [__file__, '-qt', '-S', paths.socket, options.remote.host]
+        arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
         arglist.append(names.program)
@@ -503,7 +507,8 @@ def submit(parentdir, inputname):
                 check_output(['rsync', '-qRLtz', '-f', '-! */', '-e', 'ssh -S {}'.format(paths.socket)] + filelist + [options.remote.host + ':' + remotehome])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
-            os.execv('/usr/bin/ssh', arglist)
+#            os.execv('/usr/bin/ssh', arglist)
+            call(arglist)
 
     else:
 
@@ -532,7 +537,7 @@ def submit(parentdir, inputname):
             messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
             return
 
-        jobscript = pathjoin(jobdir, 'jobscript')
+        jobscript = pathjoin(jobdir, 'script')
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
@@ -562,6 +567,6 @@ def submit(parentdir, inputname):
                 return
             else:
                 messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-                with open(pathjoin(jobdir, 'jobid'), 'w') as f:
+                with open(pathjoin(jobdir, 'id'), 'w') as f:
                     f.write(jobid)
     
