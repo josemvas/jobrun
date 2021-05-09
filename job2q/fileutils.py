@@ -9,14 +9,6 @@ class NotAbsolutePath(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
-class PathKeyError(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
-
-class EmptyDirectoryError(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
-
 class AbsPath(str):
     def __new__(cls, path, cwd=None):
         if not isinstance(path, str):
@@ -44,10 +36,6 @@ class AbsPath(str):
         return self.suffix == suffix
     def exists(self):
         return os.path.exists(self)
-    def isfile(self):
-        return os.path.isfile(self)
-    def isdir(self):
-        return os.path.isdir(self)
     def mkdir(self):
         mkdir(self)
     def makedirs(self):
@@ -60,6 +48,29 @@ class AbsPath(str):
         if os.path.isabs(right):
             raise Exception('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
+    def isfile(self):
+        if os.path.exists(self):
+            if os.path.isfile(self):
+                return True
+            if os.path.isdir(self):
+                self.failreason = 'La ruta {} es un directorio'.format(self)
+            else:
+                self.failreason = 'La ruta {} no es un archivo regular'.format(self)
+        else:
+            self.failreason = 'El archivo {} no existe'.format(self)
+        return False
+    def isdir(self):
+        return os.path.isdir(self)
+        if os.path.exists(self):
+            if os.path.isdir(self):
+                return True
+            if os.path.isfile(self):
+                self.failreason = 'La ruta {} es un archivo'.format(self)
+            else:
+                self.failreason = 'La ruta {} no es un directorio'.format(self)
+        else:
+            self.failreason = 'El directorio {} no existe'.format(self)
+        return False
 
 def mkdir(path):
     try: os.mkdir(path)

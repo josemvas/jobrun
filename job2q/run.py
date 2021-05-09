@@ -158,7 +158,7 @@ try:
 #    print(remoteargs)
 
     if parsedargs.files:
-        arglist = ArgList(parsedargs.files)
+        arguments = ArgList(parsedargs.files)
     else:
         messages.error('Debe especificar al menos un archivo de entrada')
 
@@ -171,12 +171,12 @@ try:
     initialize()
 
     try:
-        parentdir, inputname = next(arglist)
+        parentdir, inputname = next(arguments)
     except StopIteration:
         sys.exit()
 
     submit(parentdir, inputname)
-    for parentdir, inputname in arglist:
+    for parentdir, inputname in arguments:
         sleep(options.common.wait)
         submit(parentdir, inputname)
     

@@ -2,12 +2,13 @@
 import os
 import sys
 from subprocess import check_output, CalledProcessError
+from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, formatpath, remove
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, paths, environ, clusterspecs, jobspecs, options, remoteargs
-from .details import wrappers
+from .parsing import BoolParser
 from .readmol import readmol
 
 parameterpaths = []
@@ -361,6 +362,11 @@ def initialize():
 
 
 def submit(parentdir, inputname):
+
+    filebools = {key: AbsPath(formatpath(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
+    for conflict, message in jobspecs.conflicts.items():
+        if BoolParser(conflict).evaluate(filebools):
+            messages.error(message, p(inputname))
 
     if inputname.endswith('.' + jobspecs.shortname):
         jobname = inputname[:-len(jobspecs.shortname)-1]

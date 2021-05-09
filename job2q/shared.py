@@ -9,7 +9,6 @@ from socket import gethostname
 from .readspec import SpecBunch
 from .utils import Bunch, p, q, natkey
 from .fileutils import AbsPath, formatpath
-from .parsing import BoolParser
 from . import messages
 
 class ArgList:
@@ -37,47 +36,35 @@ class ArgList:
             parentdir = AbsPath(options.common.cwd)
             for key in jobspecs.inputfiles:
                 if AbsPath(formatpath(parentdir, (self.current, jobspecs.shortname, key))).isfile():
-                    filename = formatpath((self.current, jobspecs.shortname))
+                    inputname = formatpath((self.current, jobspecs.shortname))
                     break
             else:
                 for key in jobspecs.inputfiles:
                     if AbsPath(formatpath(parentdir, (self.current, key))).isfile():
-                        filename = self.current
+                        inputname = self.current
                         break
                 else:
-                    messages.failure('No hay archivos de entrada asociados al trabjo', self.current)
+                    messages.failure('No hay archivos de entrada de', jobspecs.packagename, 'asociados al trabajo', self.current)
                     return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
             for key in jobspecs.inputfiles:
                 if path.name.endswith('.' + key):
-                    filename = path.name[:-len('.' + key)]
+                    inputname = path.name[:-len('.' + key)]
                     break
             else:
                 messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', jobspecs.packagename)
                 return next(self)
-            #TODO Move file checking to AbsPath class
             if not path.isfile():
-                if not path.exists():
-                    messages.failure('El archivo de entrada', path, 'no existe')
-                elif path.isdir():
-                    messages.failure('El archivo de entrada', path, 'es un directorio')
-                else:
-                    messages.failure('El archivo de entrada', path, 'no es un archivo regular')
+                messages.failure(path.failreason)
                 return next(self)
-        filtermatch = self.filter.fullmatch(filename)
-        #TODO Make filtergroups available to other functions
+        filtermatch = self.filter.fullmatch(inputname)
         if filtermatch:
-            filtergroups = filtermatch.groups()
+            self.groups = filtermatch.groups()
+            return parentdir, inputname
         else:
             return next(self)
-        filebools = {key: AbsPath(formatpath(parentdir, (filename, key))).isfile() or key in options.targetfiles for key in jobspecs.filekeys}
-        for conflict, message in jobspecs.conflicts.items():
-            if BoolParser(conflict).evaluate(filebools):
-                messages.error(message, p(filename))
-                return next(self)
-        return parentdir, filename
 
 class ArgGroups:
     def __init__(self):
