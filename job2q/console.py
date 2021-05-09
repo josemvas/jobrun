@@ -130,7 +130,6 @@ def install(relpath=False):
     with open(pathjoin(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(pathjoin(bindir, 'job2q.target'), 'w') as w:
         w.write(r.read().format(**installation))
 
-    print(specdir, os.listdir(specdir))
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
             symlink(pathjoin(bindir, 'job2q.target'), pathjoin(bindir, diritem))
