@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
 from .details import wrappers
 from . import dialogs, messages
@@ -85,11 +86,12 @@ def initialize():
         sysconf.defaults.pop('version', None)
         sysconf.defaults.pop('parameterset', None)
     
-    if 'wait' not in options.common:
-        try:
-            options.common.wait = float(sysconf.defaults.wait)
-        except AttributeError:
-            options.common.wait = 0
+    try:
+        sysconf.delay = float(sysconf.delay)
+    except ValueError:
+        messages.error('El tiempo de espera debe ser un numéro', conf='delay')
+    except AttributeError:
+        sysconf.delay = 0
     
     if 'nodes' not in options.common:
         options.common.nodes = 1
@@ -561,6 +563,10 @@ def submit(parentdir, inputname):
             messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
         else:
             try:
+                sleep(sysconf.delay + os.stat(paths.lock).st_mtime - time())
+            except (ValueError, FileNotFoundError) as e:
+                pass
+            try:
                 jobid = jobsubmit(jobscript)
             except RuntimeError as error:
                 messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
@@ -569,4 +575,6 @@ def submit(parentdir, inputname):
                 messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
                 with open(pathjoin(jobdir, 'id'), 'w') as f:
                     f.write(jobid)
+                with open(paths.lock, 'a'):
+                    os.utime(paths.lock, None)
     

@@ -102,7 +102,7 @@ def join_args(f):
 
 def join_args_and_kwargs(f):
     def wrapper(*args, **kwargs):
-        return f(' '.join(args), ', '.join('{}: {}'.format(k, v) for k, v in kwargs.items()))
+        return f(' '.join(args), ', '.join('{}={}'.format(k, v) for k, v in kwargs.items()))
     return wrapper
 
 def catch_keyboard_interrupt(f):

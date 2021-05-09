@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-from time import sleep
 from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
@@ -102,7 +101,6 @@ try:
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
-    group2.add_argument('-w', '--wait', type=float, metavar='TIME', default=SUPPRESS, help='Tiempo de pausa (en segundos) después de cada ejecución.')
 #    group2.add_argument('-p', '--path', action=AppendPath, metavar='PATH', default=[], help='Agregar la ruta PATH para buscar los conjunto de parámetros.')
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
@@ -177,14 +175,7 @@ try:
 
     initialize()
 
-    try:
-        parentdir, inputname = next(arguments)
-    except StopIteration:
-        sys.exit()
-
-    submit(parentdir, inputname)
     for parentdir, inputname in arguments:
-        sleep(options.common.wait)
         submit(parentdir, inputname)
     
 except KeyboardInterrupt:

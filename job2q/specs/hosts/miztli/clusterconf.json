@@ -3,11 +3,11 @@
    "scheduler": "LSF",
    "filesync": "local",
    "logdir": "/tmp",
+   "delay": "3",
 
    "defaults": {
       "queue": "q_htc",
-      "scratch": "/tmpu/{group}/{user}",
-      "wait": "3"
+      "scratch": "/tmpu/{group}/{user}"
    },
 
    "offscript": [

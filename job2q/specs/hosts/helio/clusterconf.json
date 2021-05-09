@@ -3,11 +3,11 @@
    "scheduler": "Lava",
    "filesync": "local",
    "logdir": "/tmp",
+   "delay": "1",
 
    "defaults": {
       "queue": "auto",
-      "scratch": "/scratch",
-      "wait": "1"
+      "scratch": "/scratch"
    },
 
    "offscript": [

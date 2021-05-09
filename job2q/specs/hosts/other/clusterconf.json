@@ -3,11 +3,11 @@
    "headname": "",
    "filesync": "local",
    "logdir": "/tmp",
+   "delay": "1",
 
    "defaults": {
       "queue": "",
-      "scratch": "/scratch",
-      "wait": "1"
+      "scratch": "/scratch"
    },
 
    "offscript": [

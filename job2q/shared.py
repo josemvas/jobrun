@@ -98,4 +98,5 @@ names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = os.path.expanduser('~')
+paths.lock = pathjoin(paths.home, '.job2q.lock')
 
