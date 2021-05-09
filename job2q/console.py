@@ -42,13 +42,13 @@ def install(relpath=False):
         if not os.path.isfile(pathjoin(srchostspecdir, diritem, 'clusterconf.json')):
             messages.warning('El directorio', diritem, 'no contiene ningún archivo de configuración')
         clusterconf = readspec(pathjoin(srchostspecdir, diritem, 'clusterconf.json'))
-        clusternames[diritem] = clusterconf.name
-        clusterspeckeys[clusterconf.name] = diritem
+        clusternames[diritem] = clusterconf.clustername
+        clusterspeckeys[clusterconf.clustername] = diritem
         if 'scheduler' in clusterconf:
             clusterschedulers[diritem] = clusterconf.scheduler
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
-        defaulthost = readspec(pathjoin(specdir, 'clusterconf.json')).name
+        defaulthost = readspec(pathjoin(specdir, 'clusterconf.json')).clustername
         if defaulthost not in clusternames.values():
             defaulthost = 'Otro'
     else:

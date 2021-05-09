@@ -1,5 +1,5 @@
 {
-   "schedulername": "IBM LSF",
+   "schedulername": "LSF",
    "submitcmd": [ "bsub", "-env", "all" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "submitre": ".*<([0-9]+)>.*",

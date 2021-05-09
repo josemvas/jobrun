@@ -7,7 +7,7 @@ from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove
 from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
-from .shared import names, paths, environ, clusterconf, packageconf, progspecs, options, remoteargs
+from .shared import names, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -82,12 +82,12 @@ def initialize():
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
     if options.common.defaults:
-        packageconf.defaults.pop('version', None)
-        packageconf.defaults.pop('parameterset', None)
+        sysconf.defaults.pop('version', None)
+        sysconf.defaults.pop('parameterset', None)
     
     if 'wait' not in options.common:
         try:
-            options.common.wait = float(clusterconf.defaults.wait)
+            options.common.wait = float(sysconf.defaults.wait)
         except AttributeError:
             options.common.wait = 0
     
@@ -105,17 +105,17 @@ def initialize():
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if not 'scratch' in clusterconf.defaults:
+    if not 'scratch' in sysconf.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        options.jobscratch = options.common.scratch / clusterconf.envars.jobid
+        options.jobscratch = options.common.scratch / queuespecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(pathjoin(clusterconf.defaults.scratch, keys=names)) / clusterconf.envars.jobid
+        options.jobscratch = AbsPath(pathjoin(sysconf.defaults.scratch, keys=names)) / queuespecs.envars.jobid
 
     if 'queue' not in options.common:
-        if 'queue' in clusterconf.defaults:
-            options.common.queue = clusterconf.defaults.queue
+        if 'queue' in sysconf.defaults:
+            options.common.queue = sysconf.defaults.queue
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
@@ -180,91 +180,91 @@ def initialize():
 
     ############ Local execution only ###########
 
-    if 'jobinfo' in clusterconf:
-        script.header.append(clusterconf.jobinfo.format(progspecs.longname))
+    if 'jobinfo' in queuespecs:
+        script.header.append(queuespecs.jobinfo.format(progspecs.longname))
 
     #TODO MPI support for Slurm
     if progspecs.parallelib:
         if progspecs.parallelib.lower() == 'none':
             if 'nodelist' in options.common:
-                for item in clusterconf.serialat:
+                for item in queuespecs.serialat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterconf.serial:
+                for item in queuespecs.serial:
                     script.header.append(item.format(**options.common))
         elif progspecs.parallelib.lower() == 'openmp':
             if 'nodelist' in options.common:
-                for item in clusterconf.singlehostat:
+                for item in queuespecs.singlehostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterconf.singlehost:
+                for item in queuespecs.singlehost:
                     script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif progspecs.parallelib.lower() == 'standalone':
             if 'nodelist' in options.common:
-                for item in clusterconf.multihostat:
+                for item in queuespecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterconf.multihost:
+                for item in queuespecs.multihost:
                     script.header.append(item.format(**options.common))
         elif progspecs.parallelib.lower() in wrappers:
             if 'nodelist' in options.common:
-                for item in clusterconf.multihostat:
+                for item in queuespecs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in clusterconf.multihost:
+                for item in queuespecs.multihost:
                     script.header.append(item.format(**options.common))
-            script.main.append(clusterconf.mpilauncher[progspecs.parallelib])
+            script.main.append(queuespecs.mpilauncher[progspecs.parallelib])
         else:
             messages.error('El tipo de paralelización', progspecs.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
 
-    if not packageconf.versions:
+    if not sysconf.versions:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
     if 'version' not in options.common:
-        if 'version' in packageconf.defaults:
-            if packageconf.defaults.version in packageconf.versions:
-                options.common.version = packageconf.defaults.version
+        if 'version' in sysconf.defaults:
+            if sysconf.defaults.version in sysconf.versions:
+                options.common.version = sysconf.defaults.version
             else:
                 messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
         else:
-            options.common.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(packageconf.versions.keys(), key=natkey))
-    if options.common.version not in packageconf.versions:
+            options.common.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(sysconf.versions.keys(), key=natkey))
+    if options.common.version not in sysconf.versions:
         messages.error('La versión', options.common.version, 'no es válida', option='version')
-    if not packageconf.versions[options.common.version].executable:
+    if not sysconf.versions[options.common.version].executable:
         messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
 
-    for envar, path in progspecs.export.items() | packageconf.versions[options.common.version].export.items():
+    for envar, path in progspecs.export.items() | sysconf.versions[options.common.version].export.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
-    for envar, path in progspecs.append.items() | packageconf.versions[options.common.version].append.items():
+    for envar, path in progspecs.append.items() | sysconf.versions[options.common.version].append.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
-    for path in progspecs.source + packageconf.versions[options.common.version].source:
+    for path in progspecs.source + sysconf.versions[options.common.version].source:
         script.setup.append('source {}'.format(AbsPath(pathjoin(path, keys=names))))
 
-    if progspecs.load or packageconf.versions[options.common.version].load:
+    if progspecs.load or sysconf.versions[options.common.version].load:
         script.setup.append('module purge')
 
-    for module in progspecs.load + packageconf.versions[options.common.version].load:
+    for module in progspecs.load + sysconf.versions[options.common.version].load:
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(pathjoin(packageconf.versions[options.common.version].executable, keys=names)))
+        script.main.append(AbsPath(pathjoin(sysconf.versions[options.common.version].executable, keys=names)))
     except NotAbsolutePath:
-        script.main.append(packageconf.versions[options.common.version].executable)
+        script.main.append(sysconf.versions[options.common.version].executable)
 
-    for path in clusterconf.logfiles:
-        script.header.append(path.format(AbsPath(pathjoin(clusterconf.logdir, keys=names))))
+    for path in queuespecs.logfiles:
+        script.header.append(path.format(AbsPath(pathjoin(sysconf.logdir, keys=names))))
 
     script.setup.append("shopt -s nullglob extglob")
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(clusterconf.envars.items())
+    script.envars.extend(queuespecs.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k, progspecs.filekeys[v]) for k, v in progspecs.filevars.items())
 
@@ -300,7 +300,7 @@ def initialize():
             messages.error('La clave', q(progspecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    if clusterconf.filesync == 'local':
+    if sysconf.filesync == 'local':
         script.rmdir = 'rm -rf "{}"'.format
         script.mkdir = 'mkdir -p -m 700 "{}"'.format
         if options.common.dispose:
@@ -309,7 +309,7 @@ def initialize():
             script.simport = 'cp "{}" "{}"'.format
         script.rimport = 'cp -r "{}/." "{}"'.format
         script.sexport = 'cp "{}" "{}"'.format
-    elif clusterconf.filesync == 'remote':
+    elif sysconf.filesync == 'remote':
         script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
@@ -318,7 +318,7 @@ def initialize():
             script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.rimport = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
         script.sexport = 'rcp "{}" $headname:"\'{}\'"'.format
-    elif clusterconf.filesync == 'secure':
+    elif sysconf.filesync == 'secure':
         script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         if options.common.dispose:
@@ -328,10 +328,10 @@ def initialize():
         script.rimport = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
         script.sexport = 'scp "{}" $headname:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(clusterconf.filesync), 'no es válido', spec='filesync')
+        messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
     parameterdict = {}
-    parameterdict.update(packageconf.defaults.parameters)
+    parameterdict.update(sysconf.defaults.parameters)
     parameterdict.update(options.parameters)
 
 #    #TODO Move this code to the submit function
@@ -346,7 +346,7 @@ def initialize():
 #                messages.error(value, 'El índice está fuera de rango', option=o(key))
 #            parameterdict.update({key: filtergroups[index]})
 
-    for path in packageconf.defaults.parameterpaths:
+    for path in sysconf.defaults.parameterpaths:
         parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
         rootpath = AbsPath(parts.pop(0))
         for part in parts:
@@ -541,7 +541,7 @@ def submit(parentdir, inputname):
 
         with open(jobscript, 'w') as f:
             f.write('#!/bin/bash' + '\n')
-            f.write(clusterconf.jobname.format(jobname) + '\n')
+            f.write(queuespecs.jobname.format(jobname) + '\n')
             f.write(''.join(i + '\n' for i in script.header))
             f.write(''.join(i + '\n' for i in script.setup))
             f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
@@ -555,7 +555,7 @@ def submit(parentdir, inputname):
             f.write(''.join(i + '\n' for i in progspecs.postscript))
             f.write(''.join(i + '\n' for i in exports))
             f.write(script.rmdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in clusterconf.offscript))
+            f.write(''.join(i + '\n' for i in sysconf.offscript))
     
         if options.debug.dryrun:
             messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)

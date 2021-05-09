@@ -8,22 +8,22 @@ from . import messages
 from .readspec import readspec
 from .utils import Bunch, templatekeys, printoptions, o, p, q, _
 from .fileutils import AbsPath, pathjoin, dirbranches
-from .shared import ArgList, names, paths, environ, clusterconf, packageconf, progspecs, options, remoteargs
+from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        if packageconf.versions:
+        if sysconf.versions:
             print(_('Versiones del programa:'))
-            default = packageconf.defaults.version if 'version' in packageconf.defaults else None
-            printoptions(tuple(packageconf.versions.keys()), [default], level=1)
-        for path in packageconf.defaults.parameterpaths:
+            default = sysconf.defaults.version if 'version' in sysconf.defaults else None
+            printoptions(tuple(sysconf.versions.keys()), [default], level=1)
+        for path in sysconf.defaults.parameterpaths:
             dirtree = {}
             parts = AbsPath(pathjoin(path, keys=names)).parts
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
-            defaults = [packageconf.defaults.parameters.get(i, None) for i in templatekeys(path)]
+            defaults = [sysconf.defaults.parameters.get(i, None) for i in templatekeys(path)]
             if dirtree:
                 print(_('Conjuntos de parámetros:'))
                 printoptions(dirtree, defaults, level=1)
@@ -53,30 +53,32 @@ try:
     parser.add_argument('program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
     names.program = parsedargs.program
-    
-    clusterconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
-    clusterconf.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
 
-    packageconf.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
-    progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'progspec.json')))
-    
+    try:
+        queuespecs.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
+        progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'progspec.json')))
+        sysconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
+        sysconf.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
+    except FileNotFoundError as e:
+        messages.error(str(e))
+
     userconfdir = pathjoin(paths.home, '.jobspecs')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
     userpackageconf = pathjoin(userconfdir, names.program, 'packageconf.json')
     
-    if os.path.isfile(userclusterconf):
-        clusterconf.merge(readspec(usersclusterconf))
-
-    if os.path.isfile(userpackageconf):
-        progspecs.merge(readspec(userpackageconf))
+    try:
+        sysconf.merge(readspec(userclusterconf))
+        sysconf.merge(readspec(userpackageconf))
+    except FileNotFoundError:
+        pass
     
     try:
-        names.cluster = clusterconf.name
+        names.cluster = sysconf.clustername
     except AttributeError:
         messages.error('No se definió el nombre del clúster', spec='name')
 
     try:
-        names.head = clusterconf.head
+        names.head = sysconf.headname
     except AttributeError:
         names.head = names.host
 

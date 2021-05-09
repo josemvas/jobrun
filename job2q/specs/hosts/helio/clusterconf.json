@@ -1,7 +1,6 @@
 {
-   "name": "Helio",
-   "head": "helio",
-   "scheduler": "Lava LSF",
+   "clustername": "Helio",
+   "scheduler": "Lava",
    "filesync": "local",
    "logdir": "/tmp",
 

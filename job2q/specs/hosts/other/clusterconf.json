@@ -1,5 +1,6 @@
 {
-   "name": "Otro",
+   "clustername": "Otro",
+   "headname": "",
    "filesync": "local",
    "logdir": "/tmp",
 
