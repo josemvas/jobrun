@@ -27,9 +27,8 @@ def initialize():
             messages.error('El archivo de entrada', path, 'no existe', option=o(key))
 
     if options.remote.host:
-        paths.socketdir = AbsPath(pathjoin(paths.home, '.ssh', 'job2q'))
-        paths.socket = paths.socketdir / options.remote.host
-        paths.socketdir.makedirs()
+        (paths.home/'.ssh').mkdir()
+        paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'job2q', 'sock'))
         try:
             environment = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv JOBCOMMAND JOBSYNCDIR'])
         except CalledProcessError as e:
@@ -505,8 +504,8 @@ def submit(parentdir, inputname):
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-qRLtz', '-e', 'ssh -S {}'.format(paths.socket)] + filelist + [options.remote.host + ':' + remotetemp])
-                check_output(['rsync', '-qRLtz', '-f', '-! */', '-e', 'ssh -S {}'.format(paths.socket)] + filelist + [options.remote.host + ':' + remotehome])
+                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz'] + filelist + [options.remote.host + ':' + remotetemp])
+                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz', '-f', '-! */'] + filelist + [options.remote.host + ':' + remotehome])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
 #            os.execv('/usr/bin/ssh', arglist)
