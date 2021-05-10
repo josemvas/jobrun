@@ -1,5 +1,7 @@
 {
    "defaults": {
+      "parameterkeys": {
+      }
    },
    "versions": {
       "17.1": {

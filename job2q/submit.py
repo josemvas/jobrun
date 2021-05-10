@@ -516,7 +516,6 @@ def submit(parentdir, inputname, filtergroups):
             else:
                 trunk = trunk / part
         parameterpaths.append(trunk)
-    print(parameterpaths)
 
     imports = []
     exports = []
