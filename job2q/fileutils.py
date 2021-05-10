@@ -3,7 +3,7 @@ import string
 import shutil
 import fnmatch
 from . import messages
-from .utils import DictTemplate, DefaultDict, DefaultDict, deepjoin
+from .utils import DefaultDict, deepjoin
 
 class NotAbsolutePath(Exception):
     pass

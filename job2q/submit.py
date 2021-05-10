@@ -81,7 +81,7 @@ def initialize():
             if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
-    if options.common.defaults:
+    if options.common.interactive:
         sysconf.defaults.pop('version', None)
         sysconf.defaults.pop('parameterset', None)
     
@@ -92,9 +92,6 @@ def initialize():
     except AttributeError:
         sysconf.delay = 0
     
-    if 'nodes' not in options.common:
-        options.common.nodes = 1
-
     if not 'scratch' in sysconf.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
@@ -323,6 +320,31 @@ def initialize():
     else:
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
+    parameterdict = DefaultDict('*')
+    parameterdict.update(sysconf.defaults.parameterkeys)
+    parameterdict.update(options.parameterkeys)
+
+    for path in sysconf.parameterpaths:
+        parts = splitpath(pathjoin(path, keys=names))
+        trunk = AbsPath(parts.pop(0))
+        for part in parts:
+            if not trunk.isdir():
+                messages.error(trunk.failreason)
+            partglob = part.format_map(parameterdict)
+            if parameterdict._keys:
+                choices = trunk.glob(partglob)
+                if choices:
+                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
+                    trunk = trunk / choice
+                elif trunk.listdir():
+                    messages.error('La ruta', trunk, 'no contiene coincidencias')
+                else:
+                    messages.error('La ruta', trunk, 'está vacía')
+            else:
+                trunk = trunk / partglob
+        parameterpaths.append(trunk)
+    print(parameterpaths)
+
 
 def submit(parentdir, inputname, filtergroups):
 
@@ -443,13 +465,14 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.switches.add('raw')
         remoteargs.switches.add('jobargs')
         remoteargs.switches.add('dispose')
-        remoteargs.constants.update({'cwd': pathjoin(remotetemp, reloutdir)})
-        remoteargs.constants.update({'out': pathjoin(remotehome, reloutdir)})
+        remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
+        remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
+        for key, value in options.parameterkeys.items():
+            remoteargs.constants[key] = interpolate(value, keylist=filtergroups)
         filelist = []
         for key in progspecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (outputname, key))):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (outputname, key)))
-#        arglist = [__file__, '-qt', '-S', paths.socket, options.remote.host]
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -467,41 +490,11 @@ def submit(parentdir, inputname, filtergroups):
                 check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz', '-f', '-! */'] + filelist + [options.remote.host + ':' + remotehome])
             except CalledProcessError as e:
                 messages.error(e.output.decode(sys.stdout.encoding).strip())
-#            os.execv('/usr/bin/ssh', arglist)
             call(arglist)
 
         return
 
     ############ Local execution ###########
-
-    # Use filter groups to set parameter keys
-    if filtergroups:
-        for paramkey, value in options.parameterkeys.items():
-            options.parameterkeys[paramkey] = interpolate(value, keylist=filtergroups)
-
-    parameterdict = DefaultDict('*')
-    parameterdict.update(sysconf.defaults.parameterkeys)
-    parameterdict.update(options.parameterkeys)
-
-    for path in sysconf.parameterpaths:
-        parts = splitpath(pathjoin(path, keys=names))
-        trunk = AbsPath(parts.pop(0))
-        for part in parts:
-            if not trunk.isdir():
-                messages.error(trunk.failreason)
-            partglob = part.format_map(parameterdict)
-            if parameterdict._keys:
-                choices = trunk.glob(partglob)
-                if choices:
-                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
-                    trunk = trunk / choice
-                elif trunk.listdir():
-                    messages.error('La ruta', trunk, 'no contiene coincidencias')
-                else:
-                    messages.error('La ruta', trunk, 'está vacía')
-            else:
-                trunk = trunk / partglob
-        parameterpaths.append(trunk)
 
     imports = []
     exports = []
@@ -514,10 +507,13 @@ def submit(parentdir, inputname, filtergroups):
         imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
 
     for path in parameterpaths:
+        path = AbsPath(interpolate(path, keylist=filtergroups))
         if path.isfile():
             imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
         elif path.isdir():
             imports.append(script.rimport(pathjoin(path), options.jobscratch))
+        else:
+            messages.error('La ruta de parámetros', path, 'no existe')
 
     for key in progspecs.outputfiles:
         exports.append(script.sexport(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
@@ -552,7 +548,7 @@ def submit(parentdir, inputname, filtergroups):
         messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
     else:
         try:
-            sleep(sysconf.delay + os.stat(paths.lock).st_mtime - time())
+            sleep(sysconf.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
         except (ValueError, FileNotFoundError) as e:
             pass
         try:

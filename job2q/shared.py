@@ -14,15 +14,14 @@ from . import messages
 class ArgList:
     def update(self, args):
         self.current = None
-        if 'sort' in options.common:
-            if options.common.sort == 'natural':
-                self.args = sorted(args, key=natkey)
-            elif options.common.sort == 'reverse':
-                self.args = sorted(args, key=natkey, reverse=True)
+        if options.arguments.sort:
+            self.args = sorted(args, key=natkey)
+        elif options.arguments.sort_reverse:
+            self.args = sorted(args, key=natkey, reverse=True)
         else:
             self.args = args
-        if 'filter' in options.common:
-            self.filter = re.compile(options.common.filter)
+        if 'filter' in options.arguments:
+            self.filter = re.compile(options.arguments.filter)
         else:
             self.filter = re.compile('.+')
     def __iter__(self):

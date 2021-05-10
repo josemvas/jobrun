@@ -31,24 +31,12 @@ class DefaultDict(dict):
     def __init__(self, default=None):
         self._keys = []
         self._default = default
-    def __getitem__(self, key):
+    def __missing__(self, key):
         self._keys.append(key)
         if self._default is None:
             return '{' + key + '}'
         else:
             return self._default
-
-class DictTemplate(string.Template):
-    delimiter = '%'
-    idpattern = r'[a-z][a-z0-9]*'
-
-class ListTemplate(string.Template):
-    delimiter = '%'
-    idpattern = r'[0-9]+'
-
-class DualTemplate(string.Template):
-    delimiter = '%'
-    idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
 
 class _(string.Template):
     def __str__(self):
@@ -56,12 +44,16 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-def templatekeys(template):
-    d = DefaultDict()
-    DictTemplate(template).substitute(d)
-    return d._keys
-
 def interpolate(template, keylist=[], keydict={}):
+    class DictTemplate(string.Template):
+        delimiter = '%'
+        idpattern = r'[a-z][a-z0-9]*'
+    class ListTemplate(string.Template):
+        delimiter = '%'
+        idpattern = r'[0-9]+'
+    class DualTemplate(string.Template):
+        delimiter = '%'
+        idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
             return DualTemplate(template).substitute(DefaultDict()).format('', *keylist, **keydict)

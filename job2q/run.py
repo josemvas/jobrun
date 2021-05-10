@@ -119,21 +119,20 @@ try:
     group2.name = 'common'
     group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-    group2.add_argument('-d', '--defaults', action='store_true', help='Ignorar las opciones predeterminadas y preguntar.')
-    group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+    group2.add_argument('-i', '--interactive', action='store_true', help='Preguntar siempre aunque existan opciones predeterminadas.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
-    group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Número de núcleos de procesador requeridos.')
-    group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
-    group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
-    group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
+    group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Requerir #PROCS núcleos de procesamiento.')
+    group2.add_argument('-q', '--queue', metavar='QUEUE', default=SUPPRESS, help='Requerir la cola QUEUE.')
+    group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
+    group2.add_argument('--delay', type=int, metavar='#SECONDS', default=0, help='Demorar el envío del trabajo #SECONDS segundos.')
     group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
-    hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=SUPPRESS, help='Número de nodos de ejecución requeridos.')
+    hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
@@ -149,7 +148,15 @@ try:
     group4.name = 'parameterkeys'
     group4.remote = True
     for key in foundparameterkeys:
-        group4.add_argument(o(key), metavar='COMPONENT', default=SUPPRESS, help='Seleccionar el componente COMPONENT en las ruta de parámetro')
+        group4.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Seleccionar el conjunto SETNAME de parámetros.')
+
+    group8 = parser.add_argument_group('Manipulación de argumentos')
+    group8.name = 'arguments'
+    group8.remote = False 
+    sortgroup = group8.add_mutually_exclusive_group()
+    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
+    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
+    group8.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
     group5.name = 'interpolation'
