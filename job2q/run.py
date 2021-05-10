@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
-from .utils import Bunch, DefaultDict, printoptions, o, p, q, _
+from .utils import AttrDict, DefaultDict, printoptions, o, p, q, _
 from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
@@ -186,9 +186,9 @@ try:
     for group in parser._action_groups:
         group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
         if hasattr(group, 'name'):
-            options[group.name] = Bunch(**group_dict)
+            options[group.name] = AttrDict(**group_dict)
         if hasattr(group, 'remote') and group.remote:
-            remoteargs.gather(Bunch(**group_dict))
+            remoteargs.gather(AttrDict(**group_dict))
 
     if not parsedargs.files:
         messages.error('Debe especificar al menos un archivo de entrada')

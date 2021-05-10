@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import json
+from collections import OrderedDict
 from . import messages
-from .utils import Bunch
+from .utils import AttrDict
 from .details import dictags, listags
 
 class SpecList(list):
     def __init__(self, plainlist=[]):
         for item in plainlist:
             if isinstance(item, dict):
-                self.append(SpecBunch(item))
+                self.append(SpecDict(item))
             elif isinstance(item, list):
                 self.append(SpecList(item))
             else:
@@ -18,18 +19,19 @@ class SpecList(list):
             if i not in self:
                 self.append(i)
 
-class SpecBunch(Bunch):
+class SpecDict(OrderedDict):
     def __init__(self, plaindict={}):
+        super().__init__()
         for key, value in plaindict.items():
             if isinstance(value, dict):
-                self[key] = SpecBunch(value)
+                self[key] = SpecDict(value)
             elif isinstance(value, list):
                 self[key] = SpecList(value)
             else:
                 self[key] = value
     def __missing__(self, item):
         if item in dictags:
-            return SpecBunch()
+            return SpecDict()
         elif item in listags:
             return SpecList()
         else:
@@ -48,10 +50,21 @@ class SpecBunch(Bunch):
                    raise Exception('Conflicto en {} entre {} y {}'.format(i, self[i], other[i]))
             else:
                 self[i] = other[i]
+    def __getattr__(self, name):
+        if not name.startswith('_'):
+            return self[name]
+        super(SpecDict, self).__getattr__(name)
+    def __setattr__(self, name, value):
+        if not name.startswith('_'):
+            self[name] = value
+        else:
+            super(SpecDict, self).__setattr__(name, value)
+
 
 def readspec(jsonfile):
-    with open(jsonfile, 'r') as fh:
-        try: return SpecBunch(json.load(fh))
+    with open(jsonfile, 'r') as f:
+        try:
+            return SpecDict(json.load(f, object_pairs_hook=OrderedDict))
         except ValueError as e:
             messages.error('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
 

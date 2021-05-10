@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import string
+from collections import OrderedDict
 from . import colors
 
 booldict = {
@@ -18,14 +19,16 @@ class IdentityList(list):
     def __contains__(self, other):
         return any(o is other for o in self)
 
-class Bunch(dict):
-    def __getattr__(self, item):
-        try:
-            return self.__getitem__(item)
-        except KeyError:
-            raise AttributeError(item)
-    def __setattr__(self, item, value):
-        self.__setitem__(item, value)
+class AttrDict(OrderedDict):
+    def __getattr__(self, name):
+        if not name.startswith('_'):
+            return self[name]
+        super(AttrDict, self).__getattr__(name)
+    def __setattr__(self, name, value):
+        if not name.startswith('_'):
+            self[name] = value
+        else:
+            super(AttrDict, self).__setattr__(name, value)
 
 class DefaultDict(dict):
     def __init__(self, default=None):

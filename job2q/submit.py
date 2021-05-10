@@ -7,13 +7,13 @@ from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
-from .utils import Bunch, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
+from .utils import AttrDict, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
 
 parameterpaths = []
-script = Bunch()
+script = AttrDict()
 
 def initialize():
 

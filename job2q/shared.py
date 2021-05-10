@@ -6,8 +6,8 @@ from grp import getgrgid
 from string import Template
 from getpass import getuser 
 from socket import gethostname
-from .readspec import SpecBunch
-from .utils import Bunch, p, q, natkey
+from .readspec import SpecDict
+from .utils import AttrDict, p, q, natkey
 from .fileutils import AbsPath, pathjoin
 from . import messages
 
@@ -70,7 +70,7 @@ class ArgGroups:
         self.__dict__['constants'] = dict()
         self.__dict__['lists'] = dict()
     def gather(self, options):
-        if isinstance(options, Bunch):
+        if isinstance(options, AttrDict):
             for key, value in options.items():
                 if value is False:
                     pass
@@ -83,13 +83,13 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
-names = Bunch()
-paths = Bunch()
-environ = Bunch()
-options = Bunch()
-sysconf = SpecBunch()
-progspecs = SpecBunch()
-queuespecs = SpecBunch()
+names = AttrDict()
+paths = AttrDict()
+environ = AttrDict()
+options = AttrDict()
+sysconf = SpecDict()
+progspecs = SpecDict()
+queuespecs = SpecDict()
 remoteargs = ArgGroups()
 
 names.user = getuser()
