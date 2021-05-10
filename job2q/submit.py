@@ -81,10 +81,6 @@ def initialize():
             if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
-    if options.common.interactive:
-        sysconf.defaults.pop('version', None)
-        sysconf.defaults.pop('parameterset', None)
-    
     try:
         sysconf.delay = float(sysconf.delay)
     except ValueError:
@@ -223,9 +219,12 @@ def initialize():
     elif 'version' in sysconf.defaults:
         if not sysconf.defaults.version in sysconf.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
-        options.version = sysconf.defaults.version
+        if options.common.interactive:
+            options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()), default=sysconf.defaults.version)
+        else:
+            options.version = sysconf.defaults.version
     else:
-        options.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(sysconf.versions.keys(), key=natkey))
+        options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()))
 
     for envar, path in progspecs.export.items() | sysconf.versions[options.version].export.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
@@ -474,11 +473,12 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
-    parameterkeys = {}
+    parameterkeys = DefaultDict()
+    defaultparameterkeys = DefaultDict()
 
     for key, value in sysconf.defaults.parameterkeys.items():
         try:
-            parameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+            defaultparameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
         except IndexError:
@@ -492,8 +492,8 @@ def submit(parentdir, inputname, filtergroups):
         except IndexError:
             messages.error('Hay variables de interpolación sin definir en la opción', key)
 
-    parameterdict = DefaultDict('*')
-    parameterdict.update(parameterkeys)
+    if not options.common.interactive:
+        parameterkeys.update(defaultparameterkeys)
 
     for path in sysconf.parameterpaths:
         parts = splitpath(pathjoin(path, keys=names))
@@ -501,18 +501,20 @@ def submit(parentdir, inputname, filtergroups):
         for part in parts:
             if not trunk.isdir():
                 messages.error(trunk.failreason)
-            partglob = part.format_map(parameterdict)
-            if parameterdict._keys:
-                choices = trunk.glob(partglob)
+            part = part.format_map(parameterkeys)
+            if parameterkeys._keys:
+                choices = trunk.glob(part.format_map(DefaultDict('*')))
                 if choices:
-                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
+                    if options.common.interactive:
+                        default = trunk.glob(part.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
+                        choice = dialogs.chooseone('Seleccione un directorio de', trunk, choices=choices, default=default)
+                    else:
+                        choice = dialogs.chooseone('Seleccione un directorio de', trunk, choices=choices)
                     trunk = trunk / choice
-                elif trunk.listdir():
-                    messages.error('La ruta', trunk, 'no contiene coincidencias')
                 else:
-                    messages.error('La ruta', trunk, 'está vacía')
+                    messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
             else:
-                trunk = trunk / partglob
+                trunk = trunk / part
         parameterpaths.append(trunk)
     print(parameterpaths)
 
