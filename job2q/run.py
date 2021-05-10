@@ -7,7 +7,7 @@ from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
 from .utils import Bunch, DefaultDict, printoptions, o, p, q, _
-from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, arguments, remoteargs
+from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
@@ -161,6 +161,7 @@ try:
     group5 = parser.add_argument_group('Opciones de interpolación')
     group5.name = 'interpolation'
     group5.remote = False
+    group5.add_argument('-d', '--delimiter', metavar='CHARACTER', default='$', help='Usar el caracter CHARACTER como delimitador de las variables de interpolación en los archivos de entrada.')
     group5.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
     molgroup = group5.add_mutually_exclusive_group()
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
@@ -192,7 +193,7 @@ try:
     if not parsedargs.files:
         messages.error('Debe especificar al menos un archivo de entrada')
 
-    arguments.update(parsedargs.files)
+    arguments =ArgList(parsedargs.files)
 
     try:
         environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']

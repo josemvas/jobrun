@@ -44,15 +44,15 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-def interpolate(template, keylist=[], keydict={}):
+def interpolate(template, delimiter, keylist=[], keydict={}):
     class DictTemplate(string.Template):
-        delimiter = '%'
+        delim = delimiter
         idpattern = r'[a-z][a-z0-9]*'
     class ListTemplate(string.Template):
-        delimiter = '%'
+        delim = delimiter
         idpattern = r'[0-9]+'
     class DualTemplate(string.Template):
-        delimiter = '%'
+        delim = delimiter
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):

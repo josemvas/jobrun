@@ -49,7 +49,7 @@ def initialize():
         options.interpolation.dict = {}
         if options.interpolation.vars:
             for var in options.interpolation.vars:
-                left, separator, right = var.partition('=')
+                left, separator, right = var.partition(':')
                 if separator:
                     if right:
                         options.interpolation.dict[left] = right
@@ -71,7 +71,7 @@ def initialize():
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
         elif 'trjmol' in options.interpolation:
             index = 0
-            path = AbsPath(options.common.molall, cwd=options.common.cwd)
+            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
             for coords in readmol(path):
                 index += 1
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
@@ -142,6 +142,7 @@ def initialize():
         try:
             options.prefix = interpolate(
                 options.interpolation.prefix,
+                delimiter='%',
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
@@ -154,6 +155,7 @@ def initialize():
         try:
             options.suffix = interpolate(
                 options.interpolation.suffix,
+                delimiter='%',
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
@@ -320,31 +322,6 @@ def initialize():
     else:
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
-    parameterdict = DefaultDict('*')
-    parameterdict.update(sysconf.defaults.parameterkeys)
-    parameterdict.update(options.parameterkeys)
-
-    for path in sysconf.parameterpaths:
-        parts = splitpath(pathjoin(path, keys=names))
-        trunk = AbsPath(parts.pop(0))
-        for part in parts:
-            if not trunk.isdir():
-                messages.error(trunk.failreason)
-            partglob = part.format_map(parameterdict)
-            if parameterdict._keys:
-                choices = trunk.glob(partglob)
-                if choices:
-                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
-                    trunk = trunk / choice
-                elif trunk.listdir():
-                    messages.error('La ruta', trunk, 'no contiene coincidencias')
-                else:
-                    messages.error('La ruta', trunk, 'está vacía')
-            else:
-                trunk = trunk / partglob
-        parameterpaths.append(trunk)
-    print(parameterpaths)
-
 
 def submit(parentdir, inputname, filtergroups):
 
@@ -396,18 +373,19 @@ def submit(parentdir, inputname, filtergroups):
                             try:
                                 interpolatedfiles[destpath] = interpolate(
                                     contents,
+                                    delimiter=options.interpolation.delimiter,
                                     keylist=options.interpolation.list,
                                     keydict=options.interpolation.dict,
                                 )
                             except ValueError:
-                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', file=pathjoin((inputname, key)))
+                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', pathjoin((inputname, key)))
                                 return
                             except (IndexError, KeyError) as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', file=pathjoin((inputname, key)), key=e.args[0])
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', pathjoin((inputname, key)), key=e.args[0])
                                 return
                         else:
                             try:
-                                interpolatedfiles[destpath] = interpolate(contents)
+                                interpolatedfiles[destpath] = interpolate(contents, delimiter=options.interpolation.delimiter)
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
@@ -468,7 +446,7 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():
-            remoteargs.constants[key] = interpolate(value, keylist=filtergroups)
+            remoteargs.constants[key] = interpolate(value, delimiter='%', keylist=filtergroups)
         filelist = []
         for key in progspecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (outputname, key))):
@@ -496,6 +474,48 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
+    parameterkeys = {}
+
+    for key, value in sysconf.defaults.parameterkeys.items():
+        try:
+            parameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+        except ValueError:
+            messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
+        except IndexError:
+            messages.error('Hay variables de interpolación sin definir en la opción por defecto', key)
+
+    for key, value in options.parameterkeys.items():
+        try:
+            parameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+        except ValueError:
+            messages.error('Hay variables de interpolación inválidas en la opción', key)
+        except IndexError:
+            messages.error('Hay variables de interpolación sin definir en la opción', key)
+
+    parameterdict = DefaultDict('*')
+    parameterdict.update(parameterkeys)
+
+    for path in sysconf.parameterpaths:
+        parts = splitpath(pathjoin(path, keys=names))
+        trunk = AbsPath(parts.pop(0))
+        for part in parts:
+            if not trunk.isdir():
+                messages.error(trunk.failreason)
+            partglob = part.format_map(parameterdict)
+            if parameterdict._keys:
+                choices = trunk.glob(partglob)
+                if choices:
+                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
+                    trunk = trunk / choice
+                elif trunk.listdir():
+                    messages.error('La ruta', trunk, 'no contiene coincidencias')
+                else:
+                    messages.error('La ruta', trunk, 'está vacía')
+            else:
+                trunk = trunk / partglob
+        parameterpaths.append(trunk)
+    print(parameterpaths)
+
     imports = []
     exports = []
 
@@ -507,7 +527,6 @@ def submit(parentdir, inputname, filtergroups):
         imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
 
     for path in parameterpaths:
-        path = AbsPath(interpolate(path, keylist=filtergroups))
         if path.isfile():
             imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
         elif path.isdir():

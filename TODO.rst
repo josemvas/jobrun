@@ -1,5 +1,6 @@
 General
 -------
+- Agregar soporte para ejecutar todos los archivos de entrada en el mismo trabajo (--chain?)
 - Definir el esqueleto de las especificaciones para eliminar la necesidad de details.py
 - Permitir leer los archivos de entrada de un directorio diferente al de salida y crear opción para eliminarlos
 - Usar diccionarios de dos vias para agrupar mas facilmente las opciones

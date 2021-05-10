@@ -12,7 +12,7 @@ from .fileutils import AbsPath, pathjoin
 from . import messages
 
 class ArgList:
-    def update(self, args):
+    def __init__(self, args):
         self.current = None
         if options.arguments.sort:
             self.args = sorted(args, key=natkey)
@@ -91,7 +91,6 @@ sysconf = SpecBunch()
 progspecs = SpecBunch()
 queuespecs = SpecBunch()
 remoteargs = ArgGroups()
-arguments = ArgList()
 
 names.user = getuser()
 names.host = gethostname()
