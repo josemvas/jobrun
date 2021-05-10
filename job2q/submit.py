@@ -324,7 +324,7 @@ def initialize():
     parameterdict.update(sysconf.defaults.parameterkeys)
     parameterdict.update(options.parameterkeys)
 
-    for path in sysconf.parameterpaths.values():
+    for path in sysconf.parameterpaths:
         parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
         rootpath = AbsPath(parts.pop(0))
         for part in parts:

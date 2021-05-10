@@ -18,13 +18,13 @@ class ListOptions(Action):
             print(_('Versiones del programa:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
             printoptions(tuple(sysconf.versions.keys()), [default], level=1)
-        for paramset, parampath in sysconf.parameterpaths.items():
+        for parampath in sysconf.parameterpaths:
             dirtree = {}
             parts = AbsPath(pathjoin(parampath, keys=names)).parts
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in templatekeys(parampath)]
             if dirtree:
-                print(_('Alternativas del conjuntos de parámetros {}:'.format(paramset)))
+                print(_('Conjuntos de parámetros en {}:'.format(parampath)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
 
@@ -82,15 +82,18 @@ try:
         names.head = names.host
 
     parameterkeys = set()
+    parameterpaths = []
 
     for paramset in progspecs.parametersets:
         try:
-            sysconf.parameterpaths[paramset] = expandvars(sysconf.parameterpaths[paramset], keydict=names)
+            parameterpaths.append(expandvars(sysconf.parameterpaths[paramset], keydict=names))
         except KeyError:
             messages.error('No se definió la ruta al conjunto de parámetros', paramset)
         except FormatKeyError:
             messages.error('Hay variables sin definir en la ruta al conjunto de parámetros', sysconf.parameterpaths[paramset])
         parameterkeys.update(templatekeys(sysconf.parameterpaths[paramset]))
+
+    sysconf.parameterpaths = parameterpaths
 
     parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.longname))
 
