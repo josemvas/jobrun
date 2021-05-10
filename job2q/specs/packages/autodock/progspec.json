@@ -26,7 +26,12 @@
    },
 
    "parametersets": [
-      "lig",
-      "rec"
+      "ligand",
+      "receptor"
+   ],
+
+   "parameterkeys": [
+      "ligand",
+      "receptor"
    ]
 }

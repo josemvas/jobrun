@@ -5,9 +5,9 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
-from .utils import Bunch, FormatKeyError, templatekeys, expandvars, printoptions, o, p, q, _
-from .fileutils import AbsPath, pathjoin, dirbranches
-from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
+from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
+from .utils import Bunch, DefaultDict, printoptions, o, p, q, _
+from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, arguments, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
@@ -20,10 +20,12 @@ class ListOptions(Action):
             printoptions(tuple(sysconf.versions.keys()), [default], level=1)
         for parampath in sysconf.parameterpaths:
             dirtree = {}
-            parts = AbsPath(pathjoin(parampath, keys=names)).parts
+            parts = splitpath(pathjoin(parampath, keys=names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
-            defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in templatekeys(parampath)]
             if dirtree:
+                keydict = DefaultDict()
+                parampath.format_map(keydict)
+                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict._keys]
                 print(_('Conjuntos de parámetros en {}:'.format(parampath)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
@@ -81,18 +83,27 @@ try:
     except AttributeError:
         names.head = names.host
 
-    parameterkeys = set()
     parameterpaths = []
+    foundparameterkeys = set()
+    keydict = DefaultDict()
+    keydict.update(names)
 
     for paramset in progspecs.parametersets:
         try:
-            parameterpaths.append(expandvars(sysconf.parameterpaths[paramset], keydict=names))
+            parampath = sysconf.parameterpaths[paramset]
         except KeyError:
             messages.error('No se definió la ruta al conjunto de parámetros', paramset)
-        except FormatKeyError:
-            messages.error('Hay variables sin definir en la ruta al conjunto de parámetros', sysconf.parameterpaths[paramset])
-        parameterkeys.update(templatekeys(sysconf.parameterpaths[paramset]))
+        try:
+            parameterpaths.append(parampath.format_map(keydict))
+        except ValueError as e:
+            messages.error('Hay variables de interpolación inválidas en la ruta', parampath, var=e.args[0])
+        foundparameterkeys.update(keydict._keys)
 
+    for key in foundparameterkeys:
+        if key not in progspecs.parameterkeys:
+            messages.error('Hay variables de interpolación inválidas en las rutas de parámetros')
+
+    # Replace parameter path dict with a list for easier handling
     sysconf.parameterpaths = parameterpaths
 
     parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.longname))
@@ -137,7 +148,7 @@ try:
     group4 = parser.add_argument_group('Conjuntos de parámetros')
     group4.name = 'parameterkeys'
     group4.remote = True
-    for key in parameterkeys:
+    for key in foundparameterkeys:
         group4.add_argument(o(key), metavar='COMPONENT', default=SUPPRESS, help='Seleccionar el componente COMPONENT en las ruta de parámetro')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
@@ -171,6 +182,17 @@ try:
         if hasattr(group, 'remote') and group.remote:
             remoteargs.gather(Bunch(**group_dict))
 
+    if not parsedargs.files:
+        messages.error('Debe especificar al menos un archivo de entrada')
+
+    arguments.update(parsedargs.files)
+
+    try:
+        environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']
+        environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+    except KeyError:
+        pass
+
 #    print(options)
 #    print(remoteargs)
 
@@ -185,21 +207,10 @@ try:
 #            messages.failure = join_args(TkDialog().message)
 #            messages.success = join_args(TkDialog().message)
 
-    if parsedargs.files:
-        arguments = ArgList(parsedargs.files)
-    else:
-        messages.error('Debe especificar al menos un archivo de entrada')
-
-    try:
-        environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']
-        environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
-    except KeyError:
-        pass
-
     initialize()
 
-    for parentdir, inputname in arguments:
-        submit(parentdir, inputname)
+    for parentdir, inputname, filtergroups in arguments:
+        submit(parentdir, inputname, filtergroups)
     
 except KeyboardInterrupt:
 

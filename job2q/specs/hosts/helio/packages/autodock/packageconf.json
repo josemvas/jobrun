@@ -8,8 +8,8 @@
       }
    },
    "parameterpaths": {
-      "lig": "/home/{user}/docklib/%release/ligands/%ligand.pdbqt",
-      "rec": "/home/{user}/docklib/%release/receptors/rec/%receptor"
+      "ligand": "/home/{user}/docklib/%release/ligands/{ligand}.pdbqt",
+      "receptor": "/home/{user}/docklib/%release/receptors/{receptor}"
    }
 }
 

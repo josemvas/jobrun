@@ -13,6 +13,6 @@
       }
    },
    "parameterpaths": {
-      "slako": "/tmpu/{group}/{user}/share/parameters/DFTB+/slako/%slako"
+      "slako": "/tmpu/{group}/{user}/share/parameters/DFTB+/slako/{slako}"
    }
 }

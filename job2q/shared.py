@@ -12,7 +12,7 @@ from .fileutils import AbsPath, pathjoin
 from . import messages
 
 class ArgList:
-    def __init__(self, args):
+    def update(self, args):
         self.current = None
         if 'sort' in options.common:
             if options.common.sort == 'natural':
@@ -59,10 +59,9 @@ class ArgList:
             if not path.isfile():
                 messages.failure(path.failreason)
                 return next(self)
-        filtermatch = self.filter.fullmatch(inputname)
-        if filtermatch:
-            self.groups = filtermatch.groups()
-            return parentdir, inputname
+        matching = self.filter.fullmatch(inputname)
+        if matching:
+            return parentdir, inputname, matching.groups()
         else:
             return next(self)
 
@@ -93,6 +92,7 @@ sysconf = SpecBunch()
 progspecs = SpecBunch()
 queuespecs = SpecBunch()
 remoteargs = ArgGroups()
+arguments = ArgList()
 
 names.user = getuser()
 names.host = gethostname()

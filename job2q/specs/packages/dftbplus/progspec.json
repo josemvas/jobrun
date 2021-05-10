@@ -79,6 +79,10 @@
       "slako"
    ],
 
+   "parameterkeys": [
+      "slako"
+   ],
+
    "prescript": [
       "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
    ]

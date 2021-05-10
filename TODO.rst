@@ -1,5 +1,6 @@
 General
 -------
+- Definir el esqueleto de las especificaciones para eliminar la necesidad de details.py
 - Permitir leer los archivos de entrada de un directorio diferente al de salida y crear opción para eliminarlos
 - Usar diccionarios de dos vias para agrupar mas facilmente las opciones
 - Implementar una conexxiona maestra para todas las llamadas de ssh y rsync

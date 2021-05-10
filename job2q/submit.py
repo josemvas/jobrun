@@ -6,8 +6,8 @@ from subprocess import CalledProcessError, call, check_output
 from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, pathjoin, remove
-from .utils import Bunch, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
+from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
+from .utils import Bunch, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -168,7 +168,7 @@ def initialize():
     if options.remote.host:
         return
 
-    ############ Local execution only ###########
+    ############ Local execution ###########
 
     if 'jobinfo' in queuespecs:
         script.header.append(queuespecs.jobinfo.format(progspecs.longname))
@@ -212,40 +212,43 @@ def initialize():
 
     if not sysconf.versions:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
-    if 'version' not in options.common:
-        if 'version' in sysconf.defaults:
-            if sysconf.defaults.version in sysconf.versions:
-                options.common.version = sysconf.defaults.version
-            else:
-                messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
-        else:
-            options.common.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(sysconf.versions.keys(), key=natkey))
-    if options.common.version not in sysconf.versions:
-        messages.error('La versión', options.common.version, 'no es válida', option='version')
-    if not sysconf.versions[options.common.version].executable:
-        messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(options.common.version))
 
-    for envar, path in progspecs.export.items() | sysconf.versions[options.common.version].export.items():
+    for version in sysconf.versions:
+        if not sysconf.versions[version].executable:
+            messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(version))
+    
+    if 'version' in options.common:
+        if options.common.version not in sysconf.versions:
+            messages.error('La versión', options.common.version, 'no es válida', option='version')
+        options.version = options.common.version
+    elif 'version' in sysconf.defaults:
+        if not sysconf.defaults.version in sysconf.versions:
+            messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
+        options.version = sysconf.defaults.version
+    else:
+        options.version = dialogs.chooseone('Seleccione una versión:', choices=sorted(sysconf.versions.keys(), key=natkey))
+
+    for envar, path in progspecs.export.items() | sysconf.versions[options.version].export.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
-    for envar, path in progspecs.append.items() | sysconf.versions[options.common.version].append.items():
+    for envar, path in progspecs.append.items() | sysconf.versions[options.version].append.items():
         abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
-    for path in progspecs.source + sysconf.versions[options.common.version].source:
+    for path in progspecs.source + sysconf.versions[options.version].source:
         script.setup.append('source {}'.format(AbsPath(pathjoin(path, keys=names))))
 
-    if progspecs.load or sysconf.versions[options.common.version].load:
+    if progspecs.load or sysconf.versions[options.version].load:
         script.setup.append('module purge')
 
-    for module in progspecs.load + sysconf.versions[options.common.version].load:
+    for module in progspecs.load + sysconf.versions[options.version].load:
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(pathjoin(sysconf.versions[options.common.version].executable, keys=names)))
+        script.main.append(AbsPath(pathjoin(sysconf.versions[options.version].executable, keys=names)))
     except NotAbsolutePath:
-        script.main.append(sysconf.versions[options.common.version].executable)
+        script.main.append(sysconf.versions[options.version].executable)
 
     for path in queuespecs.logfiles:
         script.header.append(path.format(AbsPath(pathjoin(sysconf.logdir, keys=names))))
@@ -320,29 +323,8 @@ def initialize():
     else:
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
-    parameterdict = {}
-    parameterdict.update(sysconf.defaults.parameterkeys)
-    parameterdict.update(options.parameterkeys)
 
-    for path in sysconf.parameterpaths:
-        parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
-        rootpath = AbsPath(parts.pop(0))
-        for part in parts:
-            try:
-                rootpath = rootpath / interpolate(part, keydict=parameterdict)
-            except ValueError as e:
-                messages.error('Hay variables de interpolación inválidas en la ruta', path, var=e.args[0])
-            except KeyError:
-                choices = rootpath.listdir()
-                choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
-                rootpath = rootpath / choice
-        if rootpath.exists():
-            parameterpaths.append(rootpath)
-        else:
-            messages.error('La ruta de parámetros', path, 'no existe', spec='defaults:parameterpaths')
-
-
-def submit(parentdir, inputname):
+def submit(parentdir, inputname, filtergroups):
 
     filebools = {key: AbsPath(pathjoin(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in progspecs.filekeys}
     for conflict, message in progspecs.conflicts.items():
@@ -373,17 +355,6 @@ def submit(parentdir, inputname):
 
     literalfiles = {}
     interpolatedfiles = {}
-
-    #TODO Use filter groups to set parameterkeys
-#    for key, value in options.parameterdict.items():
-#        if value.startswith('%'):
-#            try:
-#                index = int(value[1:]) - 1
-#            except ValueError:
-#                messages.error(value, 'debe tener un índice numérico', option=o(key))
-#            if index not in range(len(filtergroups)):
-#                messages.error(value, 'El índice está fuera de rango', option=o(key))
-#            parameterdict.update({key: filtergroups[index]})
 
     if options.common.raw:
         stagedir = parentdir
@@ -499,69 +470,100 @@ def submit(parentdir, inputname):
 #            os.execv('/usr/bin/ssh', arglist)
             call(arglist)
 
-    else:
+        return
 
-        imports = []
-        exports = []
-    
-        for key in progspecs.inputfiles:
-            if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-                imports.append(script.simport(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
-    
-        for key in options.targetfiles:
-            imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
-    
-        for path in parameterpaths:
-            if path.isfile():
-                imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
-            elif path.isdir():
-                imports.append(script.rimport(pathjoin(path), options.jobscratch))
-    
-        for key in progspecs.outputfiles:
-            exports.append(script.sexport(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
+    ############ Local execution ###########
 
-        try:
-            jobdir.mkdir()
-        except FileExistsError:
-            messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
-            return
+    # Use filter groups to set parameter keys
+    if filtergroups:
+        for paramkey, value in options.parameterkeys.items():
+            options.parameterkeys[paramkey] = interpolate(value, keylist=filtergroups)
 
-        jobscript = pathjoin(jobdir, 'script')
+    parameterdict = DefaultDict('*')
+    parameterdict.update(sysconf.defaults.parameterkeys)
+    parameterdict.update(options.parameterkeys)
 
-        with open(jobscript, 'w') as f:
-            f.write('#!/bin/bash' + '\n')
-            f.write(queuespecs.jobname.format(jobname) + '\n')
-            f.write(''.join(i + '\n' for i in script.header))
-            f.write(''.join(i + '\n' for i in script.setup))
-            f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
-            f.write(script.setenv('jobname', jobname) + '\n')
-            f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
-            f.write(script.mkdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in imports))
-            f.write(script.chdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in progspecs.prescript))
-            f.write(' '.join(script.main) + '\n')
-            f.write(''.join(i + '\n' for i in progspecs.postscript))
-            f.write(''.join(i + '\n' for i in exports))
-            f.write(script.rmdir(options.jobscratch) + '\n')
-            f.write(''.join(i + '\n' for i in sysconf.offscript))
-    
-        if options.debug.dryrun:
-            messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
-        else:
-            try:
-                sleep(sysconf.delay + os.stat(paths.lock).st_mtime - time())
-            except (ValueError, FileNotFoundError) as e:
-                pass
-            try:
-                jobid = jobsubmit(jobscript)
-            except RuntimeError as error:
-                messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
-                return
+    for path in sysconf.parameterpaths:
+        parts = splitpath(pathjoin(path, keys=names))
+        trunk = AbsPath(parts.pop(0))
+        for part in parts:
+            if not trunk.isdir():
+                messages.error(trunk.failreason)
+            partglob = part.format_map(parameterdict)
+            if parameterdict._keys:
+                choices = trunk.glob(partglob)
+                if choices:
+                    choice = dialogs.chooseone('Seleccione una opción:', choices=choices)
+                    trunk = trunk / choice
+                elif trunk.listdir():
+                    messages.error('La ruta', trunk, 'no contiene coincidencias')
+                else:
+                    messages.error('La ruta', trunk, 'está vacía')
             else:
-                messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
-                with open(pathjoin(jobdir, 'id'), 'w') as f:
-                    f.write(jobid)
-                with open(paths.lock, 'a'):
-                    os.utime(paths.lock, None)
-    
+                trunk = trunk / partglob
+        parameterpaths.append(trunk)
+
+    imports = []
+    exports = []
+
+    for key in progspecs.inputfiles:
+        if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
+            imports.append(script.simport(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
+
+    for key in options.targetfiles:
+        imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
+
+    for path in parameterpaths:
+        if path.isfile():
+            imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
+        elif path.isdir():
+            imports.append(script.rimport(pathjoin(path), options.jobscratch))
+
+    for key in progspecs.outputfiles:
+        exports.append(script.sexport(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
+
+    try:
+        jobdir.mkdir()
+    except FileExistsError:
+        messages.failure('No se puede crear la carpeta', jobdir, 'porque ya existe un archivo con ese nombre')
+        return
+
+    jobscript = pathjoin(jobdir, 'script')
+
+    with open(jobscript, 'w') as f:
+        f.write('#!/bin/bash' + '\n')
+        f.write(queuespecs.jobname.format(jobname) + '\n')
+        f.write(''.join(i + '\n' for i in script.header))
+        f.write(''.join(i + '\n' for i in script.setup))
+        f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
+        f.write(script.setenv('jobname', jobname) + '\n')
+        f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
+        f.write(script.mkdir(options.jobscratch) + '\n')
+        f.write(''.join(i + '\n' for i in imports))
+        f.write(script.chdir(options.jobscratch) + '\n')
+        f.write(''.join(i + '\n' for i in progspecs.prescript))
+        f.write(' '.join(script.main) + '\n')
+        f.write(''.join(i + '\n' for i in progspecs.postscript))
+        f.write(''.join(i + '\n' for i in exports))
+        f.write(script.rmdir(options.jobscratch) + '\n')
+        f.write(''.join(i + '\n' for i in sysconf.offscript))
+
+    if options.debug.dryrun:
+        messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
+    else:
+        try:
+            sleep(sysconf.delay + os.stat(paths.lock).st_mtime - time())
+        except (ValueError, FileNotFoundError) as e:
+            pass
+        try:
+            jobid = jobsubmit(jobscript)
+        except RuntimeError as error:
+            messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
+            return
+        else:
+            messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
+            with open(pathjoin(jobdir, 'id'), 'w') as f:
+                f.write(jobid)
+            with open(paths.lock, 'a'):
+                os.utime(paths.lock, None)
+

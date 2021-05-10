@@ -17,6 +17,6 @@
       }
    },
    "parameterpaths": {
-      "slako": "/opt/packages/DFTB+/slako/%slako"
+      "slako": "/opt/packages/DFTB+/slako/{slako}"
    }
 }

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import re
 import sys
@@ -28,24 +27,16 @@ class Bunch(dict):
     def __setattr__(self, item, value):
         self.__setitem__(item, value)
 
-class TestKeyDict(dict):
-    def __init__(self):
-        self._key = None
-    def __getitem__(self, key):
-        if self._key:
-            raise KeyError('Too many keys')
-        self._key = key
-        return ''
-
-class CaptureKeysDict(dict):
-    def __init__(self):
+class DefaultDict(dict):
+    def __init__(self, default=None):
         self._keys = []
+        self._default = default
     def __getitem__(self, key):
         self._keys.append(key)
-
-class FormatKeysDict(dict):
-    def __getitem__(self, key):
-        return '{' + key + '}'
+        if self._default is None:
+            return '{' + key + '}'
+        else:
+            return self._default
 
 class DictTemplate(string.Template):
     delimiter = '%'
@@ -66,19 +57,19 @@ class _(string.Template):
         return self.safe_substitute(keys)
 
 def templatekeys(template):
-    d = CaptureKeysDict()
+    d = DefaultDict()
     DictTemplate(template).substitute(d)
     return d._keys
 
 def interpolate(template, keylist=[], keydict={}):
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(FormatKeysDict()).format('', *keylist, **keydict)
+            return DualTemplate(template).substitute(DefaultDict()).format('', *keylist, **keydict)
         elif keydict is None:
-            return ListTemplate(template).substitute(FormatKeysDict()).format('', *keylist)
+            return ListTemplate(template).substitute(DefaultDict()).format('', *keylist)
     elif keylist is None:
         if isinstance(keydict, dict):
-            return DictTemplate(template).substitute(FormatKeysDict()).format(**keydict)
+            return DictTemplate(template).substitute(DefaultDict()).format(**keydict)
         elif keydict is None:
             return None
     raise TypeError()

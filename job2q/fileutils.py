@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 import os
-import shutil
 import string
+import shutil
+import fnmatch
 from . import messages
-from .utils import DictTemplate, TestKeyDict, deepjoin
+from .utils import DictTemplate, DefaultDict, DefaultDict, deepjoin
 
 class NotAbsolutePath(Exception):
     pass
@@ -11,15 +11,19 @@ class NotAbsolutePath(Exception):
 class AbsPath(str):
     def __new__(cls, path, cwd=None):
         if not isinstance(path, str):
-            raise Exception('Path must be a string')
+            raise TypeError('Path must be a string')
+        try:
+            path.format()
+        except (IndexError, KeyError):
+            raise ValueError('Path must be a literal string')
         if cwd is None:
             if not os.path.isabs(path):
                 raise NotAbsolutePath()
         elif not os.path.isabs(path):
             if not isinstance(cwd, str):
-                raise Exception('Root must be a string')
+                raise TypeError('Root must be a string')
             if not os.path.isabs(cwd):
-                raise Exception('Root must be an absolute path')
+                raise ValueError('Root must be an absolute path')
             path = os.path.join(cwd, path)
         obj = str.__new__(cls, os.path.normpath(path))
         obj.parts = splitpath(obj)
@@ -43,9 +47,13 @@ class AbsPath(str):
         symlink(self, os.path.join(*dest))
     def copyto(self, *dest):
         copyfile(self, os.path.join(*dest))
+    def glob(self, expr):
+        return fnmatch.filter(os.listdir(self), expr)
     def __truediv__(self, right):
+        if not isinstance(right, str):
+            raise TypeError('Right operand must be a string')
         if os.path.isabs(right):
-            raise Exception('Can not join two absolute paths')
+            raise ValueError('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
     def isfile(self):
         if os.path.exists(self):
@@ -150,30 +158,24 @@ def rmtree(path, date):
             delete_newer(os.path.join(parent, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def componentkey(component):
-    d = TestKeyDict()
-    literal = DictTemplate(component).substitute(d)
-    if d._key and literal:
-        messages.error('La variable de interpolación debe ocupar todo el componente')
-    return d._key
-
-#TODO Include the defults in parts parameter as tuples
 def dirbranches(trunk, parts, dirtree):
+    if not trunk.isdir():
+        messages.error(trunk.failreason)
     if parts:
-        stem = parts.pop(0)
-        if componentkey(stem):
-            branches = trunk.listdir()
+        keydict = DefaultDict('*')
+        partglob = parts.pop(0).format_map(keydict)
+        if keydict._keys:
+            branches = trunk.glob(partglob)
             for branch in branches:
                 dirtree[branch] = {}
                 dirbranches(trunk/branch, parts, dirtree[branch])
         else:
-            dirbranches(trunk/stem, parts, dirtree)
+            dirbranches(trunk/partglob, parts, dirtree)
 
 def pathjoin(*components, keys={}):
-    try:
-        return deepjoin(components, [os.path.sep, '.']).format(**keys)
-    except KeyError as e:
-        messages.error('Hay variables de interpolación sin definir en la ruta', var=e.args[0])
+    keydict = DefaultDict()
+    keydict.update(keys)
+    return deepjoin(components, [os.path.sep, '.']).format_map(keydict)
 
 def splitpath(path):
     if path:
