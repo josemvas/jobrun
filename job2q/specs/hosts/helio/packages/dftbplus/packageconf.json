@@ -1,8 +1,5 @@
 {
    "defaults": {
-      "parameterpaths": [
-         "/opt/packages/DFTB+/slako/%slako"
-      ]
    },
    "versions": {
       "17.1": {
@@ -18,5 +15,8 @@
       "19.1": {
          "executable": "/opt/packages/DFTB+/dftbplus-19.1.x86_64-linux/bin/dftb+"
       }
+   },
+   "parameterpaths": {
+      "slako": "/opt/packages/DFTB+/slako/%slako"
    }
 }

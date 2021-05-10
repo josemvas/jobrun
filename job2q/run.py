@@ -5,7 +5,7 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
-from .utils import Bunch, templatekeys, printoptions, o, p, q, _
+from .utils import Bunch, FormatKeyError, templatekeys, expandvars, printoptions, o, p, q, _
 from .fileutils import AbsPath, pathjoin, dirbranches
 from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
@@ -18,13 +18,13 @@ class ListOptions(Action):
             print(_('Versiones del programa:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
             printoptions(tuple(sysconf.versions.keys()), [default], level=1)
-        for path in sysconf.defaults.parameterpaths:
+        for paramset, parampath in sysconf.parameterpaths.items():
             dirtree = {}
-            parts = AbsPath(pathjoin(path, keys=names)).parts
+            parts = AbsPath(pathjoin(parampath, keys=names)).parts
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
-            defaults = [sysconf.defaults.parameters.get(i, None) for i in templatekeys(path)]
+            defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in templatekeys(parampath)]
             if dirtree:
-                print(_('Conjuntos de parámetros:'))
+                print(_('Alternativas del conjuntos de parámetros {}:'.format(paramset)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
 
@@ -81,6 +81,17 @@ try:
     except AttributeError:
         names.head = names.host
 
+    parameterkeys = set()
+
+    for paramset in progspecs.parametersets:
+        try:
+            sysconf.parameterpaths[paramset] = expandvars(sysconf.parameterpaths[paramset], keydict=names)
+        except KeyError:
+            messages.error('No se definió la ruta al conjunto de parámetros', paramset)
+        except FormatKeyError:
+            messages.error('Hay variables sin definir en la ruta al conjunto de parámetros', sysconf.parameterpaths[paramset])
+        parameterkeys.update(templatekeys(sysconf.parameterpaths[paramset]))
+
     parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.longname))
 
     group1 = parser.add_argument_group('Argumentos')
@@ -93,6 +104,7 @@ try:
     group2 = parser.add_argument_group('Opciones comunes')
     group2.name = 'common'
     group2.remote = True
+    group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-d', '--defaults', action='store_true', help='Ignorar las opciones predeterminadas y preguntar.')
     group2.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
@@ -101,7 +113,6 @@ try:
     group2.add_argument('-q', '--queue', metavar='QUEUENAME', default=SUPPRESS, help='Nombre de la cola requerida.')
     group2.add_argument('-s', '--sort', metavar='ORDER', default=SUPPRESS, help='Ordenar los argumentos de acuerdo al orden ORDER.')
     group2.add_argument('-v', '--version', metavar='PROGVERSION', default=SUPPRESS, help='Versión del ejecutable.')
-#    group2.add_argument('-p', '--path', action=AppendPath, metavar='PATH', default=[], help='Agregar la ruta PATH para buscar los conjunto de parámetros.')
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
@@ -114,7 +125,6 @@ try:
     yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
-#    group2.add_argument('--delete', action='store_true', help='Borrar los archivos de entrada después de enviar el trabajo.')
 
     group3 = parser.add_argument_group('Opciones remotas')
     group3.name = 'remote'
@@ -122,15 +132,14 @@ try:
     group3.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group4 = parser.add_argument_group('Conjuntos de parámetros')
-    group4.name = 'parameters'
+    group4.name = 'parameterkeys'
     group4.remote = True
-    for key in progspecs.parameters:
-        group4.add_argument(o(key), metavar='PARAMETERSET', default=SUPPRESS, help='Nombre del conjunto de parámetros.')
+    for key in parameterkeys:
+        group4.add_argument(o(key), metavar='COMPONENT', default=SUPPRESS, help='Seleccionar el componente COMPONENT en las ruta de parámetro')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
     group5.name = 'interpolation'
     group5.remote = False
-#    group5.add_argument('-i', '--interpolate', action='store_true', help='Interpolar los archivos de entrada.')
     group5.add_argument('-x', '--var', dest='vars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
     molgroup = group5.add_mutually_exclusive_group()
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
@@ -161,6 +170,17 @@ try:
 
 #    print(options)
 #    print(remoteargs)
+
+#    #TODO Add suport for dialog boxes
+#    if options.common.xdialog:
+#        try:
+#            from tkdialog import TkDialog
+#        except ImportError:
+#            raise SystemExit()
+#        else:
+#            dialogs.yesno = join_args(TkDialog().yesno)
+#            messages.failure = join_args(TkDialog().message)
+#            messages.success = join_args(TkDialog().message)
 
     if parsedargs.files:
         arguments = ArgList(parsedargs.files)

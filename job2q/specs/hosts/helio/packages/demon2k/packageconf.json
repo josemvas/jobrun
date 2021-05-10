@@ -1,9 +1,6 @@
 {
    "defaults": {
       "version": "6.0.1",
-      "parameterpaths": [
-         "/opt/packages/deMon2k/bases"
-      ]
    },
    "versions": {
       "6.0.1": {
@@ -18,5 +15,8 @@
          ],
          "executable": "/opt/packages/deMon2k/demon/6.0.1.AD2/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
       }
+   },
+   "parameterpaths": {
+      "bases": "/opt/packages/deMon2k/bases"
    }
 }

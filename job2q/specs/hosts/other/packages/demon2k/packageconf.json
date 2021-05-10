@@ -1,9 +1,6 @@
 {
    "defaults": {
       "version": "6.0.1",
-      "parameterpaths": [
-         "/home/{user}/share/deMon2k/bases"
-      ]
    },
    "versions": {
       "6.0.1": {
@@ -13,5 +10,8 @@
             "path/to/mkl"
          ]
       }
+   },
+   "parameterpaths": {
+      "bases": "/home/{user}/share/deMon2k/bases"
    }
 }

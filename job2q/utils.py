@@ -10,6 +10,9 @@ booldict = {
     'False' : False
 }
 
+class FormatKeyError(Exception):
+    pass
+
 class IdentityList(list):
     def __init__(self, *args):
         list.__init__(self, args)
@@ -79,6 +82,12 @@ def interpolate(template, keylist=[], keydict={}):
         elif keydict is None:
             return None
     raise TypeError()
+
+def expandvars(template, keydict):
+    try:
+        return template.format(**keydict)
+    except KeyError():
+        raise FormatKeyError()
 
 def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
     itemlist = []

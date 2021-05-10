@@ -6,6 +6,10 @@
       "4.2.6": {
          "executable": "/opt/packages/AutoDock/autodocksuite-4.2.6-src/autodock/x86_64/autodock4"
       }
+   },
+   "parameterpaths": {
+      "lig": "/home/{user}/docklib/%release/ligands/%ligand.pdbqt",
+      "rec": "/home/{user}/docklib/%release/receptors/rec/%receptor"
    }
 }
 

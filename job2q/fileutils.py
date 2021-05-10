@@ -6,8 +6,7 @@ from . import messages
 from .utils import DictTemplate, TestKeyDict, deepjoin
 
 class NotAbsolutePath(Exception):
-    def __init__(self, *message):
-        super().__init__(' '.join(message))
+    pass
 
 class AbsPath(str):
     def __new__(cls, path, cwd=None):

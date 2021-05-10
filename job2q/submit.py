@@ -95,17 +95,6 @@ def initialize():
     if 'nodes' not in options.common:
         options.common.nodes = 1
 
-#TODO Add suport for dialog boxes
-#    if options.common.xdialog:
-#        try:
-#            from tkdialog import TkDialog
-#        except ImportError:
-#            raise SystemExit()
-#        else:
-#            dialogs.yesno = join_args(TkDialog().yesno)
-#            messages.failure = join_args(TkDialog().message)
-#            messages.success = join_args(TkDialog().message)
-
     if not 'scratch' in sysconf.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
@@ -126,9 +115,9 @@ def initialize():
     if not 'shortname' in progspecs:
         messages.error('No se especificó el sufijo del programa', spec='shortname')
     
-    for key in options.parameters:
-        if '/' in options.parameters[key]:
-            messages.error(options.parameters[key], 'no puede ser una ruta', option=key)
+    for key in options.parameterkeys:
+        if '/' in options.parameterkeys[key]:
+            messages.error(options.parameterkeys[key], 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in progspecs:
         try: progspecs.mpilaunch = booldict[progspecs.mpilaunch]
@@ -332,22 +321,10 @@ def initialize():
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
     parameterdict = {}
-    parameterdict.update(sysconf.defaults.parameters)
-    parameterdict.update(options.parameters)
+    parameterdict.update(sysconf.defaults.parameterkeys)
+    parameterdict.update(options.parameterkeys)
 
-#    #TODO Move this code to the submit function
-#    #TODO Use filter groups to set parameters
-#    for key, value in options.parameterdict.items():
-#        if value.startswith('%'):
-#            try:
-#                index = int(value[1:]) - 1
-#            except ValueError:
-#                messages.error(value, 'debe tener un índice numérico', option=o(key))
-#            if index not in range(len(filtergroups)):
-#                messages.error(value, 'El índice está fuera de rango', option=o(key))
-#            parameterdict.update({key: filtergroups[index]})
-
-    for path in sysconf.defaults.parameterpaths:
+    for path in sysconf.parameterpaths.values():
         parts = AbsPath(pathjoin(path, keys=names), cwd=options.common.cwd).parts
         rootpath = AbsPath(parts.pop(0))
         for part in parts:
@@ -362,7 +339,7 @@ def initialize():
         if rootpath.exists():
             parameterpaths.append(rootpath)
         else:
-            messages.error('La ruta', path, 'no existe', spec='defaults:parameterpaths')
+            messages.error('La ruta de parámetros', path, 'no existe', spec='defaults:parameterpaths')
 
 
 def submit(parentdir, inputname):
@@ -394,8 +371,19 @@ def submit(parentdir, inputname):
     else:
         outdir = AbsPath(jobname, cwd=parentdir)
 
-    rawfiles = {}
-    interpolated = {}
+    literalfiles = {}
+    interpolatedfiles = {}
+
+    #TODO Use filter groups to set parameterkeys
+#    for key, value in options.parameterdict.items():
+#        if value.startswith('%'):
+#            try:
+#                index = int(value[1:]) - 1
+#            except ValueError:
+#                messages.error(value, 'debe tener un índice numérico', option=o(key))
+#            if index not in range(len(filtergroups)):
+#                messages.error(value, 'El índice está fuera de rango', option=o(key))
+#            parameterdict.update({key: filtergroups[index]})
 
     if options.common.raw:
         stagedir = parentdir
@@ -413,7 +401,7 @@ def submit(parentdir, inputname):
                         contents = f.read()
                         if options.interpolation.interpolate:
                             try:
-                                interpolated[destpath] = interpolate(
+                                interpolatedfiles[destpath] = interpolate(
                                     contents,
                                     keylist=options.interpolation.list,
                                     keydict=options.interpolation.dict,
@@ -426,16 +414,16 @@ def submit(parentdir, inputname):
                                 return
                         else:
                             try:
-                                interpolated[destpath] = interpolate(contents)
+                                interpolatedfiles[destpath] = interpolate(contents)
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
                                 if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', pathjoin((inputname, key)),'¿desea continuar sin interpolar?'):
-                                    rawfiles[destpath] = srcpath
+                                    literalfiles[destpath] = srcpath
                                 else:
                                     return
                 else:
-                    rawfiles[destpath] = srcpath
+                    literalfiles[destpath] = srcpath
 
     jobdir = AbsPath(pathjoin(stagedir, (jobname, progspecs.shortname, 'job')))
 
@@ -466,10 +454,10 @@ def submit(parentdir, inputname):
             messages.failure('No se puede crear la carpeta', outdir, 'porque ya existe un archivo con ese nombre')
             return
 
-    for destpath, literalfile in rawfiles.items():
-        literalfile.copyto(destpath)
+    for destpath, litfile in literalfiles.items():
+        litfile.copyto(destpath)
 
-    for destpath, contents in interpolated.items():
+    for destpath, contents in interpolatedfiles.items():
         with open(destpath, 'w') as f:
             f.write(contents)
 
