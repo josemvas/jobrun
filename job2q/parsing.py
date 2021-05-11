@@ -13,12 +13,10 @@ def tokenize(expr):
         yield token
 
 class Node:
-
     def __init__(self, left, right, name):
         self.left = left
         self.right = right
         self.name = name
-
     def pr(self):
         a = '('
         if self.left != None:
@@ -26,9 +24,8 @@ class Node:
         a += ' ' + self.name + ' '
         if self.right != None:
             a += self.right.pr()
-        a+=')'
+        a += ')'
         return a
-
     def evaluate(self, values):
         if self.name == 'not':
             return not self.right.evaluate(values)
@@ -42,30 +39,24 @@ class Node:
             raise Exception(self.name, 'not in value dict')
 
 class BoolParser:
-
     def __init__(self, expr):
         self.tokens = tokenize(expr)
         self.current = next(self.tokens, None)
         self.etree = self.Disj()
-
     def pr(self):
         return self.etree.pr()
-
     def evaluate(self, values):
         return self.etree.evaluate(values)
-
     def accept(self, c):
         if self.current == c:
             self.current = next(self.tokens, None)
             return True
         return False
-
     def expect(self, c):
         if self.current == c:
             self.current = next(self.tokens, None)
             return True
         raise Exception('Unexpected token', self.current, 'expected', c)
-
     def Disj(self):
         l = self.Conj()
         if self.accept('or'):
@@ -74,7 +65,6 @@ class BoolParser:
                 return None
             return Node(l, r, 'or')
         return l
-
     def Conj(self):
         l = self.Neg()
         if self.accept('and'):
@@ -83,7 +73,6 @@ class BoolParser:
                 return None
             return Node(l, r, 'and')
         return l
-
     def Neg(self):
         if self.accept('not'):
             l = self.Lit()
@@ -91,7 +80,6 @@ class BoolParser:
                 return None
             return Node(None, l, 'not')
         return self.Lit()
-
     def Lit(self):
         if self.accept('('):
             r = self.Disj()
