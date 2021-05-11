@@ -11,16 +11,19 @@ sync_files () {
 
 remove_files () {
     test -z "$1" && return
-    { echo $red\Los siguientes archivos $2 serán borrados de $host:$normal; echo "$1"; } | less -FXr
+    { echo $red\Se encontraron los siguientes archivos $2 $host:$normal; echo "$1"; } | less -FXr
     while true; do
-        read -p "${yellow}Escriba OK para eliminarlos o presione la lecla enter para abortar: $normal" answer
+        read -n1 -p "${yellow}¿Desea proceder a eliminar estos archivos (y/n)?: $normal" answer
+        echo
         case "$answer" in
-          [oO][kK])
+          [yY])
             echo -n $yellow\Eliminando los archivos $2... $normal
             rsync -e "ssh -S '$HOME/.ssh/$host.job2q.sock'" -tv --files-from=- --remove-source-files "$host":"\$JOBSYNCDIR/$USER.$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
             echo Hecho
             break;;
-          *) break;;
+          [nN])
+            echo No se eliminó ningún archivo
+            break;;
         esac
     done
 }
