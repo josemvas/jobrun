@@ -47,15 +47,15 @@ class _(string.Template):
     def format(self, **keys):
         return self.safe_substitute(keys)
 
-def interpolate(template, delimiter, keylist=[], keydict={}):
+def interpolate(template, anchor, keylist=[], keydict={}):
     class DictTemplate(string.Template):
-        delim = delimiter
+        delimiter = anchor
         idpattern = r'[a-z][a-z0-9]*'
     class ListTemplate(string.Template):
-        delim = delimiter
+        delimiter = anchor
         idpattern = r'[0-9]+'
     class DualTemplate(string.Template):
-        delim = delimiter
+        delimiter = anchor
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
@@ -69,26 +69,20 @@ def interpolate(template, delimiter, keylist=[], keydict={}):
             return None
     raise TypeError()
 
-def expandvars(template, keydict):
-    try:
-        return template.format(**keydict)
-    except KeyError():
-        raise FormatKeyError()
-
-def deepjoin(nestedlist, nextdelimiters, pastdelimiters=[]):
+def deepjoin(nestedlist, nextseparators, pastseparators=[]):
     itemlist = []
-    delimiter = nextdelimiters.pop(0)
+    separator = nextseparators.pop(0)
     for item in nestedlist:
         if isinstance(item, (list, tuple)):
-            itemlist.append(deepjoin(item, nextdelimiters, pastdelimiters + [delimiter]))
+            itemlist.append(deepjoin(item, nextseparators, pastseparators + [separator]))
         elif isinstance(item, str):
-            for delim in pastdelimiters:
+            for delim in pastseparators:
                 if delim in item:
-                    raise ValueError('Components can not contain higher level delimiters')
+                    raise ValueError('Components can not contain higher level separators')
             itemlist.append(item)
         else:
             raise TypeError('Components must be strings')
-    return delimiter.join(itemlist)
+    return separator.join(itemlist)
 
 def join_args(f):
     def wrapper(*args, **kwargs):

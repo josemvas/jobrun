@@ -138,7 +138,7 @@ def initialize():
         try:
             options.prefix = interpolate(
                 options.interpolation.prefix,
-                delimiter='%',
+                anchor='%',
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
@@ -151,7 +151,7 @@ def initialize():
         try:
             options.suffix = interpolate(
                 options.interpolation.suffix,
-                delimiter='%',
+                anchor='%',
                 keylist=options.interpolation.list,
                 keydict=options.interpolation.dict,
             )
@@ -372,7 +372,7 @@ def submit(parentdir, inputname, filtergroups):
                             try:
                                 interpolatedfiles[destpath] = interpolate(
                                     contents,
-                                    delimiter=options.interpolation.delimiter,
+                                    anchor=options.interpolation.anchor,
                                     keylist=options.interpolation.list,
                                     keydict=options.interpolation.dict,
                                 )
@@ -384,7 +384,7 @@ def submit(parentdir, inputname, filtergroups):
                                 return
                         else:
                             try:
-                                interpolatedfiles[destpath] = interpolate(contents, delimiter=options.interpolation.delimiter)
+                                interpolatedfiles[destpath] = interpolate(contents, anchor=options.interpolation.anchor)
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
@@ -445,7 +445,7 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():
-            remoteargs.constants[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+            remoteargs.constants[key] = interpolate(value, anchor='%', keylist=filtergroups)
         filelist = []
         for key in progspecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (outputname, key))):
@@ -478,7 +478,7 @@ def submit(parentdir, inputname, filtergroups):
 
     for key, value in sysconf.defaults.parameterkeys.items():
         try:
-            defaultparameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+            defaultparameterkeys[key] = interpolate(value, anchor='%', keylist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
         except IndexError:
@@ -486,7 +486,7 @@ def submit(parentdir, inputname, filtergroups):
 
     for key, value in options.parameterkeys.items():
         try:
-            parameterkeys[key] = interpolate(value, delimiter='%', keylist=filtergroups)
+            parameterkeys[key] = interpolate(value, anchor='%', keylist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción', key)
         except IndexError:
