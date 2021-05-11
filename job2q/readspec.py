@@ -2,7 +2,6 @@
 import json
 from collections import OrderedDict
 from . import messages
-from .utils import AttrDict
 from .details import dictags, listags
 
 class SpecList(list):
