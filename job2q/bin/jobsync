@@ -42,7 +42,8 @@ done
 if [[ -n $1 ]]; then
     host=$1
 else
-    echo "$red\Uso: $(basename "$0") <hostname>$normal"
+    echo $red\Debe especificar un servidor$normal
+    echo $yellow\Uso: $(basename "$0") \<hostname\>$normal
     exit
 fi
 
