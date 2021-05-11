@@ -7,7 +7,7 @@ from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
-from .utils import AttrDict, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
+from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -94,7 +94,7 @@ def initialize():
     if 'scratch' in options.common:
         options.jobscratch = options.common.scratch / queuespecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(pathjoin(sysconf.defaults.scratch, keys=names)) / queuespecs.envars.jobid
+        options.jobscratch = AbsPath(sysconf.defaults.scratch.format_map(names)) / queuespecs.envars.jobid
 
     if 'queue' not in options.common:
         if 'queue' in sysconf.defaults:
@@ -227,15 +227,15 @@ def initialize():
         options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()))
 
     for envar, path in progspecs.export.items() | sysconf.versions[options.version].export.items():
-        abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
+        abspath = AbsPath(path.format_map(names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
     for envar, path in progspecs.append.items() | sysconf.versions[options.version].append.items():
-        abspath = AbsPath(pathjoin(path, keys=names), cwd=options.jobscratch)
+        abspath = AbsPath(path.format_map(names), cwd=options.jobscratch)
         script.setup.append('{0}={1}:${0}'.format(envar, abspath))
 
     for path in progspecs.source + sysconf.versions[options.version].source:
-        script.setup.append('source {}'.format(AbsPath(pathjoin(path, keys=names))))
+        script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
 
     if progspecs.load or sysconf.versions[options.version].load:
         script.setup.append('module purge')
@@ -244,12 +244,12 @@ def initialize():
         script.setup.append('module load {}'.format(module))
 
     try:
-        script.main.append(AbsPath(pathjoin(sysconf.versions[options.version].executable, keys=names)))
+        script.main.append(AbsPath(sysconf.versions[options.version].executable.format_map(names)))
     except NotAbsolutePath:
         script.main.append(sysconf.versions[options.version].executable)
 
     for path in queuespecs.logfiles:
-        script.header.append(path.format(AbsPath(pathjoin(sysconf.logdir, keys=names))))
+        script.header.append(path.format(AbsPath(sysconf.logdir.format_map(names))))
 
     script.setup.append("shopt -s nullglob extglob")
 
@@ -473,8 +473,8 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
-    parameterkeys = DefaultDict()
-    defaultparameterkeys = DefaultDict()
+    parameterkeys = PartialDict()
+    defaultparameterkeys = PartialDict()
 
     for key, value in sysconf.defaults.parameterkeys.items():
         try:
@@ -496,7 +496,7 @@ def submit(parentdir, inputname, filtergroups):
         parameterkeys.update(defaultparameterkeys)
 
     for path in sysconf.parameterpaths:
-        parts = splitpath(pathjoin(path, keys=names))
+        parts = splitpath(path.format_map(PartialDict(names)))
         trunk = AbsPath(parts.pop(0))
         for part in parts:
             if not trunk.isdir():

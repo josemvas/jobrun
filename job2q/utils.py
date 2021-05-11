@@ -31,15 +31,18 @@ class AttrDict(OrderedDict):
             super(AttrDict, self).__setattr__(name, value)
 
 class DefaultDict(dict):
-    def __init__(self, default=None):
-        self._keys = []
+    def __init__(self, default):
         self._default = default
     def __missing__(self, key):
+        return self._default
+
+class PartialDict(dict):
+    def __init__(self, known={}):
+        self._keys = []
+        self.update(known)
+    def __missing__(self, key):
         self._keys.append(key)
-        if self._default is None:
-            return '{' + key + '}'
-        else:
-            return self._default
+        return '{' + key + '}'
 
 class _(string.Template):
     def __str__(self):
@@ -59,12 +62,12 @@ def interpolate(template, anchor, keylist=[], keydict={}):
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(DefaultDict()).format('', *keylist, **keydict)
+            return DualTemplate(template).substitute(PartialDict()).format('', *keylist, **keydict)
         elif keydict is None:
-            return ListTemplate(template).substitute(DefaultDict()).format('', *keylist)
+            return ListTemplate(template).substitute(PartialDict()).format('', *keylist)
     elif keylist is None:
         if isinstance(keydict, dict):
-            return DictTemplate(template).substitute(DefaultDict()).format(**keydict)
+            return DictTemplate(template).substitute(PartialDict()).format(**keydict)
         elif keydict is None:
             return None
     raise TypeError()

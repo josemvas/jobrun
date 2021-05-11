@@ -3,7 +3,7 @@ import string
 import shutil
 import fnmatch
 from . import messages
-from .utils import DefaultDict, deepjoin
+from .utils import PartialDict, DefaultDict, deepjoin
 
 class NotAbsolutePath(Exception):
     pass
@@ -162,20 +162,18 @@ def dirbranches(trunk, parts, dirtree):
     if not trunk.isdir():
         messages.error(trunk.failreason)
     if parts:
-        keydict = DefaultDict('*')
-        partglob = parts.pop(0).format_map(keydict)
+        keydict = PartialDict()
+        part = parts.pop(0).format_map(keydict)
         if keydict._keys:
-            branches = trunk.glob(partglob)
+            branches = trunk.glob(part.format_map(DefaultDict('*')))
             for branch in branches:
                 dirtree[branch] = {}
                 dirbranches(trunk/branch, parts, dirtree[branch])
         else:
             dirbranches(trunk/partglob, parts, dirtree)
 
-def pathjoin(*components, keys={}):
-    keydict = DefaultDict()
-    keydict.update(keys)
-    return deepjoin(components, [os.path.sep, '.']).format_map(keydict)
+def pathjoin(*components):
+    return deepjoin(components, [os.path.sep, '.'])
 
 def splitpath(path):
     if path:

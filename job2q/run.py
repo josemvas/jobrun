@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
-from .utils import AttrDict, DefaultDict, printoptions, o, p, q, _
+from .utils import AttrDict, PartialDict, printoptions, o, p, q, _
 from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
@@ -18,15 +18,15 @@ class ListOptions(Action):
             print(_('Versiones del programa:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
             printoptions(tuple(sysconf.versions.keys()), [default], level=1)
-        for parampath in sysconf.parameterpaths:
+        for path in sysconf.parameterpaths:
             dirtree = {}
-            parts = splitpath(pathjoin(parampath, keys=names))
+            parts = splitpath(path.format_map(PartialDict(names)))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                keydict = DefaultDict()
-                parampath.format_map(keydict)
+                keydict = PartialDict()
+                path.format_map(keydict)
                 defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict._keys]
-                print(_('Conjuntos de parámetros en {}:'.format(parampath)))
+                print(_('Conjuntos de parámetros en {}:'.format(path)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
 
@@ -85,8 +85,7 @@ try:
 
     parameterpaths = []
     foundparameterkeys = set()
-    keydict = DefaultDict()
-    keydict.update(names)
+    keydict = PartialDict(names)
 
     for paramset in progspecs.parametersets:
         try:
