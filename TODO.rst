@@ -1,5 +1,6 @@
 General
 -------
+- Alertar cuando la configuracion exista y difiera de la configuracion actual
 - Agregar soporte para ejecutar todos los archivos de entrada en el mismo trabajo (--chain?)
 - Definir el esqueleto de las especificaciones para eliminar la necesidad de details.py
 - Permitir leer los archivos de entrada de un directorio diferente al de salida y crear opción para eliminarlos
@@ -20,6 +21,12 @@ General
 - Nombrar la carpeta oculta de jobscripts con el número de trabajo
 - Agregar una opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Considerar usar template strings para interpolar las opciones y especificaciones
+
+Python 3.6
+----------
+- dict conserva el orden de las entradas (ya no es necesario usar OrderedDict)
+- Los paquetes de JSON5 requieren python 3.6
+- Se pueden usar f-strings en vez de format
 
 console.py
 ----------
