@@ -46,9 +46,9 @@ class AppendPath(Action):
 try:
 
     try:
-        paths.specdir = os.environ['SPECDIR']
+        paths.specdir = os.environ['SPECPATH']
     except KeyError:
-        messages.error('No se definió la variable de entorno SPECDIR')
+        messages.error('No se definió la variable de entorno SPECPATH')
     
     parser = ArgumentParser(add_help=False)
     parser.add_argument('program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
