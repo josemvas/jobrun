@@ -7,7 +7,7 @@ from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
 from .utils import AttrDict, PartialDict, printoptions, o, p, q, _
-from .shared import ArgList, names, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
+from .shared import ArgList, names, nodes, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
@@ -79,9 +79,9 @@ try:
         messages.error('No se definió el nombre del clúster', spec='name')
 
     try:
-        names.head = sysconf.headname
+        nodes.head = sysconf.headnode
     except AttributeError:
-        names.head = names.host
+        nodes.head = names.host
 
     parameterpaths = []
     foundparameterkeys = set()
@@ -105,7 +105,7 @@ try:
     # Replace parameter path dict with a list for easier handling
     sysconf.parameterpaths = parameterpaths
 
-    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.longname))
+    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.progname))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')

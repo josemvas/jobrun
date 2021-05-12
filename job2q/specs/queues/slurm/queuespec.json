@@ -60,18 +60,18 @@
        "mpich": "mpirun"
    },
    
-   "queued_states": {
-       "PENDING": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
-       "RUNNING": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
-       "SUSPENDED": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
-       "STOPPED": "El trabajo {name} no se envió porque está detenido con número de trabajo {id}",
-       "CONFIGURING": "El trabajo {name} no se envió porque está a punto de iniciar con número de trabajo {id}",
-       "COMPLETING": "El trabajo {name} no se envió porque está a punto de terminar con número de trabajo {id}",
-       "SIGNALING": "El trabajo {name} no se envió porque se está cancelando con número de trabajo {id}",
-       "RESV_DEL_HOLD": "El trabajo {name} no se envió porque está detenido en cola con número de trabajo {id}",
-       "REQUEUE_HOLD": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
-       "REQUEUED": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}"
-   },
+   "queued_states": [
+       "PENDING",
+       "RUNNING",
+       "SUSPENDED",
+       "STOPPED",
+       "CONFIGURING",
+       "COMPLETING",
+       "SIGNALING",
+       "RESV_DEL_HOLD",
+       "REQUEUE_HOLD",
+       "REQUEUED"
+   ],
    
    "ready_states": [
        "COMPLETED",

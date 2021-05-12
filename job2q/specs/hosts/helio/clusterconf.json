@@ -1,6 +1,6 @@
 {
    "clustername": "Helio",
-   "scheduler": "Lava",
+   "schedulername": "Open Lava",
    "filesync": "local",
    "logdir": "/tmp",
    "delay": "1",

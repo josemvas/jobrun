@@ -1,6 +1,6 @@
 {
-   "schedulername": "LSF",
-   "submitcmd": [ "bsub", "-env", "all" ],
+   "schedulername": "Open Lava",
+   "submitcmd": [ "bsub" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
    "submitre": ".*<([0-9]+)>.*",
    "statre": "(.+)",
@@ -55,18 +55,18 @@
    },
     
    "mpilauncher": {
-      "openmpi": "mpirun",
-      "intelmpi": "mpirun",
-      "mpich": "mpirun"
+      "openmpi": "openmpi-mpirun",
+      "intelmpi": "impi-mpirun",
+      "mpich": "mpich-mpirun"
    },
 
-   "queued_states": {
-      "PEND": "El trabajo {name} no se envió porque ya está en cola con número de trabajo {id}",
-      "RUN": "El trabajo {name} no se envió porque ya está corriendo con número de trabajo {id}",
-      "PSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
-      "USUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}",
-      "SSUSP": "El trabajo {name} no se envió porque está suspendido con número de trabajo {id}"
-   },
+   "queued_states": [
+      "PEND",
+      "RUN",
+      "PSUSP",
+      "USUSP",
+      "SSUSP"
+   ],
 
    "ready_states": [
       "DONE",

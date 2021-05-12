@@ -1,6 +1,7 @@
 {
    "clustername": "Otro",
-   "headname": "",
+   "headnode": "",
+   "schedulername": "",
    "filesync": "local",
    "logdir": "/tmp",
    "delay": "1",

@@ -1,6 +1,5 @@
 {
-   "shortname": "ORCA",
-   "longname": "ORCA",
+   "progname": "ORCA",
    "parallelib": "standalone",
    "stdoutput": "out",
 

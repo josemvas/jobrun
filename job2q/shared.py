@@ -34,17 +34,12 @@ class ArgList:
         if options.common.jobargs:
             parentdir = AbsPath(options.common.cwd)
             for key in progspecs.inputfiles:
-                if AbsPath(pathjoin(parentdir, (self.current, progspecs.shortname, key))).isfile():
-                    inputname = pathjoin((self.current, progspecs.shortname))
+                if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
+                    inputname = self.current
                     break
             else:
-                for key in progspecs.inputfiles:
-                    if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
-                        inputname = self.current
-                        break
-                else:
-                    messages.failure('No hay archivos de entrada de', progspecs.longname, 'asociados al trabajo', self.current)
-                    return next(self)
+                messages.failure('No hay archivos de entrada de', progspecs.progname, 'asociados al trabajo', self.current)
+                return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
@@ -53,7 +48,7 @@ class ArgList:
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', progspecs.longname)
+                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', progspecs.progname)
                 return next(self)
             if not path.isfile():
                 messages.failure(path.failreason)
@@ -84,6 +79,7 @@ class ArgGroups:
         return repr(self.__dict__)
 
 names = AttrDict()
+nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()

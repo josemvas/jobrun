@@ -1,6 +1,5 @@
 {
-   "shortname": "VASP",
-   "longname": "VASP",
+   "progname": "VASP",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
 

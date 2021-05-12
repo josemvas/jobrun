@@ -1,5 +1,6 @@
 General
 -------
+- Mostrar errores apropiados cuando se intene enviar trabajos que usan la misma acarpeta de salida
 - Alertar cuando la configuracion exista y difiera de la configuracion actual
 - Agregar soporte para ejecutar todos los archivos de entrada en el mismo trabajo (--chain?)
 - Definir el esqueleto de las especificaciones para eliminar la necesidad de details.py

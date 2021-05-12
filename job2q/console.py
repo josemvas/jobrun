@@ -44,15 +44,20 @@ def install(relpath=False):
         clusterconf = readspec(pathjoin(srchostspecdir, diritem, 'clusterconf.json'))
         clusternames[diritem] = clusterconf.clustername
         clusterspeckeys[clusterconf.clustername] = diritem
-        if 'scheduler' in clusterconf:
-            clusterschedulers[diritem] = clusterconf.scheduler
+        clusterschedulers[diritem] = clusterconf.schedulername
+
+    for diritem in os.listdir(srcqueuespecdir):
+        queuespecs = readspec(pathjoin(srcqueuespecdir, diritem, 'queuespec.json'))
+        schedulernames[diritem] = queuespecs.schedulername
+        schedulerspeckeys[queuespecs.schedulername] = diritem
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
-        defaulthost = readspec(pathjoin(specdir, 'clusterconf.json')).clustername
-        if defaulthost not in clusternames.values():
-            defaulthost = 'Otro'
+        clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
+        defaulthost = clusterconf.clustername if clusterconf.clustername in clusternames.values() else 'Otro'
+        defaultscheduler = clusterconf.schedulername if clusterconf.schedulername in schedulernames.values() else None
     else:
-        defaulthost = None
+        defaulthost = 'Otro'
+        defaultscheduler = None
 
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
@@ -63,26 +68,14 @@ def install(relpath=False):
         if dialogs.yesno('Desea sobreescribir la configuración local del sistema?'):
             copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
 
-    for diritem in os.listdir(srcqueuespecdir):
-        queuespecs = readspec(pathjoin(srcqueuespecdir, diritem, 'queuespec.json'))
-        schedulernames[diritem] = queuespecs.schedulername
-        schedulerspeckeys[queuespecs.schedulername] = diritem
-
-    if os.path.isfile(pathjoin(specdir, 'queuespec.json')):
-        defaultscheduler = readspec(pathjoin(specdir, 'queuespec.json')).schedulername
-    elif selhost in clusterschedulers:
-        defaultscheduler = clusterschedulers[selhost]
-    else:
-        defaultscheduler = None
-
     selschedulername = dialogs.chooseone('Seleccione el gestor de trabajos adecuado', choices=sorted(schedulernames.values()), default=defaultscheduler)
     selscheduler = schedulerspeckeys[selschedulername]
     copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
          
     for diritem in os.listdir(pathjoin(srchostspecdir, selhost, 'packages')):
         progspecs = readspec(pathjoin(sourcedir, 'specs', 'packages', diritem, 'progspec.json'))
-        packagenames[diritem] = (progspecs.longname)
-        packagespeckeys[progspecs.longname] = diritem
+        packagenames[diritem] = (progspecs.progname)
+        packagespeckeys[progspecs.progname] = diritem
 
     if not packagenames:
         messages.warning('No hay programas preconfigurados para este host')
@@ -90,7 +83,7 @@ def install(relpath=False):
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            configured.append(readspec(pathjoin(specdir, diritem, 'progspec.json')).longname)
+            configured.append(readspec(pathjoin(specdir, diritem, 'progspec.json')).progname)
 
     selpackagenames = dialogs.choosemany('Seleccione los programas que desea configurar o reconfigurar', choices=sorted(packagenames.values()), default=configured)
 

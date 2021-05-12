@@ -1,6 +1,5 @@
 {
-   "shortname": "deMon",
-   "longname": "deMon2k",
+   "progname": "deMon2k",
    "parallelib": "intelmpi",
    "mpilaunch": "True",
 

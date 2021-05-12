@@ -25,7 +25,7 @@ def jobstat(jobid):
         status = re.fullmatch(queuespecs.statre, output).group(1)
         if status not in queuespecs.ready_states:
             if status in queuespecs.queued_states:
-                return queuespecs.queued_states[status]
+                return 'El trabajo {name} no se envió porque hay otro trabajo en cola con número {id} que usa la misma carpeta de salida'
             else:
                 return 'El trabajo "{name}" no se envió porque está en cola pero su estado es inválido: ' + status
     else:

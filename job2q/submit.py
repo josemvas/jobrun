@@ -8,7 +8,7 @@ from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
 from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
-from .shared import names, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
+from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -102,11 +102,8 @@ def initialize():
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
-    if not 'longname' in progspecs:
-        messages.error('No se especificó el nombre del programa', spec='longname')
-    
-    if not 'shortname' in progspecs:
-        messages.error('No se especificó el sufijo del programa', spec='shortname')
+    if not 'progname' in progspecs:
+        messages.error('No se especificó el nombre del programa', spec='progname')
     
     for key in options.parameterkeys:
         if '/' in options.parameterkeys[key]:
@@ -166,7 +163,7 @@ def initialize():
     ############ Local execution ###########
 
     if 'jobinfo' in queuespecs:
-        script.header.append(queuespecs.jobinfo.format(progspecs.longname))
+        script.header.append(queuespecs.jobinfo.format(progspecs.progname))
 
     #TODO MPI support for Slurm
     if progspecs.parallelib:
@@ -257,6 +254,7 @@ def initialize():
 
     script.envars.extend(queuespecs.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
+    script.envars.extend((k + 'node', v) for k, v in nodes.items())
     script.envars.extend((k, progspecs.filekeys[v]) for k, v in progspecs.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
@@ -304,20 +302,20 @@ def initialize():
         script.makedir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         if options.common.dispose:
-            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'" && rsh $headname rm "\'{0}\'"; done'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'" && rsh $headnode rm "\'{0}\'"; done'.format
         else:
-            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.importdir = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.exportfile = 'rcp "{}" $headname:"\'{}\'"'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hostlist[*]}}; do rsh $headnode tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.exportfile = 'rcp "{}" $headnode:"\'{}\'"'.format
     elif sysconf.filesync == 'secure':
         script.makedir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         if options.common.dispose:
-            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'" && ssh $headname rm "\'{0}\'"; done'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'" && ssh $headnode rm "\'{0}\'"; done'.format
         else:
-            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.importdir = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.exportfile = 'scp "{}" $headname:"\'{}\'"'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hostlist[*]}}; do ssh $headnode tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.exportfile = 'scp "{}" $headnode:"\'{}\'"'.format
     else:
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
@@ -329,22 +327,13 @@ def submit(parentdir, inputname, filtergroups):
         if BoolParser(conflict).evaluate(filebools):
             messages.error(message, p(inputname))
 
-    if inputname.endswith('.' + progspecs.shortname):
-        jobname = inputname[:-len(progspecs.shortname)-1]
-    else:
-        jobname = inputname
+    jobname = inputname
 
     if 'prefix' in options:
         jobname = options.prefix + '.' + jobname
 
     if 'suffix' in options:
         jobname = jobname +  '.' + options.suffix
-
-    #TODO Append program version to output file extension if option is enabled
-    if inputname.endswith('.' + progspecs.shortname):
-        outputname = jobname + '.' + progspecs.shortname
-    else:
-        outputname = jobname
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, cwd=parentdir)
@@ -363,7 +352,7 @@ def submit(parentdir, inputname, filtergroups):
         stagedir = outdir
         for key in progspecs.inputfiles:
             srcpath = AbsPath(pathjoin(parentdir, (inputname, key)))
-            destpath = pathjoin(stagedir, (outputname, key))
+            destpath = pathjoin(stagedir, (jobname, key))
             if srcpath.isfile():
                 if 'interpolable' in progspecs and key in progspecs.interpolable:
                     with open(srcpath, 'r') as f:
@@ -408,15 +397,15 @@ def submit(parentdir, inputname, filtergroups):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((outputname, k)) for k in progspecs.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in progspecs.outputfiles):
             if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in progspecs.outputfiles:
-            remove(pathjoin(outdir, (outputname, key)))
+            remove(pathjoin(outdir, (jobname, key)))
         if parentdir != outdir:
             for key in progspecs.inputfiles:
-                remove(pathjoin(outdir, (outputname, key)))
+                remove(pathjoin(outdir, (jobname, key)))
     else:
         try:
             outdir.makedirs()
@@ -432,7 +421,7 @@ def submit(parentdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])))
+        targetfile.linkto(pathjoin(stagedir, (jobname, progspecs.fileoptions[key])))
 
     if options.remote.host:
 
@@ -448,8 +437,8 @@ def submit(parentdir, inputname, filtergroups):
             remoteargs.constants[key] = interpolate(value, anchor='%', keylist=filtergroups)
         filelist = []
         for key in progspecs.filekeys:
-            if os.path.isfile(pathjoin(outdir, (outputname, key))):
-                filelist.append(pathjoin(paths.home, '.', reloutdir, (outputname, key)))
+            if os.path.isfile(pathjoin(outdir, (jobname, key))):
+                filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(options.remote.cmd)
@@ -522,10 +511,10 @@ def submit(parentdir, inputname, filtergroups):
 
     for key in progspecs.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (jobname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
@@ -536,7 +525,7 @@ def submit(parentdir, inputname, filtergroups):
             messages.error('La ruta de parámetros', path, 'no existe')
 
     for key in progspecs.outputfiles:
-        exports.append(script.exportfile(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
+        exports.append(script.exportfile(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
 
     try:
         jobdir.mkdir()
