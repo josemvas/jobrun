@@ -292,32 +292,32 @@ def initialize():
     
     script.chdir = 'cd "{}"'.format
     if sysconf.filesync == 'local':
-        script.rmdir = 'rm -rf "{}"'.format
-        script.mkdir = 'mkdir -p -m 700 "{}"'.format
+        script.makedir = 'mkdir -p -m 700 "{}"'.format
+        script.removedir = 'rm -rf "{}"'.format
         if options.common.dispose:
-            script.simport = 'mv "{}" "{}"'.format
+            script.importfile = 'mv "{}" "{}"'.format
         else:
-            script.simport = 'cp "{}" "{}"'.format
-        script.rimport = 'cp -r "{}/." "{}"'.format
-        script.sexport = 'cp "{}" "{}"'.format
+            script.importfile = 'cp "{}" "{}"'.format
+        script.importdir = 'cp -r "{}/." "{}"'.format
+        script.exportfile = 'cp "{}" "{}"'.format
     elif sysconf.filesync == 'remote':
-        script.rmdir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
-        script.mkdir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.makedir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.removedir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'" && rsh $headname rm "\'{0}\'"; done'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'" && rsh $headname rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'rcp "{}" $headname:"\'{}\'"'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hostlist[*]}}; do rsh $headname tar -cf- -C "\'{0}\'" . | rsh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.exportfile = 'rcp "{}" $headname:"\'{}\'"'.format
     elif sysconf.filesync == 'secure':
-        script.rmdir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
-        script.mkdir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.makedir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.removedir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         if options.common.dispose:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'" && ssh $headname rm "\'{0}\'"; done'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'" && ssh $headname rm "\'{0}\'"; done'.format
         else:
-            script.simport = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.rimport = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
-        script.sexport = 'scp "{}" $headname:"\'{}\'"'.format
+            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headname:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hostlist[*]}}; do ssh $headname tar -cf- -C "\'{0}\'" . | ssh $host tar -xf- -C "\'{1}\'"; done'.format
+        script.exportfile = 'scp "{}" $headname:"\'{}\'"'.format
     else:
         messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
 
@@ -395,7 +395,7 @@ def submit(parentdir, inputname, filtergroups):
                 else:
                     literalfiles[destpath] = srcpath
 
-    jobdir = AbsPath(pathjoin(stagedir, (jobname, progspecs.shortname, 'job')))
+    jobdir = AbsPath(pathjoin(stagedir, 'jobfiles'))
 
     if outdir.isdir():
         if jobdir.isdir():
@@ -522,21 +522,21 @@ def submit(parentdir, inputname, filtergroups):
 
     for key in progspecs.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.simport(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (outputname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.simport(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (outputname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
-            imports.append(script.simport(path, pathjoin(options.jobscratch, path.name)))
+            imports.append(script.importfile(path, pathjoin(options.jobscratch, path.name)))
         elif path.isdir():
-            imports.append(script.rimport(pathjoin(path), options.jobscratch))
+            imports.append(script.importdir(pathjoin(path), options.jobscratch))
         else:
             messages.error('La ruta de parámetros', path, 'no existe')
 
     for key in progspecs.outputfiles:
-        exports.append(script.sexport(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
+        exports.append(script.exportfile(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (outputname, key))))
 
     try:
         jobdir.mkdir()
@@ -554,14 +554,14 @@ def submit(parentdir, inputname, filtergroups):
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('jobname', jobname) + '\n')
         f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
-        f.write(script.mkdir(options.jobscratch) + '\n')
+        f.write(script.makedir(options.jobscratch) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(options.jobscratch) + '\n')
         f.write(''.join(i + '\n' for i in progspecs.prescript))
         f.write(' '.join(script.main) + '\n')
         f.write(''.join(i + '\n' for i in progspecs.postscript))
         f.write(''.join(i + '\n' for i in exports))
-        f.write(script.rmdir(options.jobscratch) + '\n')
+        f.write(script.removedir(options.jobscratch) + '\n')
         f.write(''.join(i + '\n' for i in sysconf.offscript))
 
     if options.debug.dryrun:
