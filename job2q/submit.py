@@ -566,7 +566,7 @@ def submit(parentdir, inputname, filtergroups):
             messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
             return
         else:
-            messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número de trabajo', jobid)
+            messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número', jobid)
             with open(pathjoin(jobdir, 'id'), 'w') as f:
                 f.write(jobid)
             with open(paths.lock, 'a'):
