@@ -66,11 +66,11 @@ conflicting=$(echo "$files" | grep -v '^>f          ' | grep -v '^>f+++++++++ ' 
 if [[ -n ${clean+?} ]]; then 
     if [[ -n ${force+?} ]]; then 
         if [[ -n $synced || -n $conflicting || -n $unsynced ]]; then
-            remove_files "$synced" duplicados
+            remove_files "$synced" redundantes
             remove_files "$conflicting" conflictivos
             remove_files "$unsynced" abandonados
         else
-            echo $yellow\No hay archivos que eliminar$normal
+            echo $yellow\No hay archivos que eliminar en $host$normal
         fi
     else
         if [[ -n $unsynced ]]; then
@@ -82,9 +82,9 @@ if [[ -n ${clean+?} ]]; then
             echo "$conflicting"
             echo $yellow\Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas$normal
         elif [[ -n $synced ]]; then
-            remove_files "$synced" duplicados
+            remove_files "$synced" redundantes
         else
-            echo $yellow\No hay archivos que eliminar$normal
+            echo $yellow\No hay archivos que eliminar en $host$normal
         fi
     fi
 else
@@ -93,7 +93,7 @@ else
             sync_files "$unsynced"
             sync_files "$conflicting"
         else
-            echo $yellow\No hay archivos que sincronizar$normal
+            echo $yellow\No hay archivos que sincronizar en $host$normal
         fi
     else
         if [[ -n $unsynced  || -n $conflicting ]]; then
@@ -107,9 +107,9 @@ else
                 echo $yellow\Use las opciones --force para sobreescribir las versiones locales o --clean y --force para eliminar las versiones remotas$normal
             fi
         elif [[ -n $synced ]]; then
-            echo $yellow\No hay archivos nuevos que sincronizar pero hay duplicados en $host, use la opción --clean para eliminarlos$normal
+            echo $yellow\No hay archivos nuevos que sincronizar pero hay archivos ya sincronizados en $host, use la opción --clean para eliminarlos$normal
         else
-            echo $yellow\No hay archivos que sincronizar$normal
+            echo $yellow\No hay archivos que sincronizar en $host$normal
         fi
     fi
 fi
