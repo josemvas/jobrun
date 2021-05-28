@@ -65,5 +65,5 @@ def readspec(jsonfile):
         try:
             return SpecDict(json.load(f, object_pairs_hook=OrderedDict))
         except ValueError as e:
-            messages.error('El archivo {} contiene JSON inválido: {}'.format(fh.name, str(e)))
+            messages.error('El archivo {} contiene JSON inválido: {}'.format(f.name, str(e)))
 
