@@ -51,18 +51,18 @@ def install(relpath=False):
         schedulernames[diritem] = queuespecs.schedulername
         schedulerspeckeys[queuespecs.schedulername] = diritem
 
+    defaulthost = 'Otro'
+    defaultscheduler = None
+
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
-        defaulthost = clusterconf.clustername if clusterconf.clustername in clusternames.values() else 'Otro'
-        defaultscheduler = clusterconf.schedulername if clusterconf.schedulername in schedulernames.values() else None
-    else:
-        defaulthost = 'Otro'
-        defaultscheduler = None
+        defaulthost = clusterconf.clustername
 
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
+    defaultscheduler = clusterschedulers[selhost]
     
-    if defaulthost is None:
+    if not os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
     elif selhostname != defaulthost and readspec(pathjoin(srchostspecdir, selhost, 'clusterconf.json')) != readspec(pathjoin(specdir, 'clusterconf.json')):
         if dialogs.yesno('Desea sobreescribir la configuración local del sistema?'):
