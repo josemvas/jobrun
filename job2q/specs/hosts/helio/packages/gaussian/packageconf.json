@@ -6,28 +6,28 @@
       "09": {
          "executable": "g09",
          "export": {
-             "g09root": "/opt/packages/G09E.01-Linux"
+             "g09root": ""
          },
          "source": [
-            "/opt/packages/G09E.01-Linux/g09/bsd/g09.profile"
+            ""
          ]
       },
       "16": {
          "executable": "g16",
          "export": {
-             "g16root": "/opt/packages/G16C.01-Linux-x86_64_SSE4.2"
+             "g16root": ""
          },
          "source": [
-            "/opt/packages/G16C.01-Linux-x86_64_SSE4.2/g16/bsd/g16.profile"
+            ""
          ]
       },
       "16 AVX": {
          "executable": "g16",
          "export": {
-             "g16root": "/opt/packages/G16C.01-Linux-x86_64_AVX"
+             "g16root": ""
          },
          "source": [
-            "/opt/packages/G16C.01-Linux-x86_64_AVX/g16/bsd/g16.profile"
+            ""
          ]
       }
    }

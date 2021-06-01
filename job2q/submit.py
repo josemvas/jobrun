@@ -384,7 +384,7 @@ def submit(parentdir, inputname, filtergroups):
                 else:
                     literalfiles[destpath] = srcpath
 
-    jobdir = AbsPath(pathjoin(stagedir, 'job'))
+    jobdir = AbsPath(pathjoin(stagedir, '.job'))
 
     if outdir.isdir():
         if jobdir.isdir():

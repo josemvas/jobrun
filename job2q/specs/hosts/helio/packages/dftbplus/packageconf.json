@@ -5,20 +5,19 @@
    },
    "versions": {
       "17.1": {
-         "executable": "/opt/packages/DFTB+/dftbplus-17.1.x86_64-linux/bin/dftb+"
+         "executable": ""
       },
       "17.1 mod": {
-         "number": "17mod",
-         "executable": "/opt/packages/DFTB+/dftbplus-17.1-ic17/_build/prog/dftb+/dftb+"
+         "executable": ""
       },
       "18.2": {
-         "executable": "/opt/packages/DFTB+/dftbplus-18.2.x86_64-linux/bin/dftb+"
+         "executable": ""
       },
       "19.1": {
-         "executable": "/opt/packages/DFTB+/dftbplus-19.1.x86_64-linux/bin/dftb+"
+         "executable": ""
       }
    },
    "parameterpaths": {
-      "slako": "/opt/packages/DFTB+/slako/{slako}"
+      "slako": ""
    }
 }

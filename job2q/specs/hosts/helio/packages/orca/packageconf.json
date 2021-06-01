@@ -5,10 +5,10 @@
    "versions": {
       "4.1.2": {
          "append": {
-            "PATH": "/opt/openmpi/2.1.6/bin",
-            "LD_LIBRARY_PATH": "/opt/openmpi/2.1.6/lib"
+            "PATH": "",
+            "LD_LIBRARY_PATH": ""
          },
-         "executable": "/opt/packages/ORCA/orca_4_2_1_linux_x86-64_openmpi216/orca"
+         "executable": ""
       }
    }
 }

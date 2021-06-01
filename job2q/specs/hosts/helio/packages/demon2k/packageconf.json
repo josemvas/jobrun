@@ -5,18 +5,18 @@
    "versions": {
       "6.0.1": {
          "source": [
-            "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+            ""
          ],
-         "executable": "/opt/packages/deMon2k/deMon/6.0.1/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
+         "executable": ""
       },
       "6.0.1 AD2": {
          "source": [
-            "/opt/intel/compilers_and_libraries_2017/linux/bin/compilervars.sh"
+            ""
          ],
-         "executable": "/opt/packages/deMon2k/demon/6.0.1.AD2/object.mpi-ic17SSE42/deMon.6.0.1.mpi"
+         "executable": ""
       }
    },
    "parameterpaths": {
-      "bases": "/opt/packages/deMon2k/bases"
+      "bases": ""
    }
 }
