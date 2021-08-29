@@ -1,5 +1,6 @@
 General
 -------
+- Preguntar por la versión del programa y parámetros después de revisar que la carpeta de salida esté vacía, y usar esas opciones para todos los argumentos
 - Mostrar errores apropiados cuando se intene enviar trabajos que usan la misma acarpeta de salida
 - Alertar cuando la configuracion exista y difiera de la configuracion actual
 - Agregar soporte para ejecutar todos los archivos de entrada en el mismo trabajo (--chain?)
@@ -23,10 +24,14 @@ General
 - Agregar una opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Considerar usar template strings para interpolar las opciones y especificaciones
 
+Bugs
+----
+- Abspath has no attribute failreason?
+
 Python 3.6
 ----------
 - dict conserva el orden de las entradas (ya no es necesario usar OrderedDict)
-- Los paquetes de JSON5 requieren python 3.6
+- Las bibliotecas pyjson5 requieren python 3.6
 - Se pueden usar f-strings en vez de format
 
 console.py
