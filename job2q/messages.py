@@ -32,3 +32,16 @@ def unknown_error(message):
     fcode = sys._getframe(1).f_code
     sys.exit(colors.red + '{}:{} {}'.format(fcode.co_filename, fcode.co_name, message) + colors.default)
 
+def excinfo(exception, path):
+    if isinstance(exception, IsADirectoryError):
+         failure('La ruta {} es un directorio'.format(path))
+    elif isinstance(exception, NotADirectoryError):
+         failure('La ruta {} no es un directorio'.format(path))
+    elif isinstance(exception, FileExistsError):
+         failure('El archivo o directorio {} ya existe'.format(path))
+    elif isinstance(exception, FileNotFoundError):
+         failure('El archivo o directorio {} no existe'.format(path))
+    elif isinstance(exception, OSError):
+         failure(str(exception).format(path))
+    else:
+         error('Tipo de excepción inesperada: {}'.format(type(exception).__name__))

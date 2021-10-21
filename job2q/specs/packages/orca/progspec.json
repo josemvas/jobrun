@@ -1,7 +1,7 @@
 {
    "progname": "ORCA",
    "parallelib": "standalone",
-   "stdoutput": "out",
+   "stdoutfile": "out",
 
    "conflicts": {
       "not inp": "Debe existir un archivo inp"

@@ -1,7 +1,7 @@
 {
    "progname": "DFTB+",
    "parallelib": "openmp",
-   "stdoutput": "dftb_out.log",
+   "stdoutfile": "dftb_out.log",
 
    "conflicts": {
       "not dftb_in.hsd": "Debe existir un archivo dftb_in.hsd"

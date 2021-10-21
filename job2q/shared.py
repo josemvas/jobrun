@@ -3,9 +3,9 @@ import os
 import re
 from pwd import getpwnam
 from grp import getgrgid
-from string import Template
 from getpass import getuser 
 from socket import gethostname
+from string import Template
 from .readspec import SpecDict
 from .utils import AttrDict, p, q, natkey
 from .fileutils import AbsPath, pathjoin
@@ -50,8 +50,10 @@ class ArgList:
             else:
                 messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', progspecs.progname)
                 return next(self)
-            if not path.isfile():
-                messages.failure(path.failreason)
+            try:
+                path.assertfile()
+            except OSError as e:
+                messages.excinfo(e, path)
                 return next(self)
         matching = self.filter.fullmatch(inputname)
         if matching:
@@ -83,8 +85,31 @@ nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
-sysconf = SpecDict()
-progspecs = SpecDict()
+sysconf = SpecDict({
+    'load': [],
+    'source': [],
+    'export': {},
+    'versions': {},
+    'defaults': {'parameterkeys': {}},
+    'parameterpaths': {},
+    'onscript': [],
+    'offscript': [],
+})
+progspecs = SpecDict({
+    'conflicts': {},
+    'filekeys': {},
+    'filevars': {},
+    'fileoptions': {},
+    'inputfiles': [],
+    'outputfiles': [],
+    'interpolable': [],
+    'parametersets': [],
+    'parameterkeys': [],
+    'optargs': [],
+    'posargs': [],
+    'prescript': [],
+    'postscript': [],
+})
 queuespecs = SpecDict()
 remoteargs = ArgGroups()
 

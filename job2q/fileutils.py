@@ -18,7 +18,7 @@ class AbsPath(str):
             raise ValueError('Path must be a literal string')
         if cwd is None:
             if not os.path.isabs(path):
-                raise NotAbsolutePath()
+                raise NotAbsolutePath
         elif not os.path.isabs(path):
             if not isinstance(cwd, str):
                 raise TypeError('Root must be a string')
@@ -56,28 +56,24 @@ class AbsPath(str):
             raise ValueError('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
     def isfile(self):
-        if os.path.exists(self):
-            if os.path.isfile(self):
-                return True
-            if os.path.isdir(self):
-                self.failreason = 'La ruta {} es un directorio'.format(self)
-            else:
-                self.failreason = 'La ruta {} no es un archivo regular'.format(self)
-        else:
-            self.failreason = 'El archivo {} no existe'.format(self)
-        return False
+        return os.path.isfile(self)
     def isdir(self):
         return os.path.isdir(self)
+    def assertfile(self):
         if os.path.exists(self):
-            if os.path.isdir(self):
-                return True
-            if os.path.isfile(self):
-                self.failreason = 'La ruta {} es un archivo'.format(self)
-            else:
-                self.failreason = 'La ruta {} no es un directorio'.format(self)
+            if not os.path.isfile(self):
+                if os.path.isdir(self):
+                    raise IsADirectoryError
+                else:
+                    raise OSError('{} no es un archivo regular')
         else:
-            self.failreason = 'El directorio {} no existe'.format(self)
-        return False
+            raise FileNotFoundError
+    def assertdir(self):
+        if os.path.exists(self):
+            if os.path.isfile(self):
+                raise NotADirectoryError
+        else:
+            raise FileNotFoundError
 
 def mkdir(path):
     try: os.mkdir(path)
@@ -159,8 +155,11 @@ def rmtree(path, date):
     delete_newer(path, date, os.rmdir)
 
 def dirbranches(trunk, parts, dirtree):
-    if not trunk.isdir():
-        messages.error(trunk.failreason)
+    try:
+        trunk.assertdir()
+    except OSError as e:
+        messages.excinfo(e, trunk)
+        raise SystemExit
     if parts:
         keydict = PartialDict()
         part = parts.pop(0).format_map(keydict)

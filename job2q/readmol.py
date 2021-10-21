@@ -56,14 +56,14 @@ def parsexyz(fh):
         try:
             natom = int(natom)
         except ValueError:
-            raise ParseError( 'Invalid format')
+            raise ParseError('Invalid format')
         try:
             title = next(fh)
             for line in range(natom):
                 e, x, y, z, *_ = next(fh).split()
                 coords.append((e, float(x), float(y), float(z)))
         except StopIteration:
-            raise ParseError( 'Unexpected end of file')
+            raise ParseError('Unexpected end of file')
         trajectory.append(coords)
         
 
@@ -83,17 +83,17 @@ def parsemdl(fh):
             natom = int(natom)
             nbond = int(nbond)
         except ValueError:
-            raise ParseError( 'Invalid format')
+            raise ParseError('Invalid format')
         for _ in range(natom):
             x, y, z, e, *_ = next(fh).split()
             coords.append((e, float(x), float(y), float(z)))
         for _ in range(nbond):
             next(fh)
     except StopIteration:
-        raise ParseError( 'Unexpected end of file')
+        raise ParseError('Unexpected end of file')
     for line in fh:
         if line.split()[0] != 'M':
-            raise ParseError( 'Invalid format')
+            raise ParseError('Invalid format')
     return [coords]
 
 
@@ -108,7 +108,7 @@ def parseglf(fh):
     try:
         data = logfile.parse()
     except Exception:
-        raise ParseError( 'Invalid format')
+        raise ParseError('Invalid format')
     pt = cclib.parser.utils.PeriodicTable()
     return [(pt.element[data.atomnos[i]], e[0], e[1], e[2]) for i, e in enumerate(data.atomcoords[-1])]
 

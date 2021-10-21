@@ -206,9 +206,12 @@ def initialize():
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
     for version in sysconf.versions:
-        if not sysconf.versions[version].executable:
+        if not 'executable' in sysconf.versions[version]:
             messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(version))
     
+    for version in sysconf.versions:
+        sysconf.versions[version].merge({'load':[], 'source':[], 'export':{}})
+
     if 'version' in options.common:
         if options.common.version not in sysconf.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
@@ -223,21 +226,17 @@ def initialize():
     else:
         options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()))
 
-    for envar, path in progspecs.export.items() | sysconf.versions[options.version].export.items():
+    for envar, path in sysconf.export.items() | sysconf.versions[options.version].export.items():
         abspath = AbsPath(path.format_map(names), cwd=options.jobscratch)
         script.setup.append('export {0}={1}'.format(envar, abspath))
 
-    for envar, path in progspecs.append.items() | sysconf.versions[options.version].append.items():
-        abspath = AbsPath(path.format_map(names), cwd=options.jobscratch)
-        script.setup.append('{0}={1}:${0}'.format(envar, abspath))
-
-    for path in progspecs.source + sysconf.versions[options.version].source:
+    for path in sysconf.source + sysconf.versions[options.version].source:
         script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
 
-    if progspecs.load or sysconf.versions[options.version].load:
+    if sysconf.load or sysconf.versions[options.version].load:
         script.setup.append('module purge')
 
-    for module in progspecs.load + sysconf.versions[options.version].load:
+    for module in sysconf.load + sysconf.versions[options.version].load:
         script.setup.append('module load {}'.format(module))
 
     try:
@@ -272,16 +271,16 @@ def initialize():
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
         script.main.append('@' + p('|'.join(progspecs.filekeys[i] for i in item.split('|'))))
     
-    if 'stdinput' in progspecs:
+    if 'stdinfile' in progspecs:
         try:
-            script.main.append('0<' + ' ' + progspecs.filekeys[progspecs.stdinput])
+            script.main.append('0<' + ' ' + progspecs.filekeys[progspecs.stdinfile])
         except KeyError:
-            messages.error('La clave', q(progspecs.stdinput) ,'no tiene asociado ningún archivo', spec='stdinput')
-    if 'stdoutput' in progspecs:
+            messages.error('La clave', q(progspecs.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
+    if 'stdoutfile' in progspecs:
         try:
-            script.main.append('1>' + ' ' + progspecs.filekeys[progspecs.stdoutput])
+            script.main.append('1>' + ' ' + progspecs.filekeys[progspecs.stdoutfile])
         except KeyError:
-            messages.error('La clave', q(progspecs.stdoutput) ,'no tiene asociado ningún archivo', spec='stdoutput')
+            messages.error('La clave', q(progspecs.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
     if 'stderror' in progspecs:
         try:
             script.main.append('2>' + ' ' + progspecs.filekeys[progspecs.stderror])
@@ -488,8 +487,11 @@ def submit(parentdir, inputname, filtergroups):
         parts = splitpath(path.format_map(PartialDict(names)))
         trunk = AbsPath(parts.pop(0))
         for part in parts:
-            if not trunk.isdir():
-                messages.error(trunk.failreason)
+            try:
+                trunk.assertdir()
+            except OSError as e:
+                messages.excinfo(e, trunk)
+                raise SystemExit
             part = part.format_map(parameterkeys)
             if parameterkeys._keys:
                 choices = trunk.glob(part.format_map(DefaultDict('*')))

@@ -7,7 +7,7 @@
       "not INCAR or not POSCAR or not POTCAR": "Deben existir los archivos INCAR, POSCAR y POTCAR"
    },
 
-   "stdoutput": "log",
+   "stdoutfile": "log",
 
    "filekeys": {
       "INCAR": "INCAR",
@@ -76,5 +76,9 @@
       "BSEFATBAND",
       "xml",
       "log"
+   ],
+
+   "parametersets": [
+      "kernel"
    ]
 }

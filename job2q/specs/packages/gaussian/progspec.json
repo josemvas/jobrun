@@ -57,10 +57,6 @@
       "gjf|com"
    ],
 
-   "export": {
-      "GAUSS_SCRDIR": "."
-   },
-
    "prescript": [
       "sed -i \"/^%/d\" @($gjf|$com)",
       "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",

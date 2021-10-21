@@ -1,5 +1,9 @@
 General
 -------
+- Usar srun y sgather para correr trabajos multinodo con slurm
+- Usar ??? y ??? para correr trabajos multinodo con lsf/openlava
+- Usar ??? y ??? para correr trabajos multinodo con pbs/torque
+- Usar srun y sgather para correr trabajos multinodo con slurm
 - Preguntar por la versión del programa y parámetros después de revisar que la carpeta de salida esté vacía, y usar esas opciones para todos los argumentos
 - Mostrar errores apropiados cuando se intene enviar trabajos que usan la misma acarpeta de salida
 - Alertar cuando la configuracion exista y difiera de la configuracion actual
@@ -56,3 +60,7 @@ AbsPath
 readspec.py
 -----------
 - Revisar el método merge de SpecList
+
+run.py
+------
+line 92: Manejar excepción cuando no está definida la ruta del conjunto de parámetros
