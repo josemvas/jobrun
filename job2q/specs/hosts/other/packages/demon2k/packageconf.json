@@ -1,13 +1,13 @@
 {
    "defaults": {
-      "version": "6.0.1",
+      "version": "6.0.1"
    },
    "versions": {
       "6.0.1": {
-         "executable": "/home/{user}/share/deMon2k/6.0.1/object.mpi-ic17AVX/deMon.6.0.1.mpi",
-         "load": [
-            "path/to/mpi",
-            "path/to/mkl"
+         "executable": "/home/{user}/share/deMon2k/6.0.1/master/Linux-x86_64_AVX-parallel/deMon.mpi",
+         "source": [
+            "path/to/mpi/profile",
+            "path/to/mkl/profile"
          ]
       }
    },
