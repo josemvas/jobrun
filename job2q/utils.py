@@ -115,7 +115,7 @@ def override_function(cls):
     return decorator
 
 def printoptions(options, defaults=[], level=0):
-    for opt in sorted(options, key=natkey):
+    for opt in sorted(options, key=natorder):
         if defaults and opt == defaults[0]:
             print(' '*level + opt + '  (default)')
         else:
@@ -123,7 +123,7 @@ def printoptions(options, defaults=[], level=0):
         if isinstance(options, dict):
             printoptions(options[opt], defaults[1:], level + 1)
 
-def natkey(string):
+def natorder(string):
     return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
 
 def lowalnum(keystr):

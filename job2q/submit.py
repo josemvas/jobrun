@@ -7,7 +7,7 @@ from .details import wrappers
 from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
-from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natkey, o, p, q, Q, join_args, booldict, interpolate
+from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natorder, o, p, q, Q, join_args, booldict, interpolate
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -502,7 +502,7 @@ def submit(parentdir, inputname, filtergroups):
                 raise SystemExit
             part = part.format_map(parameterkeys)
             if parameterkeys._keys:
-                choices = trunk.glob(part.format_map(DefaultDict('*')))
+                choices = sorted(trunk.glob(part.format_map(DefaultDict('*'))), key=natorder)
                 if choices:
                     if options.common.interactive:
                         default = trunk.glob(part.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]

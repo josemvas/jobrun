@@ -7,7 +7,7 @@ from getpass import getuser
 from socket import gethostname
 from string import Template
 from .readspec import SpecDict
-from .utils import AttrDict, p, q, natkey
+from .utils import AttrDict, p, q, natorder
 from .fileutils import AbsPath, pathjoin
 from . import messages
 
@@ -15,9 +15,9 @@ class ArgList:
     def __init__(self, args):
         self.current = None
         if options.arguments.sort:
-            self.args = sorted(args, key=natkey)
+            self.args = sorted(args, key=natorder)
         elif options.arguments.sort_reverse:
-            self.args = sorted(args, key=natkey, reverse=True)
+            self.args = sorted(args, key=natorder, reverse=True)
         else:
             self.args = args
         if 'filter' in options.arguments:
