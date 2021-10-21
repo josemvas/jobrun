@@ -1,11 +1,10 @@
 General
 -------
-- Usar srun y sgather para correr trabajos multinodo con slurm
-- Usar ??? y ??? para correr trabajos multinodo con lsf/openlava
-- Usar ??? y ??? para correr trabajos multinodo con pbs/torque
-- Usar srun y sgather para correr trabajos multinodo con slurm
+- Usar srun/sbcast para correr trabajos multinodo con slurm
+- Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
+- Usar qrsh/??? para correr trabajos multinodo con pbs/torque
 - Preguntar por la versión del programa y parámetros después de revisar que la carpeta de salida esté vacía, y usar esas opciones para todos los argumentos
-- Mostrar errores apropiados cuando se intene enviar trabajos que usan la misma acarpeta de salida
+- Mostrar errores apropiados cuando se intenten enviar multiples trabajos con la misma carpeta de salida
 - Alertar cuando la configuracion exista y difiera de la configuracion actual
 - Agregar soporte para ejecutar todos los archivos de entrada en el mismo trabajo (--chain?)
 - Definir el esqueleto de las especificaciones para eliminar la necesidad de details.py
@@ -27,10 +26,6 @@ General
 - Nombrar la carpeta oculta de jobscripts con el número de trabajo
 - Agregar una opción para incluir la clave y versión del programa en los nombres de los archivos de salida
 - Considerar usar template strings para interpolar las opciones y especificaciones
-
-Bugs
-----
-- Abspath has no attribute failreason?
 
 Python 3.6
 ----------

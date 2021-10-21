@@ -49,7 +49,7 @@ def initialize():
         options.interpolation.dict = {}
         if options.interpolation.vars:
             for var in options.interpolation.vars:
-                left, separator, right = var.partition(':')
+                left, separator, right = var.partition('=')
                 if separator:
                     if right:
                         options.interpolation.dict[left] = right
@@ -226,18 +226,26 @@ def initialize():
     else:
         options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()))
 
-    for envar, path in sysconf.export.items() | sysconf.versions[options.version].export.items():
-        abspath = AbsPath(path.format_map(names), cwd=options.jobscratch)
-        script.setup.append('export {0}={1}'.format(envar, abspath))
+    for envar, value in sysconf.export.items() | sysconf.versions[options.version].export.items():
+        if value:
+            script.setup.append('export {0}={1}'.format(envar, value))
+        else:
+            messages.error('El valor de la variable de entorno {} es nulo'.format(envar), spec='export')
 
     for path in sysconf.source + sysconf.versions[options.version].source:
-        script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
+        if path:
+            script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
+        else:
+            messages.error('La ruta al script de configuración es nula', spec='source')
 
     if sysconf.load or sysconf.versions[options.version].load:
         script.setup.append('module purge')
 
     for module in sysconf.load + sysconf.versions[options.version].load:
-        script.setup.append('module load {}'.format(module))
+        if module:
+            script.setup.append('module load {}'.format(module))
+        else:
+            messages.error('El nombre del módulo es nulo', spec='load')
 
     try:
         script.main.append(AbsPath(sysconf.versions[options.version].executable.format_map(names)))
@@ -368,7 +376,7 @@ def submit(parentdir, inputname, filtergroups):
                                 messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', pathjoin((inputname, key)))
                                 return
                             except (IndexError, KeyError) as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', pathjoin((inputname, key)), key=e.args[0])
+                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', pathjoin((inputname, key)), p(e.args[0]))
                                 return
                         else:
                             try:

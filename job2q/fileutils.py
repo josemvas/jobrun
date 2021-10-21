@@ -12,18 +12,20 @@ class AbsPath(str):
     def __new__(cls, path, cwd=None):
         if not isinstance(path, str):
             raise TypeError('Path must be a string')
+        if not path:
+            raise ValueError('Path can not be empty')
         try:
             path.format()
         except (IndexError, KeyError):
-            raise ValueError('Path must be a literal string')
+            raise ValueError('Path can not be a format string')
         if cwd is None:
             if not os.path.isabs(path):
                 raise NotAbsolutePath
         elif not os.path.isabs(path):
             if not isinstance(cwd, str):
-                raise TypeError('Root must be a string')
+                raise TypeError('Working directory must be a string')
             if not os.path.isabs(cwd):
-                raise ValueError('Root must be an absolute path')
+                raise ValueError('Working directory must be an absolute path')
             path = os.path.join(cwd, path)
         obj = str.__new__(cls, os.path.normpath(path))
         obj.parts = splitpath(obj)
