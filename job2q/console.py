@@ -52,7 +52,6 @@ def install(relpath=False):
         schedulerspeckeys[queuespecs.schedulername] = diritem
 
     defaulthost = 'Otro'
-    defaultscheduler = None
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
@@ -60,7 +59,11 @@ def install(relpath=False):
 
     selhostname = dialogs.chooseone('¿Qué clúster desea configurar?', choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__), default=defaulthost)
     selhost = clusterspeckeys[selhostname]
-    defaultscheduler = clusterschedulers[selhost]
+
+    if clusterschedulers[selhost]:
+        defaultscheduler = clusterschedulers[selhost]
+    else:
+        defaultscheduler = None
     
     if not os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
