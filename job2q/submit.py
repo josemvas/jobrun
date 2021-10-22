@@ -3,11 +3,12 @@ import os
 import sys
 from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
+from . import messages
+from .dialogs import selector, completer
 from .details import wrappers
-from . import dialogs, messages
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
-from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natorder, o, p, q, Q, join_args, booldict, interpolate
+from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natorder, o, p, q, Q, _, join_args, booldict, interpolate
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -212,6 +213,9 @@ def initialize():
     for version in sysconf.versions:
         sysconf.versions[version].merge({'load':[], 'source':[], 'export':{}})
 
+    selector.label = 'Seleccione una versión:'
+    selector.options = tuple(sysconf.versions.keys())
+
     if 'version' in options.common:
         if options.common.version not in sysconf.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
@@ -220,11 +224,12 @@ def initialize():
         if not sysconf.defaults.version in sysconf.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
         if options.common.interactive:
-            options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()), default=sysconf.defaults.version)
+            selector.default = version
+            options.version = selector.singlechoice()
         else:
             options.version = sysconf.defaults.version
     else:
-        options.version = dialogs.chooseone('Seleccione una versión:', choices=list(sysconf.versions.keys()))
+        options.version = selector.singlechoice()
 
     for envar, value in sysconf.export.items() | sysconf.versions[options.version].export.items():
         if value:
@@ -405,7 +410,9 @@ def submit(parentdir, inputname, filtergroups):
             except FileNotFoundError:
                 pass
         if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in progspecs.outputfiles):
-            if options.common.no or (not options.common.yes and not dialogs.yesno('Si corre este cálculo los archivos de salida existentes en el directorio', outdir,'serán sobreescritos, ¿desea continuar de todas formas?')):
+            completer.label = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
+            completer.options = {True: 'si', False: 'no'}
+            if options.common.no or (not options.common.yes and not completer.binarychoice()):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in progspecs.outputfiles:
@@ -502,13 +509,14 @@ def submit(parentdir, inputname, filtergroups):
                 raise SystemExit
             part = part.format_map(parameterkeys)
             if parameterkeys._keys:
-                choices = sorted(trunk.glob(part.format_map(DefaultDict('*'))), key=natorder)
-                if choices:
+                selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
+                selector.options = sorted(trunk.glob(part.format_map(DefaultDict('*'))), key=natorder)
+                if selector.options:
                     if options.common.interactive:
-                        default = trunk.glob(part.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
-                        choice = dialogs.chooseone('Seleccione un directorio de', trunk, choices=choices, default=default)
+                        selector.default = trunk.glob(part.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
+                        choice = selector.singlechoice()
                     else:
-                        choice = dialogs.chooseone('Seleccione un directorio de', trunk, choices=choices)
+                        choice = selector.singlechoice()
                     trunk = trunk / choice
                 else:
                     messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)

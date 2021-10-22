@@ -26,7 +26,7 @@ class ListOptions(Action):
                 keydict = PartialDict()
                 path.format_map(keydict)
                 defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict._keys]
-                print(_('Conjuntos de parámetros en {}:'.format(path)))
+                print(_('Conjuntos de parámetros en $path:'.interpolate(path=path)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
 

@@ -3,6 +3,7 @@ import os
 import sys
 import readline
 from glob import glob
+from runutils import Selector, Completer
 from . import messages
 from .fileutils import AbsPath
 from .utils import override_function, join_args
@@ -87,3 +88,5 @@ def choosemany(prompt='', choices=[], default=[]):
         else:
             messages.warning('Selección inválida, intente de nuevo')
 
+selector = Selector()
+completer = Completer()

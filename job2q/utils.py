@@ -47,8 +47,6 @@ class PartialDict(dict):
 class _(string.Template):
     def __str__(self):
         return(self.safe_substitute())
-    def format(self, **keys):
-        return self.safe_substitute(keys)
 
 def interpolate(template, anchor, keylist=[], keydict={}):
     class DictTemplate(string.Template):
