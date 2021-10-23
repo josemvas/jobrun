@@ -57,7 +57,7 @@ def install(relpath=False):
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         selector.label = '¿Qué clúster desea configurar?'
-        selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
+        selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
         if clusterconf.clustername in clusternames.values():
             selector.default = clusterconf.clustername
@@ -75,7 +75,7 @@ def install(relpath=False):
         copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
     else:
         selector.label = '¿Qué clúster desea configurar?'
-        selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
+        selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
         selhost = clusterspeckeys[selector.singlechoice()]
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
         selector.label = 'Seleccione el gestor de trabajos adecuado'
