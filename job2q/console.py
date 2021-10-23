@@ -63,15 +63,11 @@ def install(relpath=False):
         defaulthost = clusterconf.clustername
 
     selector.label = '¿Qué clúster desea configurar?'
-    selector.options = choices=sorted(sorted(clusternames.values()), key='Otro'.__eq__)
+    selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
     selector.default = defaulthost
     selhostname = selector.singlechoice()
     selhost = clusterspeckeys[selhostname]
-
-    if clusterschedulers[selhost]:
-        defaultscheduler = clusterschedulers[selhost]
-    else:
-        defaultscheduler = None
+    defaultscheduler = clusterschedulers.get(selhost, None)
     
     if not os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
