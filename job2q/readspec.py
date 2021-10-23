@@ -9,8 +9,6 @@ class SpecList(list):
                 self.append(SpecDict(item))
             elif isinstance(item, list):
                 self.append(SpecList(item))
-            else:
-                self.append(item)
             elif isinstance(item, str):
                 if item:
                     self.append(item)
