@@ -55,13 +55,9 @@ def install(relpath=False):
         schedulernames[diritem] = queuespecs.schedulername
         schedulerspeckeys[queuespecs.schedulername] = diritem
 
-    selector.label = '¿Qué clúster desea configurar?'
-    selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
-    
-    if not os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
-        selhost = clusterspeckeys[selector.singlechoice()]
-        copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
-    else:
+    if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
+        selector.label = '¿Qué clúster desea configurar?'
+        selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
         if clusterconf.clustername in clusternames.values():
             selector.default = clusterconf.clustername
@@ -71,14 +67,24 @@ def install(relpath=False):
             completer.options = {True: 'si', False: 'no'}
             if completer.binarychoice():
                 copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
+        selector.label = 'Seleccione el gestor de trabajos adecuado'
+        selector.options = sorted(schedulernames.values())
+        selector.default = clusterconf.schedulername
+        selschedulername = selector.singlechoice()
+        selscheduler = schedulerspeckeys[selschedulername]
+        copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
+    else:
+        selector.label = '¿Qué clúster desea configurar?'
+        selector.options = sorted(sorted(clusternames.values()), key='Otro'.__eq__)
+        selhost = clusterspeckeys[selector.singlechoice()]
+        copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
+        selector.label = 'Seleccione el gestor de trabajos adecuado'
+        selector.options = sorted(schedulernames.values())
+        selector.default = clusterschedulers[selhost]
+        selschedulername = selector.singlechoice()
+        selscheduler = schedulerspeckeys[selschedulername]
+        copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
 
-    selector.label = 'Seleccione el gestor de trabajos adecuado'
-    selector.options = sorted(schedulernames.values())
-    selector.default = clusterschedulers.get(selhost, None)
-    selschedulername = selector.singlechoice()
-    selscheduler = schedulerspeckeys[selschedulername]
-    copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
-         
     for diritem in os.listdir(pathjoin(srchostspecdir, selhost, 'packages')):
         progspecs = readspec(pathjoin(sourcedir, 'specs', 'packages', diritem, 'progspec.json'))
         packagenames[diritem] = (progspecs.progname)

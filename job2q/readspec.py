@@ -11,6 +11,13 @@ class SpecList(list):
                 self.append(SpecList(item))
             else:
                 self.append(item)
+            elif isinstance(item, str):
+                if item:
+                    self.append(item)
+                else:
+                    self.append(None)
+            else:
+                raise ValueError('Invalid data type')
     def merge(self, other):
         for i in other:
             if i not in self:
@@ -24,8 +31,13 @@ class SpecDict(OrderedDict):
                 self[key] = SpecDict(value)
             elif isinstance(value, list):
                 self[key] = SpecList(value)
+            elif isinstance(value, str):
+                if value:
+                    self[key] = value
+                else:
+                    self[key] = None
             else:
-                self[key] = value
+                raise ValueError('Invalid data type')
     def merge(self, other):
         for i in other:
             if i in self:
