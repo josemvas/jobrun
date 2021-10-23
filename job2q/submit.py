@@ -3,9 +3,9 @@ import os
 import sys
 from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
+from runutils import Selector, Completer
 from . import messages
-from .dialogs import selector, completer
-from .details import wrappers
+from .defs import wrappers
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
 from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natorder, o, p, q, Q, _, join_args, booldict, interpolate
@@ -15,6 +15,9 @@ from .readmol import readmol
 
 parameterpaths = []
 script = AttrDict()
+
+selector = Selector()
+completer = Completer()
 
 def initialize():
 
@@ -389,7 +392,9 @@ def submit(parentdir, inputname, filtergroups):
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
-                                if dialogs.yesno('Parece que hay variables de interpolación en el archivo de entrada', pathjoin((inputname, key)),'¿desea continuar sin interpolar?'):
+                                completer.label = _('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key)))
+                                completer.options = {True: 'si', False: 'no'}
+                                if completer.binarychoice():
                                     literalfiles[destpath] = srcpath
                                 else:
                                     return

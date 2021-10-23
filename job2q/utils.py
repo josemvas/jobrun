@@ -3,7 +3,6 @@ import re
 import sys
 import string
 from collections import OrderedDict
-from . import colors
 
 booldict = {
     'True' : True,
@@ -95,12 +94,13 @@ def join_args_and_kwargs(f):
         return f(' '.join(args), ', '.join('{}={}'.format(k, v) for k, v in kwargs.items()))
     return wrapper
 
-def catch_keyboard_interrupt(f):
-    def wrapper(*args, **kwargs):
-        try: return f(*args, **kwargs)
-        except KeyboardInterrupt:
-            raise SystemExit(colors.red + 'Interrumpido por el usuario' + colors.default)
-    return wrapper
+def catch_keyboard_interrupt(message):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            try: return f(*args, **kwargs)
+            except KeyboardInterrupt:
+                raise SystemExit(message)
+        return wrapper
 
 def override_function(cls):
     def decorator(f):

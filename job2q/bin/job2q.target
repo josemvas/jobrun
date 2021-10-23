@@ -4,4 +4,4 @@ exec env \
 LD_LIBRARY_PATH={libpath} \
 PYTHONPATH={moduledir} \
 SPECPATH={specdir} \
-{python} -m job2q.run "$(basename "$0")" "$@"
+{python} -m job2q.main "$(basename "$0")" "$@"
