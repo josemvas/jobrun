@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import sys
 import re
@@ -64,7 +63,8 @@ def install(relpath=False):
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
     else:
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
-        selector.default = clusterconf.clustername
+        if clusterconf.clustername in selector.options:
+            selector.default = clusterconf.clustername
         selhost = clusterspeckeys[selector.singlechoice()]
         if selhost != clusterspeckeys[clusterconf.clustername] and readspec(pathjoin(srchostspecdir, selhost, 'clusterconf.json')) != readspec(pathjoin(specdir, 'clusterconf.json')):
             completer.label = 'Desea sobreescribir la configuración local del sistema?'

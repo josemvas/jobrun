@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 from .defs import colors
 from .utils import join_args, join_args_and_kwargs

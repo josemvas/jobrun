@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #from logging import WARNING
 from job2q import messages
 

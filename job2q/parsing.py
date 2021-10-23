@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 '''
 Disj = Conj | Conj '|' Disj
 Conj = Neg  | Neg & Conj
