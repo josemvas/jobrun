@@ -10,10 +10,7 @@ class SpecList(list):
             elif isinstance(item, list):
                 self.append(SpecList(item))
             elif isinstance(item, str):
-                if item:
-                    self.append(item)
-                else:
-                    self.append(None)
+                self.append(item)
             else:
                 raise ValueError('Invalid data type')
     def merge(self, other):
@@ -30,10 +27,7 @@ class SpecDict(OrderedDict):
             elif isinstance(value, list):
                 self[key] = SpecList(value)
             elif isinstance(value, str):
-                if value:
-                    self[key] = value
-                else:
-                    self[key] = None
+                self[key] = value
             else:
                 raise ValueError('Invalid data type')
     def merge(self, other):

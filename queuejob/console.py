@@ -135,19 +135,19 @@ def install(relpath=False):
         specdir = specdir,
     )
 
-    with open(pathjoin(sourcedir, 'bin', 'job2q'), 'r') as r, open(pathjoin(bindir, 'job2q'), 'w') as w:
+    with open(pathjoin(sourcedir, 'bin', 'queuejob'), 'r') as r, open(pathjoin(bindir, 'queuejob'), 'w') as w:
         w.write(r.read().format(**installation))
 
-    with open(pathjoin(sourcedir, 'bin', 'job2q.target'), 'r') as r, open(pathjoin(bindir, 'job2q.target'), 'w') as w:
+    with open(pathjoin(sourcedir, 'bin', 'queuejob'), 'r') as r, open(pathjoin(bindir, 'queuejob'), 'w') as w:
         w.write(r.read().format(**installation))
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            symlink(pathjoin(bindir, 'job2q.target'), pathjoin(bindir, diritem))
+            symlink(pathjoin(bindir, 'queuejob'), pathjoin(bindir, diritem))
 
     copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
 
-    os.chmod(pathjoin(bindir, 'job2q'), 0o755)
-    os.chmod(pathjoin(bindir, 'job2q.target'), 0o755)
+    os.chmod(pathjoin(bindir, 'queuejob'), 0o755)
+    os.chmod(pathjoin(bindir, 'queuejob'), 0o755)
     os.chmod(pathjoin(bindir, 'jobsync'), 0o755)
 

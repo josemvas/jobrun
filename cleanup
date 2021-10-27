@@ -1,8 +1,8 @@
 #!/bin/sh
 
-find job2q -name \*.pyc -type f -delete
-find job2q -name \*.pyo -type f -delete
-find job2q -name __pycache__ -type d -delete
+find queuejob -name \*.pyc -type f -delete
+find queuejob -name \*.pyo -type f -delete
+find queuejob -name __pycache__ -type d -delete
 
 find tests -mindepth 2 -type f -delete
 find tests -mindepth 2 -type l -delete
@@ -11,4 +11,4 @@ find tests -mindepth 1 -type d -delete
 rm -rf bin
 rm -rf etc
 rm -rf build
-rm -rf job2q.egg-info
+rm -rf queuejob.egg-info

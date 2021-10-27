@@ -91,6 +91,8 @@ try:
             parampath = sysconf.parameterpaths[paramset]
         except KeyError:
             messages.error('No se definió la ruta al conjunto de parámetros', paramset)
+        if not parampath:
+            messages.error(_('La ruta al conjunto de parámetros $name está vacía').substitute(name=paramset))
         try:
             parameterpaths.append(parampath.format_map(keydict))
         except ValueError as e:

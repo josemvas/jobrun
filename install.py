@@ -1,6 +1,6 @@
 import sys
 assert sys.version_info >= (3, 4)
-from job2q import console
+from queuejob import console
 try:
     console.install()
 except KeyboardInterrupt:

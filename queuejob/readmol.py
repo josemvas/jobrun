@@ -1,5 +1,5 @@
 #from logging import WARNING
-from job2q import messages
+from queuejob import messages
 
 
 class ParseError(Exception):

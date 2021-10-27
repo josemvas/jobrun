@@ -31,7 +31,7 @@ def initialize():
 
     if options.remote.host:
         (paths.home/'.ssh').mkdir()
-        paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'job2q', 'sock'))
+        paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'sock'))
         try:
             environment = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv JOBCOMMAND JOBSYNCDIR'])
         except CalledProcessError as e:
