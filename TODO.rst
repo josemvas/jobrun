@@ -3,6 +3,7 @@ General
 - Usar srun/sbcast para correr trabajos multinodo con slurm
 - Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
 - Usar qrsh/??? para correr trabajos multinodo con pbs/torque
+- Usar regexes en lugar de globs para listar los directorios de parámetros
 - Usar el nombre del conjunto de parámetros en vez del nombre del directorio que contiene los archivos de parámetros
 - Preguntar por la versión del programa y parámetros después de revisar que la carpeta de salida esté vacía, y usar esas opciones para todos los argumentos
 - Mostrar errores apropiados cuando se intenten enviar multiples trabajos con la misma carpeta de salida
@@ -59,4 +60,4 @@ readspec.py
 
 run.py
 ------
-line 92: Manejar excepción cuando no está definida la ruta del conjunto de parámetros
+- line 92: Manejar excepción cuando no está definida la ruta del conjunto de parámetros
