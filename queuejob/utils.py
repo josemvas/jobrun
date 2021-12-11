@@ -1,7 +1,7 @@
 import os
 import re
 import sys
-import string
+from string import Template, Formatter
 from collections import OrderedDict
 
 booldict = {
@@ -44,18 +44,21 @@ class FormatDict(dict):
         else:
             return '{' + key + '}'
 
-class _(string.Template):
+class _(Template):
     def __str__(self):
         return(self.safe_substitute())
 
+def getformatkeys(string):
+    return [i[1] for i in Formatter().parse(string) if i[1] is not None]
+
 def interpolate(template, anchor, formlist=[], formdict={}):
-    class DictTemplate(string.Template):
+    class DictTemplate(Template):
         delimiter = anchor
         idpattern = r'[a-z][a-z0-9]*'
-    class ListTemplate(string.Template):
+    class ListTemplate(Template):
         delimiter = anchor
         idpattern = r'[0-9]+'
-    class DualTemplate(string.Template):
+    class DualTemplate(Template):
         delimiter = anchor
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(formlist, (tuple, list)):

@@ -8,7 +8,7 @@ from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
-from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, interpolate, natsorted as sorted
+from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate, natsorted as sorted
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -236,15 +236,15 @@ def initialize():
 
     ############ Interactive parameter selection ###########
 
-    parameterkeys = FormatDict()
-    parameterkeys.update(options.parameterkeys)
+    formatdict = FormatDict()
+    formatdict.update(names)
 
     if not options.common.interactive:
-        parameterkeys.update(sysconf.defaults.parameterkeys)
+        formatdict.update(sysconf.defaults.parameterkeys)
+
+    formatdict.update(options.parameterkeys)
 
     for path in sysconf.parameterpaths:
-        formatdict = FormatDict()
-        formatdict.update(names)
         componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -253,17 +253,16 @@ def initialize():
             except OSError as e:
                 messages.excinfo(e, trunk)
                 raise SystemExit
-            component = component.format_map(parameterkeys)
-            if parameterkeys.missing_keys:
+            if getformatkeys(component):
                 selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
                 selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
                 if selector.options:
                     if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(FormatDict('*')))[0]
+                        selector.default = trunk.glob(component.format_map(formatdict).format_map(FormatDict('*')))[0]
                         choice = selector.singlechoice()
                     else:
                         choice = selector.singlechoice()
-                    options.parameterkeys.update(parse(component.format_map(parameterkeys), choice).named)
+                    options.parameterkeys.update(parse(component.format_map(formatdict), choice).named)
                     trunk = trunk / choice
                 else:
                     messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
@@ -519,31 +518,27 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
-    parameterkeys = FormatDict()
-    defaultparameterkeys = FormatDict()
+    formatdict = FormatDict()
+    formatdict.update(names)
 
-    for key, value in sysconf.defaults.parameterkeys.items():
-        try:
-            defaultparameterkeys[key] = interpolate(value, anchor='%', formlist=filtergroups)
-        except ValueError:
-            messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
-        except IndexError:
-            messages.error('Hay variables de interpolación sin definir en la opción por defecto', key)
+    if not options.common.interactive:
+        for key, value in sysconf.defaults.parameterkeys.items():
+            try:
+                formatdict[key] = interpolate(value, anchor='%', formlist=filtergroups)
+            except ValueError:
+                messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
+            except IndexError:
+                messages.error('Hay variables de interpolación sin definir en la opción por defecto', key)
 
     for key, value in options.parameterkeys.items():
         try:
-            parameterkeys[key] = interpolate(value, anchor='%', formlist=filtergroups)
+            formatdict[key] = interpolate(value, anchor='%', formlist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción', key)
         except IndexError:
             messages.error('Hay variables de interpolación sin definir en la opción', key)
 
-    if not options.common.interactive:
-        parameterkeys.update(defaultparameterkeys)
-
     for path in sysconf.parameterpaths:
-        formatdict = FormatDict()
-        formatdict.update(names)
         componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -552,21 +547,9 @@ def submit(parentdir, inputname, filtergroups):
             except OSError as e:
                 messages.excinfo(e, trunk)
                 raise SystemExit
-            component = component.format_map(parameterkeys)
-            if parameterkeys.missing_keys:
-                selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
-                selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
-                if selector.options:
-                    if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(FormatDict('*')))[0]
-                        choice = selector.singlechoice()
-                    else:
-                        choice = selector.singlechoice()
-                    trunk = trunk / choice
-                else:
-                    messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
-            else:
-                trunk = trunk / component
+            if getformatkeys(component):
+                messages.error('El componente', component, 'de la ruta', path, 'no es literal')
+            trunk = trunk / component
         parameterpaths.append(trunk)
 
     imports = []
