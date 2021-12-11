@@ -4,8 +4,8 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
-from .fileutils import AbsPath, splitpath, pathjoin, dirbranches
-from .utils import AttrDict, PartialDict, printoptions, o, p, q, _
+from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches
+from .utils import AttrDict, FormatDict, printoptions, o, p, q, _
 from .shared import ArgList, names, nodes, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
@@ -19,12 +19,12 @@ class ListOptions(Action):
             printoptions(tuple(sysconf.versions.keys()), [default], level=1)
         for path in sysconf.parameterpaths:
             dirtree = {}
-            parts = splitpath(path.format_map(PartialDict(names)))
+            parts = pathsplit(path.format_map(FormatDict(names)))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                keydict = PartialDict()
+                keydict = FormatDict()
                 path.format_map(keydict)
-                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict._keys]
+                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict.missing_keys]
                 print(_('Conjuntos de parámetros en $path:'.interpolate(path=path)))
                 printoptions(dirtree, defaults, level=1)
         sys.exit()
@@ -84,7 +84,7 @@ try:
 
     parameterpaths = []
     foundparameterkeys = set()
-    keydict = PartialDict(names)
+    keydict = FormatDict(names)
 
     for paramset in progspecs.parametersets:
         try:
@@ -97,7 +97,7 @@ try:
             parameterpaths.append(parampath.format_map(keydict))
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en la ruta', parampath, var=e.args[0])
-        foundparameterkeys.update(keydict._keys)
+        foundparameterkeys.update(keydict.missing_keys)
 
     for key in foundparameterkeys:
         if key not in progspecs.parameterkeys:

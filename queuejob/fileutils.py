@@ -3,7 +3,7 @@ import string
 import shutil
 import fnmatch
 from . import messages
-from .utils import PartialDict, DefaultDict, deepjoin
+from .utils import FormatDict, DefaultDict, deepjoin
 
 class NotAbsolutePath(Exception):
     pass
@@ -28,7 +28,7 @@ class AbsPath(str):
                 raise ValueError('Working directory must be an absolute path')
             path = os.path.join(cwd, path)
         obj = str.__new__(cls, os.path.normpath(path))
-        obj.parts = splitpath(obj)
+        obj.parts = pathsplit(obj)
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
@@ -163,9 +163,9 @@ def dirbranches(trunk, parts, dirtree):
         messages.excinfo(e, trunk)
         raise SystemExit
     if parts:
-        keydict = PartialDict()
+        keydict = FormatDict()
         part = parts.pop(0).format_map(keydict)
-        if keydict._keys:
+        if keydict.missing_keys:
             branches = trunk.glob(part.format_map(DefaultDict('*')))
             for branch in branches:
                 dirtree[branch] = {}
@@ -176,7 +176,7 @@ def dirbranches(trunk, parts, dirtree):
 def pathjoin(*components):
     return deepjoin(components, [os.path.sep, '.'])
 
-def splitpath(path):
+def pathsplit(path):
     if path:
         if path == os.path.sep:
             parts = [os.path.sep]

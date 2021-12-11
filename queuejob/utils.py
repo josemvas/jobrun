@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import string
+import builtins
 from collections import OrderedDict
 
 booldict = {
@@ -18,6 +19,7 @@ class IdentityList(list):
     def __contains__(self, other):
         return any(o is other for o in self)
 
+# This class is used to access dict values specifying keys as attributes
 class AttrDict(OrderedDict):
     def __getattr__(self, name):
         if not name.startswith('_'):
@@ -29,18 +31,21 @@ class AttrDict(OrderedDict):
         else:
             super(AttrDict, self).__setattr__(name, value)
 
+# This class is used to interpolate format strings with default values for missing keys
 class DefaultDict(dict):
     def __init__(self, default):
         self._default = default
     def __missing__(self, key):
         return self._default
 
-class PartialDict(dict):
+# This class is used to interpolate format strings without raising key errors
+# Missing keys are logged in the missing_keys attribute
+class FormatDict(dict):
     def __init__(self, known={}):
-        self._keys = []
+        self.missing_keys = []
         self.update(known)
     def __missing__(self, key):
-        self._keys.append(key)
+        self.missing_keys.append(key)
         return '{' + key + '}'
 
 class _(string.Template):
@@ -59,12 +64,12 @@ def interpolate(template, anchor, keylist=[], keydict={}):
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
     if isinstance(keylist, (tuple, list)):
         if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(PartialDict()).format('', *keylist, **keydict)
+            return DualTemplate(template).substitute(FormatDict()).format('', *keylist, **keydict)
         elif keydict is None:
-            return ListTemplate(template).substitute(PartialDict()).format('', *keylist)
+            return ListTemplate(template).substitute(FormatDict()).format('', *keylist)
     elif keylist is None:
         if isinstance(keydict, dict):
-            return DictTemplate(template).substitute(PartialDict()).format(**keydict)
+            return DictTemplate(template).substitute(FormatDict()).format(**keydict)
         elif keydict is None:
             return None
     raise TypeError()
@@ -112,17 +117,22 @@ def override_function(cls):
         return wrapper
     return decorator
 
+#def natural(string):
+#    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
+
+def sorted(*args, **kwargs):
+    if 'key' not in kwargs:
+        kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
+    return builtins.sorted(*args, **kwargs)
+
 def printoptions(options, defaults=[], level=0):
-    for opt in sorted(options, key=natorder):
+    for opt in sorted(options):
         if defaults and opt == defaults[0]:
             print(' '*level + opt + '  (default)')
         else:
             print(' '*level + opt)
         if isinstance(options, dict):
             printoptions(options[opt], defaults[1:], level + 1)
-
-def natorder(string):
-    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
 
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())

@@ -6,8 +6,8 @@ from runutils import Selector, Completer
 from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, splitpath, pathjoin, remove
-from .utils import AttrDict, PartialDict, DefaultDict, IdentityList, natorder, o, p, q, Q, _, join_args, booldict, interpolate
+from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
+from .utils import AttrDict, FormatDict, DefaultDict, IdentityList, o, p, q, Q, _, sorted, join_args, booldict, interpolate
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -480,8 +480,8 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
-    parameterkeys = PartialDict()
-    defaultparameterkeys = PartialDict()
+    parameterkeys = FormatDict()
+    defaultparameterkeys = FormatDict()
 
     for key, value in sysconf.defaults.parameterkeys.items():
         try:
@@ -503,21 +503,21 @@ def submit(parentdir, inputname, filtergroups):
         parameterkeys.update(defaultparameterkeys)
 
     for path in sysconf.parameterpaths:
-        parts = splitpath(path.format_map(PartialDict(names)))
-        trunk = AbsPath(parts.pop(0))
-        for part in parts:
+        componentlist = pathsplit(path.format_map(FormatDict(names)))
+        trunk = AbsPath(componentlist.pop(0))
+        for component in componentlist:
             try:
                 trunk.assertdir()
             except OSError as e:
                 messages.excinfo(e, trunk)
                 raise SystemExit
-            part = part.format_map(parameterkeys)
-            if parameterkeys._keys:
+            component = component.format_map(parameterkeys)
+            if parameterkeys.missing_keys:
                 selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
-                selector.options = sorted(trunk.glob(part.format_map(DefaultDict('*'))), key=natorder)
+                selector.options = sorted(trunk.glob(component.format_map(DefaultDict('*'))))
                 if selector.options:
                     if options.common.interactive:
-                        selector.default = trunk.glob(part.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
+                        selector.default = trunk.glob(component.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
                         choice = selector.singlechoice()
                     else:
                         choice = selector.singlechoice()
@@ -525,7 +525,7 @@ def submit(parentdir, inputname, filtergroups):
                 else:
                     messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
             else:
-                trunk = trunk / part
+                trunk = trunk / component
         parameterpaths.append(trunk)
 
     imports = []
