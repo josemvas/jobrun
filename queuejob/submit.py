@@ -8,7 +8,7 @@ from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
-from .utils import AttrDict, FormatDict, DefaultDict, IdentityList, o, p, q, Q, _, join_args, booldict, interpolate, natsorted as sorted
+from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, interpolate, natsorted as sorted
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
@@ -140,8 +140,8 @@ def initialize():
             options.prefix = interpolate(
                 options.interpolation.prefix,
                 anchor='%',
-                keylist=options.interpolation.list,
-                keydict=options.interpolation.dict,
+                formlist=options.interpolation.list,
+                formdict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
@@ -153,8 +153,8 @@ def initialize():
             options.suffix = interpolate(
                 options.interpolation.suffix,
                 anchor='%',
-                keylist=options.interpolation.list,
-                keydict=options.interpolation.dict,
+                formlist=options.interpolation.list,
+                formdict=options.interpolation.dict,
             )
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en el sufijo', opt='--suffix', var=e.args[0])
@@ -243,7 +243,9 @@ def initialize():
         parameterkeys.update(sysconf.defaults.parameterkeys)
 
     for path in sysconf.parameterpaths:
-        componentlist = pathsplit(path.format_map(FormatDict(names)))
+        formatdict = FormatDict()
+        formatdict.update(names)
+        componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
             try:
@@ -254,10 +256,10 @@ def initialize():
             component = component.format_map(parameterkeys)
             if parameterkeys.missing_keys:
                 selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
-                selector.options = sorted(trunk.glob(component.format_map(DefaultDict('*'))))
+                selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
                 if selector.options:
                     if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(DefaultDict('*')))[0]
+                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(FormatDict('*')))[0]
                         choice = selector.singlechoice()
                     else:
                         choice = selector.singlechoice()
@@ -413,8 +415,8 @@ def submit(parentdir, inputname, filtergroups):
                                 interpolatedfiles[destpath] = interpolate(
                                     contents,
                                     anchor=options.interpolation.anchor,
-                                    keylist=options.interpolation.list,
-                                    keydict=options.interpolation.dict,
+                                    formlist=options.interpolation.list,
+                                    formdict=options.interpolation.dict,
                                 )
                             except ValueError:
                                 messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', pathjoin((inputname, key)))
@@ -489,7 +491,7 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():
-            remoteargs.constants[key] = interpolate(value, anchor='%', keylist=filtergroups)
+            remoteargs.constants[key] = interpolate(value, anchor='%', formlist=filtergroups)
         filelist = []
         for key in progspecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
@@ -522,7 +524,7 @@ def submit(parentdir, inputname, filtergroups):
 
     for key, value in sysconf.defaults.parameterkeys.items():
         try:
-            defaultparameterkeys[key] = interpolate(value, anchor='%', keylist=filtergroups)
+            defaultparameterkeys[key] = interpolate(value, anchor='%', formlist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
         except IndexError:
@@ -530,7 +532,7 @@ def submit(parentdir, inputname, filtergroups):
 
     for key, value in options.parameterkeys.items():
         try:
-            parameterkeys[key] = interpolate(value, anchor='%', keylist=filtergroups)
+            parameterkeys[key] = interpolate(value, anchor='%', formlist=filtergroups)
         except ValueError:
             messages.error('Hay variables de interpolación inválidas en la opción', key)
         except IndexError:
@@ -540,7 +542,9 @@ def submit(parentdir, inputname, filtergroups):
         parameterkeys.update(defaultparameterkeys)
 
     for path in sysconf.parameterpaths:
-        componentlist = pathsplit(path.format_map(FormatDict(names)))
+        formatdict = FormatDict()
+        formatdict.update(names)
+        componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
             try:
@@ -551,10 +555,10 @@ def submit(parentdir, inputname, filtergroups):
             component = component.format_map(parameterkeys)
             if parameterkeys.missing_keys:
                 selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
-                selector.options = sorted(trunk.glob(component.format_map(DefaultDict('*'))))
+                selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
                 if selector.options:
                     if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(DefaultDict('*')))[0]
+                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(FormatDict('*')))[0]
                         choice = selector.singlechoice()
                     else:
                         choice = selector.singlechoice()

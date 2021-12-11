@@ -19,12 +19,14 @@ class ListOptions(Action):
             messages.options(tuple(sysconf.versions.keys()), [default], level=1)
         for path in sysconf.parameterpaths:
             dirtree = {}
-            parts = pathsplit(path.format_map(FormatDict(names)))
+            formatdict = FormatDict()
+            formatdict.update(names)
+            parts = pathsplit(path.format_map(formatdict))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                keydict = FormatDict()
-                path.format_map(keydict)
-                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict.missing_keys]
+                formatdict = FormatDict()
+                path.format_map(formatdict)
+                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
                 print(_('Conjuntos de parámetros en $path:'.interpolate(path=path)))
                 messages.options(dirtree, defaults, level=1)
         sys.exit()
@@ -84,7 +86,8 @@ try:
 
     parameterpaths = []
     foundparameterkeys = set()
-    keydict = FormatDict(names)
+    formatdict = FormatDict()
+    formatdict.update(names)
 
     for paramset in progspecs.parametersets:
         try:
@@ -94,10 +97,10 @@ try:
         if not parampath:
             messages.error(_('La ruta al conjunto de parámetros $name está vacía').substitute(name=paramset))
         try:
-            parameterpaths.append(parampath.format_map(keydict))
+            parameterpaths.append(parampath.format_map(formatdict))
         except ValueError as e:
             messages.error('Hay variables de interpolación inválidas en la ruta', parampath, var=e.args[0])
-        foundparameterkeys.update(keydict.missing_keys)
+        foundparameterkeys.update(formatdict.missing_keys)
 
     for key in foundparameterkeys:
         if key not in progspecs.parameterkeys:
@@ -135,7 +138,7 @@ try:
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
-    yngroup.add_argument('--yes', '--si', action='store_true', help='Responder "si" a todas las preguntas.')
+    yngroup.add_argument('--yes', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
 #    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 

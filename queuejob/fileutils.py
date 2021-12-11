@@ -3,7 +3,7 @@ import string
 import shutil
 import fnmatch
 from . import messages
-from .utils import FormatDict, DefaultDict, deepjoin
+from .utils import FormatDict, deepjoin
 
 class NotAbsolutePath(Exception):
     pass
@@ -156,22 +156,22 @@ def rmtree(path, date):
             delete_newer(os.path.join(parent, d), date, os.rmdir)
     delete_newer(path, date, os.rmdir)
 
-def dirbranches(trunk, parts, dirtree):
+def dirbranches(trunk, componentlist, dirtree):
     try:
         trunk.assertdir()
     except OSError as e:
         messages.excinfo(e, trunk)
         raise SystemExit
-    if parts:
-        keydict = FormatDict()
-        part = parts.pop(0).format_map(keydict)
-        if keydict.missing_keys:
-            branches = trunk.glob(part.format_map(DefaultDict('*')))
+    if componentlist:
+        formatdict = FormatDict()
+        component = componentlist.pop(0).format_map(formatdict)
+        if formatdict.missing_keys:
+            branches = trunk.glob(component.format_map(FormatDict('*')))
             for branch in branches:
                 dirtree[branch] = {}
-                dirbranches(trunk/branch, parts, dirtree[branch])
+                dirbranches(trunk/branch, componentlist, dirtree[branch])
         else:
-            dirbranches(trunk/partglob, parts, dirtree)
+            dirbranches(trunk/component, componentlist, dirtree)
 
 def pathjoin(*components):
     return deepjoin(components, [os.path.sep, '.'])
@@ -179,14 +179,14 @@ def pathjoin(*components):
 def pathsplit(path):
     if path:
         if path == os.path.sep:
-            parts = [os.path.sep]
+            componentlist = [os.path.sep]
         elif path.startswith(os.path.sep):
-            parts = [os.path.sep] + path[1:].split(os.path.sep)
+            componentlist = [os.path.sep] + path[1:].split(os.path.sep)
         else:
-            parts = path.split(os.path.sep)
-        if '' in parts:
-            raise Exception('Path has empty parts')
-        return parts
+            componentlist = path.split(os.path.sep)
+        if '' in componentlist:
+            raise Exception('Path has empty components')
+        return componentlist
     else:
         return []
 

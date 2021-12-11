@@ -30,28 +30,25 @@ class AttrDict(OrderedDict):
         else:
             super(AttrDict, self).__setattr__(name, value)
 
-# This class is used to interpolate format strings with default values for missing keys
-class DefaultDict(dict):
-    def __init__(self, default):
-        self._default = default
-    def __missing__(self, key):
-        return self._default
-
 # This class is used to interpolate format strings without raising key errors
 # Missing keys are logged in the missing_keys attribute
+# Default value can be set at initiation
 class FormatDict(dict):
-    def __init__(self, known={}):
+    def __init__(self, default=None):
         self.missing_keys = []
-        self.update(known)
+        self.__default = default
     def __missing__(self, key):
         self.missing_keys.append(key)
-        return '{' + key + '}'
+        if self.__default:
+            return self.__default
+        else:
+            return '{' + key + '}'
 
 class _(string.Template):
     def __str__(self):
         return(self.safe_substitute())
 
-def interpolate(template, anchor, keylist=[], keydict={}):
+def interpolate(template, anchor, formlist=[], formdict={}):
     class DictTemplate(string.Template):
         delimiter = anchor
         idpattern = r'[a-z][a-z0-9]*'
@@ -61,15 +58,15 @@ def interpolate(template, anchor, keylist=[], keydict={}):
     class DualTemplate(string.Template):
         delimiter = anchor
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
-    if isinstance(keylist, (tuple, list)):
-        if isinstance(keydict, dict):
-            return DualTemplate(template).substitute(FormatDict()).format('', *keylist, **keydict)
-        elif keydict is None:
-            return ListTemplate(template).substitute(FormatDict()).format('', *keylist)
-    elif keylist is None:
-        if isinstance(keydict, dict):
-            return DictTemplate(template).substitute(FormatDict()).format(**keydict)
-        elif keydict is None:
+    if isinstance(formlist, (tuple, list)):
+        if isinstance(formdict, dict):
+            return DualTemplate(template).substitute(FormatDict()).format('', *formlist, **formdict)
+        elif formdict is None:
+            return ListTemplate(template).substitute(FormatDict()).format('', *formlist)
+    elif formlist is None:
+        if isinstance(formdict, dict):
+            return DictTemplate(template).substitute(FormatDict()).format(**formdict)
+        elif formdict is None:
             return None
     raise TypeError()
 
