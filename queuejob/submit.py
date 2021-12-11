@@ -3,6 +3,7 @@ import sys
 from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
 from runutils import Selector, Completer
+from parse import parse
 from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
@@ -232,6 +233,42 @@ def initialize():
             options.version = sysconf.defaults.version
     else:
         options.version = selector.singlechoice()
+
+    ############ Interactive parameter selection ###########
+
+    parameterkeys = FormatDict()
+    parameterkeys.update(options.parameterkeys)
+
+    if not options.common.interactive:
+        parameterkeys.update(sysconf.defaults.parameterkeys)
+
+    for path in sysconf.parameterpaths:
+        componentlist = pathsplit(path.format_map(FormatDict(names)))
+        trunk = AbsPath(componentlist.pop(0))
+        for component in componentlist:
+            try:
+                trunk.assertdir()
+            except OSError as e:
+                messages.excinfo(e, trunk)
+                raise SystemExit
+            component = component.format_map(parameterkeys)
+            if parameterkeys.missing_keys:
+                selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
+                selector.options = sorted(trunk.glob(component.format_map(DefaultDict('*'))))
+                if selector.options:
+                    if options.common.interactive:
+                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(DefaultDict('*')))[0]
+                        choice = selector.singlechoice()
+                    else:
+                        choice = selector.singlechoice()
+                    options.parameterkeys.update(parse(component.format_map(parameterkeys), choice).named)
+                    trunk = trunk / choice
+                else:
+                    messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
+            else:
+                trunk = trunk / component
+
+    ############ End of interactive parameter selection ###########
 
     for envar, value in sysconf.export.items() | sysconf.versions[options.version].export.items():
         if value:
@@ -517,7 +554,7 @@ def submit(parentdir, inputname, filtergroups):
                 selector.options = sorted(trunk.glob(component.format_map(DefaultDict('*'))))
                 if selector.options:
                     if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(defaultparameterkeys).format_map(DefaultDict('*')))[0]
+                        selector.default = trunk.glob(component.format_map(parameterkeys).format_map(DefaultDict('*')))[0]
                         choice = selector.singlechoice()
                     else:
                         choice = selector.singlechoice()
