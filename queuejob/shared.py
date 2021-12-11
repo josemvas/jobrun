@@ -6,7 +6,7 @@ from getpass import getuser
 from socket import gethostname
 from string import Template
 from .readspec import SpecDict
-from .utils import AttrDict, p, q, sorted
+from .utils import AttrDict, p, q, natsorted as sorted
 from .fileutils import AbsPath, pathjoin
 from . import messages
 

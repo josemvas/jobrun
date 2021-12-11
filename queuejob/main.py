@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches
-from .utils import AttrDict, FormatDict, printoptions, o, p, q, _
+from .utils import AttrDict, FormatDict, _, o, p, q
 from .shared import ArgList, names, nodes, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
@@ -16,7 +16,7 @@ class ListOptions(Action):
         if sysconf.versions:
             print(_('Versiones del programa:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
-            printoptions(tuple(sysconf.versions.keys()), [default], level=1)
+            messages.options(tuple(sysconf.versions.keys()), [default], level=1)
         for path in sysconf.parameterpaths:
             dirtree = {}
             parts = pathsplit(path.format_map(FormatDict(names)))
@@ -26,7 +26,7 @@ class ListOptions(Action):
                 path.format_map(keydict)
                 defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in keydict.missing_keys]
                 print(_('Conjuntos de parámetros en $path:'.interpolate(path=path)))
-                printoptions(dirtree, defaults, level=1)
+                messages.options(dirtree, defaults, level=1)
         sys.exit()
 
 class StorePath(Action):

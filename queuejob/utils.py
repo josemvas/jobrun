@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import string
-import builtins
 from collections import OrderedDict
 
 booldict = {
@@ -107,32 +106,10 @@ def catch_keyboard_interrupt(message):
                 raise SystemExit(message)
         return wrapper
 
-def override_function(cls):
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            try:
-                return getattr(cls, f.__name__)(*args, **kwargs)
-            except AttributeError:
-                return f(*args, **kwargs)
-        return wrapper
-    return decorator
-
-#def natural(string):
-#    return [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', string)]
-
-def sorted(*args, **kwargs):
+def natsorted(*args, **kwargs):
     if 'key' not in kwargs:
         kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
-    return builtins.sorted(*args, **kwargs)
-
-def printoptions(options, defaults=[], level=0):
-    for opt in sorted(options):
-        if defaults and opt == defaults[0]:
-            print(' '*level + opt + '  (default)')
-        else:
-            print(' '*level + opt)
-        if isinstance(options, dict):
-            printoptions(options[opt], defaults[1:], level + 1)
+    return sorted(*args, **kwargs)
 
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())

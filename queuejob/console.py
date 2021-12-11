@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from subprocess import check_output, DEVNULL
 from runutils import Selector, Completer
 from . import messages
-from .utils import q
+from .utils import q, natsorted as sorted
 from .readspec import readspec
 from .fileutils import AbsPath, pathjoin, mkdir, copyfile, symlink
 

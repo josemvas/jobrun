@@ -1,6 +1,6 @@
 import sys
 from .defs import colors
-from .utils import join_args, join_args_and_kwargs
+from .utils import join_args, join_args_and_kwargs, natsorted as sorted
 
 @join_args_and_kwargs
 def success(message, details):
@@ -44,3 +44,13 @@ def excinfo(exception, path):
          failure(str(exception).format(path))
     else:
          error('Tipo de excepción inesperada: {}'.format(type(exception).__name__))
+
+def options(options, defaults=[], level=0):
+    for opt in sorted(options):
+        if defaults and opt == defaults[0]:
+            print(' '*level + opt + '  (default)')
+        else:
+            print(' '*level + opt)
+        if isinstance(options, dict):
+            options(options[opt], defaults[1:], level + 1)
+

@@ -8,7 +8,7 @@ from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
-from .utils import AttrDict, FormatDict, DefaultDict, IdentityList, o, p, q, Q, _, sorted, join_args, booldict, interpolate
+from .utils import AttrDict, FormatDict, DefaultDict, IdentityList, o, p, q, Q, _, join_args, booldict, interpolate, natsorted as sorted
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
 from .parsing import BoolParser
 from .readmol import readmol
