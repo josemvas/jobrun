@@ -84,6 +84,8 @@ nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
+options.extra = AttrDict()
+
 sysconf = SpecDict({
     'load': [],
     'source': [],
@@ -94,6 +96,7 @@ sysconf = SpecDict({
     'onscript': [],
     'offscript': [],
 })
+
 progspecs = SpecDict({
     'conflicts': {},
     'filekeys': {},
@@ -109,9 +112,9 @@ progspecs = SpecDict({
     'prescript': [],
     'postscript': [],
 })
+
 queuespecs = SpecDict()
 remoteargs = ArgGroups()
-
 names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name

@@ -43,6 +43,11 @@ def initialize():
         if 'cmd' not in options.remote or 'root' not in options.remote:
             messages.error('El servidor no está correctamente configurado para aceptar trabajos')
 
+    if options.common.no_defaults:
+        options.extra.defaults = False
+    else:
+        options.extra.defaults = True
+
     if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
         options.interpolation.interpolate = True
     else:
@@ -70,7 +75,7 @@ def initialize():
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.interpolation:
                 if len(options.interpolation.mol) == 1:
-                    options.prefix = path.stem
+                    options.extra.prefix = path.stem
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
         elif 'trjmol' in options.interpolation:
@@ -80,7 +85,7 @@ def initialize():
                 index += 1
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.interpolation:
-                options.prefix = path.stem
+                options.extra.prefix = path.stem
         else:
             if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
@@ -88,7 +93,7 @@ def initialize():
     try:
         sysconf.delay = float(sysconf.delay)
     except ValueError:
-        messages.error('El tiempo de espera debe ser un numéro', conf='delay')
+        messages.error('El tiempo de espera debe ser un número', conf='delay')
     except AttributeError:
         sysconf.delay = 0
     
@@ -137,7 +142,7 @@ def initialize():
 
     if 'prefix' in options.interpolation:
         try:
-            options.prefix = interpolate(
+            options.extra.prefix = interpolate(
                 options.interpolation.prefix,
                 anchor='%',
                 formlist=options.interpolation.list,
@@ -150,7 +155,7 @@ def initialize():
 
     if 'suffix' in options.interpolation:
         try:
-            options.suffix = interpolate(
+            options.extra.suffix = interpolate(
                 options.interpolation.suffix,
                 anchor='%',
                 formlist=options.interpolation.list,
@@ -226,11 +231,11 @@ def initialize():
     elif 'version' in sysconf.defaults:
         if not sysconf.defaults.version in sysconf.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
-        if options.common.interactive:
+        if options.extra.defaults:
+            options.version = sysconf.defaults.version
+        else:
             selector.default = version
             options.version = selector.singlechoice()
-        else:
-            options.version = sysconf.defaults.version
     else:
         options.version = selector.singlechoice()
 
@@ -239,7 +244,7 @@ def initialize():
     formatdict = FormatDict()
     formatdict.update(names)
 
-    if not options.common.interactive:
+    if options.extra.defaults:
         formatdict.update(sysconf.defaults.parameterkeys)
 
     formatdict.update(options.parameterkeys)
@@ -257,11 +262,7 @@ def initialize():
                 selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
                 selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
                 if selector.options:
-                    if options.common.interactive:
-                        selector.default = trunk.glob(component.format_map(formatdict).format_map(FormatDict('*')))[0]
-                        choice = selector.singlechoice()
-                    else:
-                        choice = selector.singlechoice()
+                    choice = selector.singlechoice()
                     options.parameterkeys.update(parse(component.format_map(formatdict), choice).named)
                     trunk = trunk / choice
                 else:
@@ -382,10 +383,10 @@ def submit(parentdir, inputname, filtergroups):
     jobname = inputname
 
     if 'prefix' in options:
-        jobname = options.prefix + '.' + jobname
+        jobname = options.extra.prefix + '.' + jobname
 
     if 'suffix' in options:
-        jobname = jobname +  '.' + options.suffix
+        jobname = jobname +  '.' + options.extra.suffix
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, cwd=parentdir)
@@ -521,7 +522,7 @@ def submit(parentdir, inputname, filtergroups):
     formatdict = FormatDict()
     formatdict.update(names)
 
-    if not options.common.interactive:
+    if options.extra.defaults:
         for key, value in sysconf.defaults.parameterkeys.items():
             try:
                 formatdict[key] = interpolate(value, anchor='%', formlist=filtergroups)

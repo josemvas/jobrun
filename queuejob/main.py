@@ -122,7 +122,6 @@ try:
     group2.name = 'common'
     group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-    group2.add_argument('-i', '--interactive', action='store_true', help='Preguntar siempre aunque existan opciones predeterminadas.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Requerir #PROCS núcleos de procesamiento.')
@@ -134,6 +133,7 @@ try:
     group2.add_argument('--delay', type=int, metavar='#SECONDS', default=0, help='Demorar el envío del trabajo #SECONDS segundos.')
     group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
+    group2.add_argument('--no-defaults', action='store_true', help='Ignorar todas las opciones predeterminadas.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
