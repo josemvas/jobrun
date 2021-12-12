@@ -84,7 +84,7 @@ nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
-options.extra = AttrDict()
+options.parsed = AttrDict()
 
 sysconf = SpecDict({
     'load': [],

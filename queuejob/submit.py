@@ -44,9 +44,9 @@ def initialize():
             messages.error('El servidor no está correctamente configurado para aceptar trabajos')
 
     if options.common.no_defaults:
-        options.extra.defaults = False
+        options.parsed.defaults = False
     else:
-        options.extra.defaults = True
+        options.parsed.defaults = True
 
     if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
         options.interpolation.interpolate = True
@@ -75,7 +75,7 @@ def initialize():
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.interpolation:
                 if len(options.interpolation.mol) == 1:
-                    options.extra.prefix = path.stem
+                    options.parsed.prefix = path.stem
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
         elif 'trjmol' in options.interpolation:
@@ -85,7 +85,7 @@ def initialize():
                 index += 1
                 options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
             if not 'prefix' in options.interpolation:
-                options.extra.prefix = path.stem
+                options.parsed.prefix = path.stem
         else:
             if not 'prefix' in options.interpolation and not 'suffix' in options.interpolation:
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
@@ -101,9 +101,9 @@ def initialize():
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        options.jobscratch = options.common.scratch / queuespecs.envars.jobid
+        options.parsed.scratch = options.common.scratch / queuespecs.envars.jobid
     else:
-        options.jobscratch = AbsPath(sysconf.defaults.scratch.format_map(names)) / queuespecs.envars.jobid
+        options.parsed.scratch = AbsPath(sysconf.defaults.scratch.format_map(names)) / queuespecs.envars.jobid
 
     if 'queue' not in options.common:
         if 'queue' in sysconf.defaults:
@@ -142,7 +142,7 @@ def initialize():
 
     if 'prefix' in options.interpolation:
         try:
-            options.extra.prefix = interpolate(
+            options.parsed.prefix = interpolate(
                 options.interpolation.prefix,
                 anchor='%',
                 formlist=options.interpolation.list,
@@ -155,7 +155,7 @@ def initialize():
 
     if 'suffix' in options.interpolation:
         try:
-            options.extra.suffix = interpolate(
+            options.parsed.suffix = interpolate(
                 options.interpolation.suffix,
                 anchor='%',
                 formlist=options.interpolation.list,
@@ -227,24 +227,24 @@ def initialize():
     if 'version' in options.common:
         if options.common.version not in sysconf.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
-        options.version = options.common.version
+        options.parsed.version = options.common.version
     elif 'version' in sysconf.defaults:
         if not sysconf.defaults.version in sysconf.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
-        if options.extra.defaults:
-            options.version = sysconf.defaults.version
+        if options.parsed.defaults:
+            options.parsed.version = sysconf.defaults.version
         else:
             selector.default = version
-            options.version = selector.singlechoice()
+            options.parsed.version = selector.singlechoice()
     else:
-        options.version = selector.singlechoice()
+        options.parsed.version = selector.singlechoice()
 
     ############ Interactive parameter selection ###########
 
     formatdict = FormatDict()
     formatdict.update(names)
 
-    if options.extra.defaults:
+    if options.parsed.defaults:
         formatdict.update(sysconf.defaults.parameterkeys)
 
     formatdict.update(options.parameterkeys)
@@ -272,31 +272,31 @@ def initialize():
 
     ############ End of interactive parameter selection ###########
 
-    for envar, value in sysconf.export.items() | sysconf.versions[options.version].export.items():
+    for envar, value in sysconf.export.items() | sysconf.versions[options.parsed.version].export.items():
         if value:
             script.setup.append('export {0}={1}'.format(envar, value))
         else:
             messages.error('El valor de la variable de entorno {} es nulo'.format(envar), spec='export')
 
-    for path in sysconf.source + sysconf.versions[options.version].source:
+    for path in sysconf.source + sysconf.versions[options.parsed.version].source:
         if path:
             script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
         else:
             messages.error('La ruta al script de configuración es nula', spec='source')
 
-    if sysconf.load or sysconf.versions[options.version].load:
+    if sysconf.load or sysconf.versions[options.parsed.version].load:
         script.setup.append('module purge')
 
-    for module in sysconf.load + sysconf.versions[options.version].load:
+    for module in sysconf.load + sysconf.versions[options.parsed.version].load:
         if module:
             script.setup.append('module load {}'.format(module))
         else:
             messages.error('El nombre del módulo es nulo', spec='load')
 
     try:
-        script.main.append(AbsPath(sysconf.versions[options.version].executable.format_map(names)))
+        script.main.append(AbsPath(sysconf.versions[options.parsed.version].executable.format_map(names)))
     except NotAbsolutePath:
-        script.main.append(sysconf.versions[options.version].executable)
+        script.main.append(sysconf.versions[options.parsed.version].executable)
 
     for path in queuespecs.logfiles:
         script.header.append(path.format(AbsPath(sysconf.logdir.format_map(names))))
@@ -383,10 +383,10 @@ def submit(parentdir, inputname, filtergroups):
     jobname = inputname
 
     if 'prefix' in options:
-        jobname = options.extra.prefix + '.' + jobname
+        jobname = options.parsed.prefix + '.' + jobname
 
     if 'suffix' in options:
-        jobname = jobname +  '.' + options.extra.suffix
+        jobname = jobname +  '.' + options.parsed.suffix
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, cwd=parentdir)
@@ -522,7 +522,7 @@ def submit(parentdir, inputname, filtergroups):
     formatdict = FormatDict()
     formatdict.update(names)
 
-    if options.extra.defaults:
+    if options.parsed.defaults:
         for key, value in sysconf.defaults.parameterkeys.items():
             try:
                 formatdict[key] = interpolate(value, anchor='%', formlist=filtergroups)
@@ -558,21 +558,21 @@ def submit(parentdir, inputname, filtergroups):
 
     for key in progspecs.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(options.jobscratch, progspecs.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(options.parsed.scratch, progspecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (jobname, progspecs.fileoptions[key])), pathjoin(options.jobscratch, progspecs.filekeys[progspecs.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (jobname, progspecs.fileoptions[key])), pathjoin(options.parsed.scratch, progspecs.filekeys[progspecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
-            imports.append(script.importfile(path, pathjoin(options.jobscratch, path.name)))
+            imports.append(script.importfile(path, pathjoin(options.parsed.scratch, path.name)))
         elif path.isdir():
-            imports.append(script.importdir(pathjoin(path), options.jobscratch))
+            imports.append(script.importdir(pathjoin(path), options.parsed.scratch))
         else:
             messages.error('La ruta de parámetros', path, 'no existe')
 
     for key in progspecs.outputfiles:
-        exports.append(script.exportfile(pathjoin(options.jobscratch, progspecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
+        exports.append(script.exportfile(pathjoin(options.parsed.scratch, progspecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
 
     try:
         jobdir.mkdir()
@@ -590,14 +590,14 @@ def submit(parentdir, inputname, filtergroups):
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('jobname', jobname) + '\n')
         f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
-        f.write(script.makedir(options.jobscratch) + '\n')
+        f.write(script.makedir(options.parsed.scratch) + '\n')
         f.write(''.join(i + '\n' for i in imports))
-        f.write(script.chdir(options.jobscratch) + '\n')
+        f.write(script.chdir(options.parsed.scratch) + '\n')
         f.write(''.join(i + '\n' for i in progspecs.prescript))
         f.write(' '.join(script.main) + '\n')
         f.write(''.join(i + '\n' for i in progspecs.postscript))
         f.write(''.join(i + '\n' for i in exports))
-        f.write(script.removedir(options.jobscratch) + '\n')
+        f.write(script.removedir(options.parsed.scratch) + '\n')
         f.write(''.join(i + '\n' for i in sysconf.offscript))
 
     if options.debug.dryrun:
