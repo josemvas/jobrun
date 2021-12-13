@@ -382,10 +382,10 @@ def submit(parentdir, inputname, filtergroups):
 
     jobname = inputname
 
-    if 'prefix' in options:
+    if 'prefix' in options.parsed:
         jobname = options.parsed.prefix + '.' + jobname
 
-    if 'suffix' in options:
+    if 'suffix' in options.parsed:
         jobname = jobname +  '.' + options.parsed.suffix
 
     if 'out' in options.common:
