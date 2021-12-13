@@ -70,7 +70,6 @@ def install(relpath=False):
         selector.label = 'Seleccione el gestor de trabajos adecuado'
         selector.options = sorted(schedulernames.values())
         selector.default = clusterconf.schedulername
-        print(selector.default)
         selschedulername = selector.singlechoice()
         selscheduler = schedulerspeckeys[selschedulername]
         copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
