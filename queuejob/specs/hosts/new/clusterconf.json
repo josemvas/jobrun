@@ -1,13 +1,13 @@
 {
    "clustername": "Nuevo",
-   "headnode": "",
-   "schedulername": "",
+   "headnode": null,
+   "schedulername": null,
    "filesync": "local",
    "logdir": "/tmp",
    "delay": "1",
 
    "defaults": {
-      "queue": "",
+      "queue": null,
       "scratch": "/scratch"
    },
 

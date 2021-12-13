@@ -45,12 +45,12 @@ def excinfo(exception, path):
     else:
          error('Tipo de excepción inesperada: {}'.format(type(exception).__name__))
 
-def options(options, defaults=[], level=0):
+def printtree(options, defaults=[], level=0):
     for opt in sorted(options):
         if defaults and opt == defaults[0]:
             print(' '*level + opt + '  (default)')
         else:
             print(' '*level + opt)
         if isinstance(options, dict):
-            options(options[opt], defaults[1:], level + 1)
+            printtree(options[opt], defaults[1:], level + 1)
 

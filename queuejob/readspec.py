@@ -9,7 +9,7 @@ class SpecList(list):
                 self.append(SpecDict(item))
             elif isinstance(item, list):
                 self.append(SpecList(item))
-            elif isinstance(item, str):
+            elif item is None or isinstance(item, str):
                 self.append(item)
             else:
                 raise ValueError('Invalid data type')
@@ -26,7 +26,7 @@ class SpecDict(OrderedDict):
                 self[key] = SpecDict(value)
             elif isinstance(value, list):
                 self[key] = SpecList(value)
-            elif isinstance(value, str):
+            elif value is None or isinstance(value, str):
                 self[key] = value
             else:
                 raise ValueError('Invalid data type')

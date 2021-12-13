@@ -16,7 +16,7 @@ class ListOptions(Action):
         if sysconf.versions:
             print(_('Versiones del programa:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
-            messages.options(tuple(sysconf.versions.keys()), [default], level=1)
+            messages.printtree(tuple(sysconf.versions.keys()), [default], level=1)
         for path in sysconf.parameterpaths:
             dirtree = {}
             formatdict = FormatDict()
@@ -27,8 +27,8 @@ class ListOptions(Action):
                 formatdict = FormatDict()
                 path.format_map(formatdict)
                 defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
-                print(_('Conjuntos de parámetros en $path:'.interpolate(path=path)))
-                messages.options(dirtree, defaults, level=1)
+                print(_('Conjuntos de parámetros en $path:').substitute(path=path))
+                messages.printtree(dirtree, defaults, level=1)
         sys.exit()
 
 class StorePath(Action):
