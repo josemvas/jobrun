@@ -53,9 +53,10 @@ def initialize():
     else:
         options.interpolation.interpolate = False
 
+    options.interpolation.list = []
+    options.interpolation.dict = {}
+
     if options.interpolation.interpolate:
-        options.interpolation.list = []
-        options.interpolation.dict = {}
         if options.interpolation.vars:
             for var in options.interpolation.vars:
                 left, separator, right = var.partition('=')
