@@ -70,6 +70,10 @@ try:
     
     try:
         sysconf.merge(readspec(userclusterconf))
+    except FileNotFoundError:
+        pass
+
+    try:
         sysconf.merge(readspec(userpackageconf))
     except FileNotFoundError:
         pass

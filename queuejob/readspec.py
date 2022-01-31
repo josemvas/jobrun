@@ -32,14 +32,9 @@ class SpecDict(OrderedDict):
                 raise ValueError('Invalid data type')
     def merge(self, other):
         for i in other:
-            if i in self:
-                if hasattr(self[i], 'merge'):
-                    self[i].merge(other[i])
-                elif self[i] != other[i]:
-                    # Throw error if values differ
-                    raise Exception('self[{1}]={2} /= other[{1}]={3}'.format(i, self[i], other[i]))
-                    # Overwrite if values differ
-#                        self[i] = other[i]
+            if i in self and hasattr(self[i], 'merge'):
+                self[i].merge(other[i])
+            # Update existing entry or append new one
             else:
                 self[i] = other[i]
     def __getattr__(self, key):
