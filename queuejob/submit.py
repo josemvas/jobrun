@@ -1,15 +1,16 @@
 import os
 import sys
 from time import time, sleep
+from parse import parse as format_parse
 from subprocess import CalledProcessError, call, check_output
-from runutils import Selector, Completer
-from parse import parse
+from consoleutils import Selector, Completer
 from . import messages
 from .defs import wrappers
 from .queue import jobsubmit, jobstat
-from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
-from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate, natsorted as sorted
+from .utils import natsorted as sorted
+from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
+from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -222,7 +223,7 @@ def initialize():
     for version in sysconf.versions:
         sysconf.versions[version].merge({'load':[], 'source':[], 'export':{}})
 
-    selector.label = 'Seleccione una versión:'
+    selector.message = 'Seleccione una versión:'
     selector.options = tuple(sysconf.versions.keys())
 
     if 'version' in options.common:
@@ -236,9 +237,9 @@ def initialize():
             options.parsed.version = sysconf.defaults.version
         else:
             selector.default = version
-            options.parsed.version = selector.singlechoice()
+            options.parsed.version = selector.single_choice()
     else:
-        options.parsed.version = selector.singlechoice()
+        options.parsed.version = selector.single_choice()
 
     ############ Interactive parameter selection ###########
 
@@ -260,11 +261,11 @@ def initialize():
                 messages.excinfo(e, trunk)
                 raise SystemExit
             if getformatkeys(component):
-                selector.label = _('Seleccione un directorio de $path').substitute(path=trunk)
+                selector.message = _('Seleccione un directorio de $path').substitute(path=trunk)
                 selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
                 if selector.options:
-                    choice = selector.singlechoice()
-                    options.parameterkeys.update(parse(component.format_map(formatdict), choice).named)
+                    choice = selector.single_choice()
+                    options.parameterkeys.update(format_parse(component.format_map(formatdict), choice).named)
                     trunk = trunk / choice
                 else:
                     messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
@@ -431,9 +432,9 @@ def submit(parentdir, inputname, filtergroups):
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
-                                completer.label = _('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key)))
+                                completer.message = _('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key)))
                                 completer.options = {True: 'si', False: 'no'}
-                                if completer.binarychoice():
+                                if completer.binary_choice():
                                     literalfiles[destpath] = srcpath
                                 else:
                                     return
@@ -454,9 +455,11 @@ def submit(parentdir, inputname, filtergroups):
             except FileNotFoundError:
                 pass
         if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in progspecs.outputfiles):
-            completer.label = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
-            completer.options = {True: 'si', False: 'no'}
-            if options.common.no or (not options.common.yes and not completer.binarychoice()):
+            completer.message = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
+            completer.options = {}
+            completer.options[True] = ['si', 'yes']
+            completer.options[False] = ['no']
+            if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return
         for key in progspecs.outputfiles:

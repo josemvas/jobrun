@@ -3,7 +3,7 @@ import sys
 import re
 from argparse import ArgumentParser
 from subprocess import check_output, DEVNULL
-from runutils import Selector, Completer
+from consoleutils import Selector, Completer
 from . import messages
 from .utils import q, natsorted as sorted
 from .readspec import readspec
@@ -26,9 +26,8 @@ def install(relpath=False):
     schedulerspeckeys = {}
     defaults = {}
 
-    completer.label = 'Escriba la ruta donde se instalarán los programas'
-    completer.check = os.path.isdir
-    rootdir = AbsPath(completer.path(), cwd=os.getcwd())
+    completer.message = 'Escriba la ruta donde se instalarán los programas'
+    rootdir = AbsPath(completer.directory_path(), cwd=os.getcwd())
 
     bindir = pathjoin(rootdir, 'bin')
     etcdir = pathjoin(rootdir, 'etc')
@@ -56,32 +55,32 @@ def install(relpath=False):
         schedulerspeckeys[queuespecs.schedulername] = diritem
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
-        selector.label = '¿Qué clúster desea configurar?'
+        selector.message = '¿Qué clúster desea configurar?'
         selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
         clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
         if clusterconf.clustername in clusternames.values():
             selector.default = clusterconf.clustername
-        selhost = clusterspeckeys[selector.singlechoice()]
+        selhost = clusterspeckeys[selector.single_choice()]
         if clusternames[selhost] != clusterconf.clustername and readspec(pathjoin(srchostspecdir, selhost, 'clusterconf.json')) != readspec(pathjoin(specdir, 'clusterconf.json')):
-            completer.label = 'Desea sobreescribir la configuración local del sistema?'
+            completer.message = 'Desea sobreescribir la configuración local del sistema?'
             completer.options = {True: 'si', False: 'no'}
-            if completer.binarychoice():
+            if completer.binary_choice():
                 copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
-        selector.label = 'Seleccione el gestor de trabajos adecuado'
+        selector.message = 'Seleccione el gestor de trabajos adecuado'
         selector.options = sorted(schedulernames.values())
         selector.default = clusterconf.schedulername
-        selschedulername = selector.singlechoice()
+        selschedulername = selector.single_choice()
         selscheduler = schedulerspeckeys[selschedulername]
         copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
     else:
-        selector.label = '¿Qué clúster desea configurar?'
+        selector.message = '¿Qué clúster desea configurar?'
         selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
-        selhost = clusterspeckeys[selector.singlechoice()]
+        selhost = clusterspeckeys[selector.single_choice()]
         copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
-        selector.label = 'Seleccione el gestor de trabajos adecuado'
+        selector.message = 'Seleccione el gestor de trabajos adecuado'
         selector.options = sorted(schedulernames.values())
         selector.default = clusterschedulers[selhost]
-        selschedulername = selector.singlechoice()
+        selschedulername = selector.single_choice()
         selscheduler = schedulerspeckeys[selschedulername]
         copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
 
@@ -98,10 +97,10 @@ def install(relpath=False):
         if os.path.isdir(pathjoin(specdir, diritem)):
             configured.append(readspec(pathjoin(specdir, diritem, 'progspec.json')).progname)
 
-    selector.label = 'Seleccione los programas que desea configurar o reconfigurar'
+    selector.message = 'Seleccione los programas que desea configurar o reconfigurar'
     selector.options = sorted(packagenames.values())
     selector.default = configured
-    selpackagenames = selector.multiplechoice()
+    selpackagenames = selector.multiple_choice()
 
     for packagename in selpackagenames:
         package = packagespeckeys[packagename]
@@ -111,9 +110,9 @@ def install(relpath=False):
         if not os.path.isfile(pathjoin(specdir, package, 'packageconf.json')):
             copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
 #        elif readspec(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json')) != readspec(pathjoin(specdir, package, 'packageconf.json')):
-#            completer.label = _('La configuración local del programa $name difiere de la configuración por defecto, ¿desea sobreescribirla?').substitute(name=packagenames[package])
+#            completer.message = _('La configuración local del programa $name difiere de la configuración por defecto, ¿desea sobreescribirla?').substitute(name=packagenames[package])
 #            completer.options = {True: 'si', False: 'no'}
-#            if completer.binarychoice():
+#            if completer.binary_choice():
 #                copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
