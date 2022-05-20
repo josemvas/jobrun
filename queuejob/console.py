@@ -63,7 +63,7 @@ def install(relpath=False):
         selhost = clusterspeckeys[selector.single_choice()]
         if clusternames[selhost] != clusterconf.clustername and readspec(pathjoin(srchostspecdir, selhost, 'clusterconf.json')) != readspec(pathjoin(specdir, 'clusterconf.json')):
             completer.message = 'Desea sobreescribir la configuración local del sistema?'
-            completer.options = {True: 'si', False: 'no'}
+            completer.options = {True: ['si', 'yes'], False: ['no']}
             if completer.binary_choice():
                 copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
         selector.message = 'Seleccione el gestor de trabajos adecuado'
@@ -111,7 +111,7 @@ def install(relpath=False):
             copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
 #        elif readspec(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json')) != readspec(pathjoin(specdir, package, 'packageconf.json')):
 #            completer.message = _('La configuración local del programa $name difiere de la configuración por defecto, ¿desea sobreescribirla?').substitute(name=packagenames[package])
-#            completer.options = {True: 'si', False: 'no'}
+#            completer.options = {True: ['si', 'yes'], False: ['no']}
 #            if completer.binary_choice():
 #                copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
 

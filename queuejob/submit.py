@@ -20,6 +20,23 @@ script = AttrDict()
 selector = Selector()
 completer = Completer()
 
+def geometry_block(coords):
+    if progspecs.progname in ('Gaussian', 'deMon2k'):
+        return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
+    elif progspecs.progname in ('DFTB+'):
+       atoms = []
+       blocklines = []
+       for line in coords:
+           if not line[0] in atoms:
+               atoms.append(line[0])
+       blocklines.append('{:5} C'.format(len(coords)))
+       blocklines.append(' '.join(atoms))
+       for i, line in enumerate(coords, start=1):
+           blocklines.append('{:5}  {:3}  {:10.4f}  {:10.4f}  {:10.4f}'.format(i, atoms.index(line[0]) + 1, line[1], line[2], line[3]))
+       return '\n'.join(blocklines)
+    else:
+       messages.error('Formato desconocido:', molformat)
+
 def initialize():
 
     script.main = []
@@ -74,7 +91,7 @@ def initialize():
                 index += 1
                 path = AbsPath(path, cwd=options.common.cwd)
                 coords = readmol(path)[-1]
-                options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+                options.interpolation.dict['mol' + str(index)] = geometry_block(coords)
             if not 'prefix' in options.interpolation:
                 if len(options.interpolation.mol) == 1:
                     options.parsed.prefix = path.stem
@@ -85,7 +102,7 @@ def initialize():
             path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
             for coords in readmol(path):
                 index += 1
-                options.interpolation.dict['mol' + str(index)] = '\n'.join('{0:<2s}  {1:10.4f}  {2:10.4f}  {3:10.4f}'.format(*atom) for atom in coords)
+                options.interpolation.dict['mol' + str(index)] = geometry_block(coords)
             if not 'prefix' in options.interpolation:
                 options.parsed.prefix = path.stem
         else:
@@ -433,7 +450,7 @@ def submit(parentdir, inputname, filtergroups):
                                 pass
                             except (IndexError, KeyError) as e:
                                 completer.message = _('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key)))
-                                completer.options = {True: 'si', False: 'no'}
+                                completer.options = {True: ['si', 'yes'], False: ['no']}
                                 if completer.binary_choice():
                                     literalfiles[destpath] = srcpath
                                 else:
@@ -456,9 +473,7 @@ def submit(parentdir, inputname, filtergroups):
                 pass
         if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in progspecs.outputfiles):
             completer.message = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
-            completer.options = {}
-            completer.options[True] = ['si', 'yes']
-            completer.options[False] = ['no']
+            completer.options = {True: ['si', 'yes'], False: ['no']}
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return

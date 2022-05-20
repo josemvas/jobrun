@@ -61,17 +61,22 @@ def interpolate(template, anchor, formlist=[], formdict={}):
     class DualTemplate(Template):
         delimiter = anchor
         idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
-    if isinstance(formlist, (tuple, list)):
-        if isinstance(formdict, dict):
-            return DualTemplate(template).substitute(FormatDict()).format('', *formlist, **formdict)
-        elif formdict is None:
-            return ListTemplate(template).substitute(FormatDict()).format('', *formlist)
-    elif formlist is None:
-        if isinstance(formdict, dict):
-            return DictTemplate(template).substitute(FormatDict()).format(**formdict)
-        elif formdict is None:
-            return None
-    raise TypeError()
+#    if isinstance(formlist, (tuple, list)):
+#        if isinstance(formdict, dict):
+#            return DualTemplate(template).substitute(FormatDict()).format('', *formlist, **formdict)
+#        elif formdict is None:
+#            return ListTemplate(template).substitute(FormatDict()).format('', *formlist)
+#    elif formlist is None:
+#        if isinstance(formdict, dict):
+#            return DictTemplate(template).substitute(FormatDict()).format(**formdict)
+#        elif formdict is None:
+#            return None
+#    raise TypeError()
+    tpldict = {}
+    tpldict.update(formdict)
+    for idx, item in enumerate(formlist):
+        tpldict[idx] = item
+    return DictTemplate(template).substitute(tpldict)
 
 def deepjoin(nestedlist, nextseparators, pastseparators=[]):
     itemlist = []
