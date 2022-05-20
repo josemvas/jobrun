@@ -9,7 +9,6 @@
 
    "filekeys": {
       "dftb_in.hsd": "dftb_in.hsd",
-      "dftb_in.hsd.mod": "dftb_in.hsd",
       "charges.bin": "charges.bin",
       "charges_end.bin": "charges.bin",
       "dftb_pin.hsd": "dftb_pin.hsd",
@@ -49,7 +48,7 @@
    ],
 
    "outputfiles": [
-      "dftb_in.hsd.mod",
+      "dftb_in.hsd",
       "charges_end.bin",
       "dftb_pin.hsd",
       "dftb_out.log",
@@ -72,6 +71,10 @@
       "TDP.DAT",
       "ARPACK.DAT",
       "TEST_ARPACK.DAT"
+   ],
+
+   "interpolable": [
+      "dftb_in.hsd"
    ],
 
    "parametersets": [

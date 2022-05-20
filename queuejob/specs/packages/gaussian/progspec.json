@@ -10,8 +10,6 @@
    "filekeys": {
       "com": "job.com",
       "gjf": "job.gjf",
-      "com.mod": "job.com",
-      "gjf.mod": "job.gjf",
       "log": "job.log",
       "chk": "job.chk",
       "fchk": "job.fchk",
@@ -44,8 +42,8 @@
       "fchk",
       "wfn",
       "cub",
-      "com.mod",
-      "gjf.mod"
+      "com",
+      "gjf"
    ],
 
    "interpolable": [
