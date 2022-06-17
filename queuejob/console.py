@@ -147,6 +147,6 @@ def install(relpath=False):
     copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
 
     os.chmod(pathjoin(bindir, 'queuejob'), 0o755)
-    os.chmod(pathjoin(bindir, 'queuejob'), 0o755)
+    os.chmod(pathjoin(bindir, 'queuejob.target'), 0o755)
     os.chmod(pathjoin(bindir, 'jobsync'), 0o755)
 
