@@ -137,12 +137,12 @@ def install(relpath=False):
     with open(pathjoin(sourcedir, 'bin', 'queuejob'), 'r') as r, open(pathjoin(bindir, 'queuejob'), 'w') as w:
         w.write(r.read().format(**installation))
 
-    with open(pathjoin(sourcedir, 'bin', 'queuejob'), 'r') as r, open(pathjoin(bindir, 'queuejob'), 'w') as w:
+    with open(pathjoin(sourcedir, 'bin', 'queuejob.target'), 'r') as r, open(pathjoin(bindir, 'queuejob.target'), 'w') as w:
         w.write(r.read().format(**installation))
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            symlink(pathjoin(bindir, 'queuejob'), pathjoin(bindir, diritem))
+            symlink(pathjoin(bindir, 'queuejob.target'), pathjoin(bindir, diritem))
 
     copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
 

@@ -52,14 +52,11 @@ def initialize():
         (paths.home/'.ssh').mkdir()
         paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'sock'))
         try:
-            environment = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv QREMOTEPYTHON QREMOTEROOT'])
+            options.remote.root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv QREMOTEROOT']).decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(e.output.decode(sys.stdout.encoding).strip())
-        options.remote.python, options.remote.root = environment.decode(sys.stdout.encoding).splitlines()
-        if 'cmd' not in options.remote and 'root' not in options.remote:
+        if not options.remote.root:
             messages.error('El servidor no está configurado para aceptar trabajos')
-        if 'cmd' not in options.remote or 'root' not in options.remote:
-            messages.error('El servidor no está correctamente configurado para aceptar trabajos')
 
     if options.common.no_defaults:
         options.parsed.defaults = False
@@ -517,9 +514,7 @@ def submit(parentdir, inputname, filtergroups):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
-        arglist.append(options.remote.python)
-        arglist.append('-m')
-        arglist.append('queuejob.main')
+        arglist.append('queuejob')
         arglist.append(names.program)
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
