@@ -48,7 +48,6 @@
    ],
 
    "outputfiles": [
-      "dftb_in.hsd",
       "charges_end.bin",
       "dftb_pin.hsd",
       "dftb_out.log",

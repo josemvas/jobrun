@@ -52,11 +52,13 @@ def initialize():
         (paths.home/'.ssh').mkdir()
         paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'sock'))
         try:
-            options.remote.root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, options.remote.host, 'printenv QREMOTEROOT']).decode(sys.stdout.encoding)
+            options.remote.root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
+                options.remote.host, 'printenv QREMOTEROOT']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(e.output.decode(sys.stdout.encoding).strip())
         if not options.remote.root:
             messages.error('El servidor no está configurado para aceptar trabajos')
+        print(options.remote.root)
 
     if options.common.no_defaults:
         options.parsed.defaults = False
