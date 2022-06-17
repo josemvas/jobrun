@@ -58,7 +58,6 @@ def initialize():
             messages.error(e.output.decode(sys.stdout.encoding).strip())
         if not options.remote.root:
             messages.error('El servidor no está configurado para aceptar trabajos')
-        print(options.remote.root)
 
     if options.common.no_defaults:
         options.parsed.defaults = False
