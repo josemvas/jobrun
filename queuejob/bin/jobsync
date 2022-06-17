@@ -7,7 +7,7 @@ yellow=$(tput setaf 3)
 
 sync_files () {
     test -z "$1" && return
-    rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -ztvh --partial-dir=.rsyncpartdir --progress --files-from=- "$host":"\$JOBSYNCDIR/$USER.$HOSTNAME/" "$HOME" <<< "$1"
+    rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -ztvh --partial-dir=.rsyncpartdir --progress --files-from=- "$host":"\$QREMOTEROOT/$USER.$HOSTNAME/" "$HOME" <<< "$1"
 }
 
 remove_files () {
@@ -19,7 +19,7 @@ remove_files () {
         case "$answer" in
           [yY])
             echo -n $yellow\Eliminando los archivos $2... $normal
-            rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -tv --files-from=- --remove-source-files "$host":"\$JOBSYNCDIR/$USER.$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
+            rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -tv --files-from=- --remove-source-files "$host":"\$QREMOTEROOT/$USER.$HOSTNAME/" "$HOME" <<< "$1" | sed -n 's,^.f......... ,,p'
             echo $yellow\Hecho$normal
             break;;
           [nN])
@@ -51,7 +51,7 @@ else
 fi
 
 ssh -o ControlMaster=auto -o ControlPersist=60 -S "$HOME/.ssh/$host.sock" "$host" exit
-files=$(rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -rntii --exclude='.*' "$host":"\$JOBSYNCDIR/$USER.$HOSTNAME/" "$HOME")
+files=$(rsync -e "ssh -S '$HOME/.ssh/$host.sock'" -rntii --exclude='.*' "$host":"\$QREMOTEROOT/$USER.$HOSTNAME/" "$HOME")
 
 synced=$(echo "$files" | sed -n 's,^\.f          ,,p')
 unsynced=$(echo "$files" | sed -n 's,^>f+++++++++ ,,p')
