@@ -39,7 +39,7 @@
    "multihost": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nodes}'"
+       "#SBATCH -N '{nhost}'"
    ],
 
    "multihostat": [

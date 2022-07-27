@@ -34,7 +34,7 @@
 
    "multihost": [
       "#PBS -q '{queue}'",
-      "#PBS -l 'nodes={nodes}:ppn={nproc}'"
+      "#PBS -l 'nodes={nhost}:ppn={nproc}'"
    ],
 
    "multihostat": [

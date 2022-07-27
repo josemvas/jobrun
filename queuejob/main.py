@@ -14,7 +14,7 @@ class ListOptions(Action):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         if sysconf.versions:
-            print(_('Versiones del programa:'))
+            print(_('Versiones disponibles:'))
             default = sysconf.defaults.version if 'version' in sysconf.defaults else None
             messages.printtree(tuple(sysconf.versions.keys()), [default], level=1)
         for path in sysconf.parameterpaths:
@@ -27,7 +27,7 @@ class ListOptions(Action):
                 formatdict = FormatDict()
                 path.format_map(formatdict)
                 defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
-                print(_('Conjuntos de parámetros en $path:').substitute(path=path))
+                print(_('Conjuntos de parámetros disponibles:'))
                 messages.printtree(dirtree, defaults, level=1)
         sys.exit()
 
@@ -127,7 +127,8 @@ try:
     group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
-    group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
+    group2.add_argument('-o', '--list-options', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
+    group2.add_argument('-O', '--prompt-options', action='store_true', help='Seleccionar interactivamente las opciones disponibles.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Requerir #PROCS núcleos de procesamiento.')
     group2.add_argument('-q', '--queue', metavar='QUEUE', default=SUPPRESS, help='Requerir la cola QUEUE.')
     group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
@@ -135,11 +136,10 @@ try:
     group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('--delay', type=int, metavar='#SECONDS', default=0, help='Demorar el envío del trabajo #SECONDS segundos.')
-    group2.add_argument('--dispose', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
+    group2.add_argument('--temporary', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
-    group2.add_argument('--no-defaults', action='store_true', help='Ignorar todas las opciones predeterminadas.')
     hostgroup = group2.add_mutually_exclusive_group()
-    hostgroup.add_argument('-N', '--nodes', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
+    hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
     hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', action='store_true', help='Responder "si" a todas las preguntas.')

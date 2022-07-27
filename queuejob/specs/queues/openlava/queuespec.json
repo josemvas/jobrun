@@ -39,7 +39,7 @@
    "multihost": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nodes}]'"
+      "#BSUB -R 'span[hosts={nhost}]'"
    ],
 
    "multihostat": [

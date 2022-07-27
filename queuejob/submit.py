@@ -59,7 +59,7 @@ def initialize():
         if not options.remote.root:
             messages.error('El servidor no está configurado para aceptar trabajos')
 
-    if options.common.no_defaults:
+    if options.common.prompt_options:
         options.parsed.defaults = False
     else:
         options.parsed.defaults = True
@@ -251,7 +251,7 @@ def initialize():
         if options.parsed.defaults:
             options.parsed.version = sysconf.defaults.version
         else:
-            selector.default = version
+            selector.default = sysconf.defaults.version
             options.parsed.version = selector.single_choice()
     else:
         options.parsed.version = selector.single_choice()
@@ -362,7 +362,7 @@ def initialize():
     if sysconf.filesync == 'local':
         script.makedir = 'mkdir -p -m 700 "{}"'.format
         script.removedir = 'rm -rf "{}"'.format
-        if options.common.dispose:
+        if options.common.temporary:
             script.importfile = 'mv "{}" "{}"'.format
         else:
             script.importfile = 'cp "{}" "{}"'.format
@@ -371,7 +371,7 @@ def initialize():
     elif sysconf.filesync == 'remote':
         script.makedir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
-        if options.common.dispose:
+        if options.common.temporary:
             script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'" && rsh $headnode rm "\'{0}\'"; done'.format
         else:
             script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
@@ -380,7 +380,7 @@ def initialize():
     elif sysconf.filesync == 'secure':
         script.makedir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
-        if options.common.dispose:
+        if options.common.temporary:
             script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'" && ssh $headnode rm "\'{0}\'"; done'.format
         else:
             script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
@@ -504,7 +504,7 @@ def submit(parentdir, inputname, filtergroups):
         remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))
         remoteargs.switches.add('raw')
         remoteargs.switches.add('jobargs')
-        remoteargs.switches.add('dispose')
+        remoteargs.switches.add('temporary')
         remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():

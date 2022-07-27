@@ -1,0 +1,36 @@
+Geometry = GenFormat {
+$mol1
+}
+
+Driver = ConjugateGradient {
+  OutputPrefix = "finalgeom"
+  MovedAtoms = 1:-1
+  ConvergentForcesOnly = Yes
+  AppendGeometries = Yes
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  Eigensolver = RelativelyRobust {}
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "./"
+    Separator = "-"
+    Suffix = ".skf"
+    LowerCaseTypeName = No
+  }
+  MaxAngularMomentum {
+    H = "s"
+    O = "p"
+  }
+  Dispersion = LennardJones {
+    Parameters = UFFParameters {}
+  }
+  Filling = Fermi {
+    Temperature [K] = 0.0
+  }
+}
+
+ParserOptions {
+  ParserVersion = 4
+}
+

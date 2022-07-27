@@ -1,5 +1,6 @@
 General
 -------
+- Implementar un menú para activar o desactivar los programas configurados
 - Usar srun/sbcast para correr trabajos multinodo con slurm
 - Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
 - Usar qrsh/??? para correr trabajos multinodo con pbs/torque

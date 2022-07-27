@@ -1,0 +1,10 @@
+#!/bin/sh
+export LD_LIBRARY_PATH=$libpath
+export PYTHONPATH=$moduledir
+export SPECPATH=$specdir
+
+if test -L "$$0"; then
+    exec $python -m queuejob.main "$$(basename "$$0")" "$$@"
+else
+    exec $python -m queuejob.main "$$@"
+fi

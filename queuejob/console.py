@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+from string import Template
 from argparse import ArgumentParser
 from subprocess import check_output, DEVNULL
 from consoleutils import Selector, Completer
@@ -134,19 +135,15 @@ def install(relpath=False):
         specdir = specdir,
     )
 
-    with open(pathjoin(sourcedir, 'bin', 'queuejob'), 'r') as r, open(pathjoin(bindir, 'queuejob'), 'w') as w:
-        w.write(r.read().format(**installation))
-
-    with open(pathjoin(sourcedir, 'bin', 'queuejob.target'), 'r') as r, open(pathjoin(bindir, 'queuejob.target'), 'w') as w:
-        w.write(r.read().format(**installation))
+    with open(pathjoin(sourcedir, 'bin', 'jobrun'), 'r') as r, open(pathjoin(bindir, 'jobrun'), 'w') as w:
+        w.write(Template(r.read()).substitute(installation))
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            symlink(pathjoin(bindir, 'queuejob.target'), pathjoin(bindir, diritem))
+            symlink(pathjoin(bindir, 'jobrun'), pathjoin(bindir, diritem))
 
     copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
 
-    os.chmod(pathjoin(bindir, 'queuejob'), 0o755)
-    os.chmod(pathjoin(bindir, 'queuejob.target'), 0o755)
+    os.chmod(pathjoin(bindir, 'jobrun'), 0o755)
     os.chmod(pathjoin(bindir, 'jobsync'), 0o755)
 
