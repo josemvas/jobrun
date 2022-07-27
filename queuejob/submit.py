@@ -59,7 +59,7 @@ def initialize():
         if not options.remote.root:
             messages.error('El servidor no está configurado para aceptar trabajos')
 
-    if options.common.prompt_options:
+    if options.common.prompt:
         options.parsed.defaults = False
     else:
         options.parsed.defaults = True
