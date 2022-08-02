@@ -4,7 +4,7 @@ export PYTHONPATH=$moduledir
 export SPECPATH=$specdir
 
 if test -L "$$0"; then
-    exec $python -m queuejob.main "$$(basename "$$0")" "$$@"
+    exec $python -m clusterq.main "$$(basename "$$0")" "$$@"
 else
-    exec $python -m queuejob.main "$$@"
+    exec $python -m clusterq.main "$$@"
 fi

@@ -119,5 +119,5 @@ names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = AbsPath(os.path.expanduser('~'))
-paths.lock = paths.home / '.queuejob.lock'
+paths.lock = paths.home / '.jobsubmit.lock'
 

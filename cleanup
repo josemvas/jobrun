@@ -1,8 +1,8 @@
 #!/bin/sh
 
-find queuejob -name \*.pyc -type f -delete
-find queuejob -name \*.pyo -type f -delete
-find queuejob -name __pycache__ -type d -delete
+find clusterq -name \*.pyc -type f -delete
+find clusterq -name \*.pyo -type f -delete
+find clusterq -name __pycache__ -type d -delete
 
 find tests -mindepth 2 -type f -delete
 find tests -mindepth 2 -type l -delete
@@ -11,4 +11,4 @@ find tests -mindepth 1 -type d -delete
 rm -rf bin
 rm -rf etc
 rm -rf build
-rm -rf queuejob.egg-info
+rm -rf clusterq.egg-info

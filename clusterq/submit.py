@@ -3,10 +3,10 @@ import sys
 from time import time, sleep
 from parse import parse as format_parse
 from subprocess import CalledProcessError, call, check_output
-from consoleutils import Selector, Completer
+from clinterface import Selector, Completer
 from . import messages
 from .defs import wrappers
-from .queue import jobsubmit, jobstat
+from .queue import submitjob, getjobstate
 from .utils import natsorted as sorted
 from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate
 from .shared import names, nodes, paths, environ, sysconf, queuespecs, progspecs, options, remoteargs
@@ -463,7 +463,7 @@ def submit(parentdir, inputname, filtergroups):
             try:
                 with open(pathjoin(jobdir, 'id'), 'r') as f:
                     jobid = f.read()
-                jobstate = jobstat(jobid)
+                jobstate = getjobstate(jobid)
                 if jobstate is not None:
                     messages.failure(jobstate.format(id=jobid, name=jobname))
                     return
@@ -515,7 +515,7 @@ def submit(parentdir, inputname, filtergroups):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
-        arglist.append('queuejob')
+        arglist.append('jobsubmit')
         arglist.append(names.program)
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
@@ -625,7 +625,7 @@ def submit(parentdir, inputname, filtergroups):
         except (ValueError, FileNotFoundError) as e:
             pass
         try:
-            jobid = jobsubmit(jobscript)
+            jobid = submitjob(jobscript)
         except RuntimeError as error:
             messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
             return

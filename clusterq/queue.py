@@ -4,7 +4,7 @@ import sys
 from subprocess import Popen, PIPE
 from .shared import queuespecs
 
-def jobsubmit(jobscript):
+def submitjob(jobscript):
     with open(jobscript, 'r') as fh:
         process = Popen(queuespecs.submitcmd, stdin=fh, stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = process.communicate()
@@ -15,7 +15,7 @@ def jobsubmit(jobscript):
     else:
         raise RuntimeError(error)
         
-def jobstat(jobid):
+def getjobstate(jobid):
     process = Popen(queuespecs.statcmd + [jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = process.communicate()
     output = output.decode(sys.stdout.encoding).strip()

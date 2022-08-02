@@ -4,7 +4,7 @@ import re
 from string import Template
 from argparse import ArgumentParser
 from subprocess import check_output, DEVNULL
-from consoleutils import Selector, Completer
+from clinterface import Selector, Completer
 from . import messages
 from .utils import q, natsorted as sorted
 from .readspec import readspec
@@ -135,15 +135,15 @@ def install(relpath=False):
         specdir = specdir,
     )
 
-    with open(pathjoin(sourcedir, 'bin', 'jobrun'), 'r') as r, open(pathjoin(bindir, 'jobrun'), 'w') as w:
+    with open(pathjoin(sourcedir, 'bin', 'jobsubmit'), 'r') as r, open(pathjoin(bindir, 'jobsubmit'), 'w') as w:
         w.write(Template(r.read()).substitute(installation))
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            symlink(pathjoin(bindir, 'jobrun'), pathjoin(bindir, diritem))
+            symlink(pathjoin(bindir, 'jobsubmit'), pathjoin(bindir, diritem))
 
     copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
 
-    os.chmod(pathjoin(bindir, 'jobrun'), 0o755)
+    os.chmod(pathjoin(bindir, 'jobsubmit'), 0o755)
     os.chmod(pathjoin(bindir, 'jobsync'), 0o755)
 
