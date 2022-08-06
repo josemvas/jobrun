@@ -32,22 +32,22 @@ class ArgList:
             raise StopIteration
         if options.common.jobargs:
             parentdir = AbsPath(options.common.cwd)
-            for key in progspecs.inputfiles:
+            for key in packagespec.inputfiles:
                 if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
                     inputname = self.current
                     break
             else:
-                messages.failure('No hay archivos de entrada de', progspecs.progname, 'asociados al trabajo', self.current)
+                messages.failure('No hay archivos de entrada de', packagespec.packagename, 'asociados al trabajo', self.current)
                 return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
-            for key in progspecs.inputfiles:
+            for key in packagespec.inputfiles:
                 if path.name.endswith('.' + key):
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', progspecs.progname)
+                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', packagespec.packagename)
                 return next(self)
             try:
                 path.assertfile()
@@ -84,7 +84,6 @@ nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
-options.parsed = AttrDict()
 
 sysconf = SpecDict({
     'load': [],
@@ -97,7 +96,7 @@ sysconf = SpecDict({
     'offscript': [],
 })
 
-progspecs = SpecDict({
+packagespec = SpecDict({
     'conflicts': {},
     'filekeys': {},
     'filevars': {},
@@ -113,7 +112,7 @@ progspecs = SpecDict({
     'postscript': [],
 })
 
-queuespecs = SpecDict()
+queuespec = SpecDict()
 remoteargs = ArgGroups()
 names.user = getuser()
 names.host = gethostname()

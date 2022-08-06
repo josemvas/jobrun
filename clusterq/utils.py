@@ -48,8 +48,15 @@ class _(Template):
     def __str__(self):
         return(self.safe_substitute())
 
-def getformatkeys(string):
-    return [i[1] for i in Formatter().parse(string) if i[1] is not None]
+def format_parse(fmtstr, text):
+    regexp = ''
+    for lit, name, spec, conv in Formatter().parse(fmtstr):
+        regexp += lit + '(?P<' + name + '>[a-zA-Z0-9_]+)'
+    match = re.fullmatch(regexp, text)
+    return match.groupdict()
+
+def getformatkeys(fmtstr):
+    return [i[1] for i in Formatter().parse(fmtstr) if i[1] is not None]
 
 def interpolate(template, anchor, formlist=[], formdict={}):
     class DictTemplate(Template):

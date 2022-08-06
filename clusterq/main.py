@@ -6,7 +6,7 @@ from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches
 from .utils import AttrDict, FormatDict, _, o, p, q
-from .shared import ArgList, names, nodes, paths, environ, queuespecs, progspecs, sysconf, options, remoteargs
+from .shared import ArgList, names, nodes, paths, environ, queuespec, packagespec, sysconf, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
@@ -52,21 +52,21 @@ try:
         messages.error('No se definió la variable de entorno SPECPATH')
     
     parser = ArgumentParser(add_help=False)
-    parser.add_argument('program', metavar='PROGNAME', help='Nombre estandarizado del programa.')
+    parser.add_argument('packagename', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
-    names.program = parsedargs.program
+    names.package = parsedargs.packagename
 
     try:
-        queuespecs.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
-        progspecs.merge(readspec(pathjoin(paths.specdir, names.program, 'progspec.json')))
+        queuespec.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
+        packagespec.merge(readspec(pathjoin(paths.specdir, names.package, 'packagespec.json')))
         sysconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
-        sysconf.merge(readspec(pathjoin(paths.specdir, names.program, 'packageconf.json')))
+        sysconf.merge(readspec(pathjoin(paths.specdir, names.package, 'packageconf.json')))
     except FileNotFoundError as e:
         messages.error(str(e))
 
     userconfdir = pathjoin(paths.home, '.jobspecs')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
-    userpackageconf = pathjoin(userconfdir, names.program, 'packageconf.json')
+    userpackageconf = pathjoin(userconfdir, names.package, 'packageconf.json')
     
     try:
         sysconf.merge(readspec(userclusterconf))
@@ -93,7 +93,7 @@ try:
     formatdict = FormatDict()
     formatdict.update(names)
 
-    for paramset in progspecs.parametersets:
+    for paramset in packagespec.parametersets:
         try:
             parampath = sysconf.parameterpaths[paramset]
         except KeyError:
@@ -107,13 +107,13 @@ try:
         foundparameterkeys.update(formatdict.missing_keys)
 
     for key in foundparameterkeys:
-        if key not in progspecs.parameterkeys:
+        if key not in packagespec.parameterkeys:
             messages.error('Hay variables de interpolación inválidas en las rutas de parámetros')
 
     # Replace parameter path dict with a list for easier handling
     sysconf.parameterpaths = parameterpaths
 
-    parser = ArgumentParser(prog=names.program, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(progspecs.progname))
+    parser = ArgumentParser(prog=names.package, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(packagespec.packagename))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
@@ -179,7 +179,7 @@ try:
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
-    for key, value in progspecs.fileoptions.items():
+    for key, value in packagespec.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')

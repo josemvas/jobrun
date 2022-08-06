@@ -51,9 +51,9 @@ def install(relpath=False):
         clusterschedulers[diritem] = clusterconf.schedulername
 
     for diritem in os.listdir(srcqueuespecdir):
-        queuespecs = readspec(pathjoin(srcqueuespecdir, diritem, 'queuespec.json'))
-        schedulernames[diritem] = queuespecs.schedulername
-        schedulerspeckeys[queuespecs.schedulername] = diritem
+        queuespec = readspec(pathjoin(srcqueuespecdir, diritem, 'queuespec.json'))
+        schedulernames[diritem] = queuespec.schedulername
+        schedulerspeckeys[queuespec.schedulername] = diritem
 
     if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
         selector.message = '¿Qué clúster desea configurar?'
@@ -86,9 +86,9 @@ def install(relpath=False):
         copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
 
     for diritem in os.listdir(pathjoin(srchostspecdir, selhost, 'packages')):
-        progspecs = readspec(pathjoin(sourcedir, 'specs', 'packages', diritem, 'progspec.json'))
-        packagenames[diritem] = (progspecs.progname)
-        packagespeckeys[progspecs.progname] = diritem
+        packagespec = readspec(pathjoin(sourcedir, 'specs', 'packages', diritem, 'packagespec.json'))
+        packagenames[diritem] = (packagespec.packagename)
+        packagespeckeys[packagespec.packagename] = diritem
 
     if not packagenames:
         messages.warning('No hay programas preconfigurados para este host')
@@ -96,7 +96,7 @@ def install(relpath=False):
 
     for diritem in os.listdir(specdir):
         if os.path.isdir(pathjoin(specdir, diritem)):
-            configured.append(readspec(pathjoin(specdir, diritem, 'progspec.json')).progname)
+            configured.append(readspec(pathjoin(specdir, diritem, 'packagespec.json')).packagename)
 
     selector.message = 'Seleccione los programas que desea configurar o reconfigurar'
     selector.options = sorted(packagenames.values())
@@ -106,7 +106,7 @@ def install(relpath=False):
     for packagename in selpackagenames:
         package = packagespeckeys[packagename]
         mkdir(pathjoin(specdir, package))
-        copyfile(pathjoin(sourcedir, 'specs', 'packages', package, 'progspec.json'), pathjoin(specdir, package, 'progspec.json'))
+        copyfile(pathjoin(sourcedir, 'specs', 'packages', package, 'packagespec.json'), pathjoin(specdir, package, 'packagespec.json'))
         copypathspec = True
         if not os.path.isfile(pathjoin(specdir, package, 'packageconf.json')):
             copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
