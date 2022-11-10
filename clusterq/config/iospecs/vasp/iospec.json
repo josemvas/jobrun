@@ -1,0 +1,83 @@
+{
+   "parallelib": "intelmpi",
+   "mpilaunch": "True",
+
+   "conflicts": {
+      "not INCAR or not POSCAR or not POTCAR": "Deben existir los archivos INCAR, POSCAR y POTCAR"
+   },
+
+   "stdoutfile": "log",
+
+   "filekeys": {
+      "INCAR": "INCAR",
+      "POSCAR": "POSCAR",
+      "KPOINTS": "KPOINTS",
+      "POTCAR": "POTCAR",
+      "CHG": "CHG",
+      "CHGCAR": "CHGCAR",
+      "CONTCAR": "CONTCAR",
+      "DOSCAR": "DOSCAR",
+      "EIGENVAL": "EIGENVAL",
+      "ELFCAR": "ELFCAR",
+      "IBZKPT": "IBZKPT",
+      "LOCPOT": "LOCPOT",
+      "OSZICAR": "OSZICAR",
+      "OUTCAR": "OUTCAR",
+      "PARCHG": "PARCHG",
+      "PCDAT": "PCDAT",
+      "PROCAR": "PROCAR",
+      "PROOUT": "PROOUT",
+      "REPORT": "REPORT",
+      "TMPCAR": "TMPCAR",
+      "WAVECAR": "WAVECAR",
+      "WAVEDER": "WAVEDER",
+      "XDATCAR": "XDATCAR",
+      "AECCAR0": "AECCAR0",
+      "AECCAR1": "AECCAR1",
+      "AECCAR2": "AECCAR2",
+      "BSEFATBAND": "BSEFATBAND",
+      "xml": "vasprun.xml",
+      "log": "logfile"
+   },
+
+   "inputfiles": [
+      "INCAR",
+      "POSCAR",
+      "KPOINTS",
+      "POTCAR",
+      "CHGCAR",
+      "WAVECAR"
+   ],
+
+   "outputfiles": [
+      "CHG",
+      "CHGCAR",
+      "CONTCAR",
+      "DOSCAR",
+      "EIGENVAL",
+      "ELFCAR",
+      "IBZKPT",
+      "LOCPOT",
+      "OSZICAR",
+      "OUTCAR",
+      "PARCHG",
+      "PCDAT",
+      "PROCAR",
+      "PROOUT",
+      "REPORT",
+      "TMPCAR",
+      "WAVEDER",
+      "WAVECAR",
+      "XDATCAR",
+      "AECCAR0",
+      "AECCAR1",
+      "AECCAR2",
+      "BSEFATBAND",
+      "xml",
+      "log"
+   ],
+
+   "parametersets": [
+      "kernel"
+   ]
+}

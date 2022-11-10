@@ -1,16 +1,16 @@
 {
-   "schedulername": "Open Lava",
-   "submitcmd": [ "bsub" ],
+   "scheduler": "LSF",
+   "sbmtcmd": [ "bsub", "-env", "all" ],
    "statcmd": [ "bjobs", "-ostat", "-noheader" ],
-   "submitre": ".*<([0-9]+)>.*",
-   "statre": "(.+)",
+   "sbmtregex": ".*<([0-9]+)>.*",
+   "statregex": "(.+)",
 
    "jobname": "#BSUB -J '{}'",
    "jobinfo": "#BSUB -P '{}'",
 
    "logfiles": [
       "#BSUB -o '{}/%J.out'",
-      "#BSUB -e '{}/%J.err'"
+      "#BSUB -e '{}/%J.out'"
    ],
 
    "serial": [
@@ -20,7 +20,7 @@
 
    "serialat": [
       "#BSUB -q '{queue}'",
-      "#BSUB -m '{nodelist}'",
+      "#BSUB -m '{hosts}'",
       "#BSUB -n '1'"
    ],
 
@@ -33,7 +33,7 @@
    "singlehostat": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -m '{nodelist}'"
+      "#BSUB -m '{hosts}'"
    ],
 
    "multihost": [
@@ -45,19 +45,19 @@
    "multihostat": [
       "#BSUB -q '{queue}'",
       "#BSUB -n '{nproc}'",
-      "#BSUB -m '{hostlist}'"
+      "#BSUB -m '{hosts}'"
    ],
 
    "envars": {
       "jobid": "$LSB_JOBID",
       "nproc": "$(echo $LSB_HOSTS | wc -w)",
-      "hostlist": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
+      "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
    },
     
    "mpilauncher": {
-      "openmpi": "openmpi-mpirun",
-      "intelmpi": "impi-mpirun",
-      "mpich": "mpich-mpirun"
+      "openmpi": "mpirun",
+      "intelmpi": "mpirun",
+      "mpich": "mpirun"
    },
 
    "queued_states": [
@@ -78,4 +78,3 @@
    ]
 
 }
-

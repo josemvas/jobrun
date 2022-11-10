@@ -1,13 +1,12 @@
 {
-   "clustername": "Nuevo",
-   "headnode": null,
-   "schedulername": null,
+   "clustername": "Helio",
+   "scheduler": "Open Lava",
    "filesync": "local",
    "logdir": "/tmp",
    "delay": "1",
 
    "defaults": {
-      "queue": null,
+      "queue": "auto",
       "scratch": "/scratch"
    },
 

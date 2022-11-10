@@ -84,10 +84,6 @@ def mkdir(path):
             pass
         else:
             raise
-    except FileNotFoundError:
-        messages.error('No se puede crear el directorio', path, 'porque la ruta no existe')
-    except PermissionError:
-        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso de escribir en esta ruta')
 
 def makedirs(path):
     try: os.makedirs(path)
@@ -96,52 +92,28 @@ def makedirs(path):
             pass
         else:
             raise
-    except PermissionError:
-        messages.error('No se puede crear el directorio', path, 'porque no tiene permiso de escribir en esta ruta')
 
 def remove(path):
     try: os.remove(path)
     except FileNotFoundError:
         pass
-    except PermissionError:
-        messages.error('No se puede eliminar el archivo', path, 'porque no tiene permiso')
 
 def rmdir(path):
     try: os.rmdir(path)
     except FileNotFoundError:
         pass
-    except PermissionError:
-        messages.error('No se puede eliminar el directorio', path, 'porque no tiene permiso')
 
 def copyfile(source, dest):
     try: shutil.copyfile(source, dest)
     except FileExistsError:
         os.remove(dest)
         shutil.copyfile(source, dest)
-    except FileNotFoundError:
-        messages.error('No se puede copiar el archivo', source, 'porque no existe')
-    except PermissionError:
-        messages.error('No se puede copiar el archivo', source, 'a', dest, 'porque no tiene permiso')
-
-def link(source, dest):
-    try: os.link(source, dest)
-    except FileExistsError:
-        os.remove(dest)
-        os.link(source, dest)
-    except FileNotFoundError:
-        messages.error('No se puede copiar el archivo', source, 'porque no existe')
-    except PermissionError:
-        messages.error('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
 def symlink(source, dest):
     try: os.symlink(source, dest)
     except FileExistsError:
         os.remove(dest)
         os.symlink(source, dest)
-    except FileNotFoundError:
-        messages.error('No se puede copiar el archivo', source, 'porque no existe')
-    except PermissionError:
-        messages.error('No se puede enlazar el archivo', source, 'a', dest, 'porque no tiene permiso')
 
 # Custom rmtree to only delete files modified after date
 def rmtree(path, date):

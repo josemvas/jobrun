@@ -1,0 +1,35 @@
+{
+   "parallelib": "None",
+
+   "conflicts": {
+      "not dpf": "Debe existir un archivo dpf"
+   },
+
+   "filekeys": {
+      "dpf": "job.dpf",
+      "dlg": "job.dlg"
+   },
+
+   "inputfiles": [
+      "dpf"
+   ],
+
+   "outputfiles": [
+      "dlg"
+   ],
+
+   "optargs": {
+      "p": "dpf",
+      "l": "dlg"
+   },
+
+   "parametersets": [
+      "ligand",
+      "receptor"
+   ],
+
+   "parameterkeys": [
+      "ligand",
+      "receptor"
+   ]
+}

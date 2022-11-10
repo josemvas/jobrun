@@ -30,24 +30,24 @@ class ArgList:
             self.current = self.args.pop(0)
         except IndexError:
             raise StopIteration
-        if options.common.jobargs:
+        if options.common.job:
             parentdir = AbsPath(options.common.cwd)
-            for key in packagespec.inputfiles:
+            for key in iospecs.inputfiles:
                 if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
                     inputname = self.current
                     break
             else:
-                messages.failure('No hay archivos de entrada de', packagespec.packagename, 'asociados al trabajo', self.current)
+                messages.failure('No hay archivos de entrada de', names.display, 'asociados al trabajo', self.current)
                 return next(self)
         else:
             path = AbsPath(self.current, cwd=options.common.cwd)
             parentdir = path.parent
-            for key in packagespec.inputfiles:
+            for key in iospecs.inputfiles:
                 if path.name.endswith('.' + key):
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', packagespec.packagename)
+                messages.failure('La extensión del archivo de entrada', q(path.name), 'no está asociada a', names.display)
                 return next(self)
             try:
                 path.assertfile()
@@ -85,7 +85,7 @@ paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
 
-sysconf = SpecDict({
+configs = SpecDict({
     'load': [],
     'source': [],
     'export': {},
@@ -96,7 +96,7 @@ sysconf = SpecDict({
     'offscript': [],
 })
 
-packagespec = SpecDict({
+iospecs = SpecDict({
     'conflicts': {},
     'filekeys': {},
     'filevars': {},
@@ -112,7 +112,6 @@ packagespec = SpecDict({
     'postscript': [],
 })
 
-queuespec = SpecDict()
 remoteargs = ArgGroups()
 names.user = getuser()
 names.host = gethostname()

@@ -1,0 +1,50 @@
+{
+   "parallelib": "intelmpi",
+   "mpilaunch": "True",
+
+   "conflicts": {
+      "not inp": "Debe existir un archivo inp"
+   },
+
+   "filekeys": {
+      "inp": "deMon.inp",
+      "rst": "deMon.rst",
+      "trj": "deMon.trj",
+      "oldtrj": "deMon.trj",
+      "out": "deMon.out",
+      "mol": "deMon.mol",
+      "new": "deMon.new",
+      "mem": "deMon.mem",
+      "pie": "deMon.pie",
+      "bin": "deMon.bin"
+   },
+
+   "fileoptions": {
+      "rstfile": "rst",
+      "trjfile": "oldtrj"
+   },
+
+   "inputfiles": [
+      "inp",
+      "rst",
+      "oldtrj"
+   ],
+
+   "outputfiles": [
+      "trj",
+      "out",
+      "mol",
+      "new",
+      "mem",
+      "pie",
+      "bin"
+   ],
+
+   "interpolable": [
+      "inp"
+   ],
+
+   "parametersets": [
+      "bases"
+   ]
+}

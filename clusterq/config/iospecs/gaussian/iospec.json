@@ -1,0 +1,62 @@
+{
+   "parallelib": "openmp",
+
+   "conflicts": {
+      "com and gjf": "No deben existir ambos archivos com y gjf",
+      "not com and not gjf": "Debe existir un archivo com o gjf"
+   },
+
+   "filekeys": {
+      "com": "job.com",
+      "gjf": "job.gjf",
+      "log": "job.log",
+      "chk": "job.chk",
+      "fchk": "job.fchk",
+      "wfn": "job.wfn",
+      "cub": "job.cub",
+      "oldchk": "job.oldchk"
+   },
+
+   "filevars": {
+      "com": "com",
+      "gjf": "gjf",
+      "chk": "chk",
+      "fchk": "fchk",
+      "oldchk": "oldchk"
+   },
+
+   "fileoptions": {
+      "oldchk": "oldchk"
+   },
+
+   "inputfiles": [
+      "com",
+      "gjf",
+      "oldchk"
+   ],
+
+   "outputfiles": [
+      "log",
+      "chk",
+      "fchk",
+      "wfn",
+      "cub"
+   ],
+
+   "interpolable": [
+      "gjf",
+      "com"
+   ],
+
+   "posargs": [
+      "gjf|com"
+   ],
+
+   "prescript": [
+      "sed -i \"/^%/d\" @($gjf|$com)",
+      "sed -i \"1i%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "sed -i \"/--Link1--/a%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB\" @($gjf|$com)",
+      "test -f $oldchk && sed -i \"1i%OldChk=$oldchk\" @($gjf|$com)"
+   ]
+
+}

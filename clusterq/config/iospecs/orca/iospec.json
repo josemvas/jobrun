@@ -1,0 +1,47 @@
+{
+   "parallelib": "standalone",
+   "stdoutfile": "out",
+
+   "conflicts": {
+      "not inp": "Debe existir un archivo inp"
+   },
+
+   "filekeys": {
+      "inp": "job.inp",
+      "out": "job.out",
+      "opt": "job.opt",
+      "xyz": "job.xyz",
+      "trj": "job.trj",
+      "gbw": "job.gbw",
+      "prop": "job.prop",
+      "engrad": "job.engrad",
+      "property": "job_property.txt"
+   },
+
+   "filevars": {
+      "inp": "inp"
+   },
+
+   "inputfiles": [
+      "inp"
+   ],
+
+   "posargs": [
+      "inp"
+   ],
+
+   "outputfiles": [
+      "gbw",
+      "out",
+      "opt",
+      "xyz",
+      "trj",
+      "prop",
+      "engrad",
+      "property"
+   ],
+
+   "prescript": [
+      "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $nproc end\" $inp"
+   ]
+}

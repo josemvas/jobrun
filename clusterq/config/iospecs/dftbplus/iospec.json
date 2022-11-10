@@ -1,0 +1,89 @@
+{
+   "parallelib": "openmp",
+   "stdoutfile": "dftb_out.log",
+
+   "conflicts": {
+      "not dftb_in.hsd": "Debe existir un archivo dftb_in.hsd"
+   },
+
+   "filekeys": {
+      "dftb_in.hsd": "dftb_in.hsd",
+      "charges.bin": "charges.bin",
+      "charges_end.bin": "charges.bin",
+      "dftb_pin.hsd": "dftb_pin.hsd",
+      "dftb_out.log": "dftb_out.log",
+      "geo_end.xyz": "geo_end.xyz",
+      "geo_end.gen": "geo_end.gen",
+      "results.tag": "results.tag",
+      "detailed.out": "detailed.out",
+      "detailed.xml": "detailed.xml",
+      "autotest.tag": "autotest.tag",
+      "hessian.out": "hessian.out",
+      "band.out": "band.out",
+      "md.out": "md.out",
+      "EXC.DAT": "EXC.DAT",
+      "TRA.DAT": "TRA.DAT",
+      "SPX.DAT": "SPX.DAT",
+      "XCH.DAT": "XCH.DAT",
+      "XREST.DAT": "XREST.DAT",
+      "COEF.DAT": "COEF.DAT",
+      "XplusY.DAT": "XplusY.DAT",
+      "TDP.DAT": "TDP.DAT",
+      "ARPACK.DAT": "ARPACK.DAT",
+      "TEST_ARPACK.DAT": "TEST_ARPACK.DAT"
+   },
+
+   "filevars": {
+      "dftbin": "dftb_in.hsd"
+   },
+
+   "fileoptions": {
+      "chargefile": "charges.bin"
+   },
+
+   "inputfiles": [
+      "dftb_in.hsd",
+      "charges.bin"
+   ],
+
+   "outputfiles": [
+      "charges_end.bin",
+      "dftb_pin.hsd",
+      "dftb_out.log",
+      "geo_end.xyz",
+      "geo_end.gen",
+      "results.tag",
+      "detailed.out",
+      "detailed.xml",
+      "autotest.tag",
+      "hessian.out",
+      "band.out",
+      "md.out",
+      "EXC.DAT",
+      "TRA.DAT",
+      "SPX.DAT",
+      "XCH.DAT",
+      "XREST.DAT",
+      "COEF.DAT",
+      "XplusY.DAT",
+      "TDP.DAT",
+      "ARPACK.DAT",
+      "TEST_ARPACK.DAT"
+   ],
+
+   "interpolable": [
+      "dftb_in.hsd"
+   ],
+
+   "parametersets": [
+      "slako"
+   ],
+
+   "parameterkeys": [
+      "slako"
+   ],
+
+   "prescript": [
+      "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
+   ]
+}

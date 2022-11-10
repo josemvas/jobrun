@@ -6,18 +6,18 @@ from . import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches
 from .utils import AttrDict, FormatDict, _, o, p, q
-from .shared import ArgList, names, nodes, paths, environ, queuespec, packagespec, sysconf, options, remoteargs
+from .shared import ArgList, names, nodes, paths, environ, iospecs, configs, options, remoteargs
 from .submit import initialize, submit 
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        if sysconf.versions:
+        if configs.versions:
             print(_('Versiones disponibles:'))
-            default = sysconf.defaults.version if 'version' in sysconf.defaults else None
-            messages.printtree(tuple(sysconf.versions.keys()), [default], level=1)
-        for path in sysconf.parameterpaths:
+            default = configs.defaults.version if 'version' in configs.defaults else None
+            messages.printtree(tuple(configs.versions.keys()), [default], level=1)
+        for path in configs.parameterpaths:
             dirtree = {}
             formatdict = FormatDict()
             formatdict.update(names)
@@ -26,7 +26,7 @@ class ListOptions(Action):
             if dirtree:
                 formatdict = FormatDict()
                 path.format_map(formatdict)
-                defaults = [sysconf.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
+                defaults = [configs.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
                 messages.printtree(dirtree, defaults, level=1)
         sys.exit()
@@ -47,44 +47,49 @@ class AppendPath(Action):
 try:
 
     try:
-        paths.specdir = os.environ['SPECPATH']
+        paths.config = os.environ['CONFIGPATH']
     except KeyError:
-        messages.error('No se definió la variable de entorno SPECPATH')
+        messages.error('No se definió la variable de entorno CONFIGPATH')
     
     parser = ArgumentParser(add_help=False)
-    parser.add_argument('packagename', metavar='PROGNAME', help='Nombre estandarizado del programa.')
+    parser.add_argument('command', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
-    names.package = parsedargs.packagename
+    names.command = parsedargs.command
 
     try:
-        queuespec.merge(readspec(pathjoin(paths.specdir, 'queuespec.json')))
-        packagespec.merge(readspec(pathjoin(paths.specdir, names.package, 'packagespec.json')))
-        sysconf.merge(readspec(pathjoin(paths.specdir, 'clusterconf.json')))
-        sysconf.merge(readspec(pathjoin(paths.specdir, names.package, 'packageconf.json')))
+        configs.merge(readspec(pathjoin(paths.config, 'queueconf.json')))
+        configs.merge(readspec(pathjoin(paths.config, 'clusterconf.json')))
+        configs.merge(readspec(pathjoin(paths.config, 'packages', names.command, 'packageconf.json')))
+        iospecs.merge(readspec(pathjoin(paths.config, 'iospecs', configs.iospec, 'iospec.json')))
     except FileNotFoundError as e:
         messages.error(str(e))
 
-    userconfdir = pathjoin(paths.home, '.jobspecs')
+    userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
-    userpackageconf = pathjoin(userconfdir, names.package, 'packageconf.json')
+    userpackageconf = pathjoin(userconfdir, names.command, 'packageconf.json')
     
     try:
-        sysconf.merge(readspec(userclusterconf))
+        configs.merge(readspec(userclusterconf))
     except FileNotFoundError:
         pass
 
     try:
-        sysconf.merge(readspec(userpackageconf))
+        configs.merge(readspec(userpackageconf))
     except FileNotFoundError:
         pass
     
     try:
-        names.cluster = sysconf.clustername
+        names.display = configs.displayname
     except AttributeError:
-        messages.error('No se definió el nombre del clúster', spec='name')
+        messages.error('No se definió el nombre del programa', key='displayname')
 
     try:
-        nodes.head = sysconf.headnode
+        names.cluster = configs.clustername
+    except AttributeError:
+        messages.error('No se definió el nombre del clúster', key='clustername')
+
+    try:
+        nodes.head = configs.headnode
     except AttributeError:
         nodes.head = names.host
 
@@ -93,9 +98,9 @@ try:
     formatdict = FormatDict()
     formatdict.update(names)
 
-    for paramset in packagespec.parametersets:
+    for paramset in iospecs.parametersets:
         try:
-            parampath = sysconf.parameterpaths[paramset]
+            parampath = configs.parameterpaths[paramset]
         except KeyError:
             messages.error('No se definió la ruta al conjunto de parámetros', paramset)
         if not parampath:
@@ -107,13 +112,13 @@ try:
         foundparameterkeys.update(formatdict.missing_keys)
 
     for key in foundparameterkeys:
-        if key not in packagespec.parameterkeys:
+        if key not in iospecs.parameterkeys:
             messages.error('Hay variables de interpolación inválidas en las rutas de parámetros')
 
     # Replace parameter path dict with a list for easier handling
-    sysconf.parameterpaths = parameterpaths
+    configs.parameterpaths = parameterpaths
 
-    parser = ArgumentParser(prog=names.package, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(packagespec.packagename))
+    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(names.display))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
@@ -126,21 +131,21 @@ try:
     group2.name = 'common'
     group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
-    group2.add_argument('-j', '--jobargs', action='store_true', help='Interpretar los argumentos como nombres de trabajos en vez de rutas de archivo.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-p', '--prompt', action='store_true', help='Seleccionar interactivamente las opciones disponibles.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Requerir #PROCS núcleos de procesamiento.')
     group2.add_argument('-q', '--queue', metavar='QUEUE', default=SUPPRESS, help='Requerir la cola QUEUE.')
     group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
-    group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Establecer PATH como el directorio actual para rutas relativas.')
-    group2.add_argument('--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
+    group2.add_argument('-o', '--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
+    group2.add_argument('-j', '--job', action='store_true', help='Interpretar los argumentos como nombres de trabajo en vez de rutas de archivo.')
+    group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Usar PATH como directorio actual de trabajo.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
+    group2.add_argument('--move', action='store_true', help='Mover los archivos de entrada al directorio de salida en vez de copiarlos.')
     group2.add_argument('--delay', type=int, metavar='#SECONDS', default=0, help='Demorar el envío del trabajo #SECONDS segundos.')
-    group2.add_argument('--temporary', action='store_true', help='Borrar los archivos de entrada del directorio intermedio tras enviar el trabajo.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
-    hostgroup.add_argument('--nodelist', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
+    hostgroup.add_argument('--hosts', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
@@ -179,13 +184,13 @@ try:
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
-    for key, value in packagespec.fileoptions.items():
+    for key, value in iospecs.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')
     group7.name = 'debug'
     group7.remote = False
-    group7.add_argument('--dryrun', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+    group7.add_argument('--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)

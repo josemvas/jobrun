@@ -8,7 +8,7 @@ from .defs import wrappers
 from .queue import submitjob, getjobstate
 from .utils import natsorted as sorted
 from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate, format_parse
-from .shared import names, nodes, paths, environ, sysconf, queuespec, packagespec, options, remoteargs
+from .shared import names, nodes, paths, environ, configs, iospecs, options, remoteargs
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
 from .parsing import BoolParser
 from .readmol import readmol
@@ -21,9 +21,9 @@ selector = Selector()
 completer = Completer()
 
 def geometry_block(coords):
-    if packagespec.packagename in ('Gaussian', 'deMon2k'):
+    if names.display in ('Gaussian', 'deMon2k'):
         return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
-    elif packagespec.packagename in ('DFTB+'):
+    elif names.display in ('DFTB+'):
        atoms = []
        blocklines = []
        for line in coords:
@@ -108,51 +108,48 @@ def initialize():
                 messages.error('Se debe especificar un prefijo o un sufijo para interpolar sin archivo coordenadas')
 
     try:
-        sysconf.delay = float(sysconf.delay)
+        configs.delay = float(configs.delay)
     except ValueError:
         messages.error('El tiempo de espera debe ser un número', conf='delay')
     except AttributeError:
-        sysconf.delay = 0
+        configs.delay = 0
     
-    if not 'scratch' in sysconf.defaults:
+    if not 'scratch' in configs.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
         settings.workdir = options.common.scratch / '$jobid'
     else:
-        settings.workdir = AbsPath(sysconf.defaults.scratch.format_map(names)) / '$jobid'
+        settings.workdir = AbsPath(configs.defaults.scratch.format_map(names)) / '$jobid'
 
     if 'queue' not in options.common:
-        if 'queue' in sysconf.defaults:
-            options.common.queue = sysconf.defaults.queue
+        if 'queue' in configs.defaults:
+            options.common.queue = configs.defaults.queue
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
-    
-    if not 'packagename' in packagespec:
-        messages.error('No se especificó el nombre del programa', spec='packagename')
     
     for key in options.parameterkeys:
         if '/' in options.parameterkeys[key]:
             messages.error(options.parameterkeys[key], 'no puede ser una ruta', option=key)
 
-    if 'mpilaunch' in packagespec:
-        try: packagespec.mpilaunch = booldict[packagespec.mpilaunch]
+    if 'mpilaunch' in iospecs:
+        try: iospecs.mpilaunch = booldict[iospecs.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
-    if not packagespec.filekeys:
+    if not iospecs.filekeys:
         messages.error('La lista de archivos del programa no existe o está vacía', spec='filekeys')
     
-    if packagespec.inputfiles:
-        for key in packagespec.inputfiles:
-            if not key in packagespec.filekeys:
+    if iospecs.inputfiles:
+        for key in iospecs.inputfiles:
+            if not key in iospecs.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='inputfiles')
     else:
         messages.error('La lista de archivos de entrada no existe o está vacía', spec='inputfiles')
     
-    if packagespec.outputfiles:
-        for key in packagespec.outputfiles:
-            if not key in packagespec.filekeys:
+    if iospecs.outputfiles:
+        for key in iospecs.outputfiles:
+            if not key in iospecs.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
@@ -188,70 +185,70 @@ def initialize():
 
     ############ Local execution ###########
 
-    if 'jobinfo' in queuespec:
-        script.header.append(queuespec.jobinfo.format(packagespec.packagename))
+    if 'jobinfo' in configs:
+        script.header.append(configs.jobinfo.format(configs.iospec))
 
     #TODO MPI support for Slurm
-    if packagespec.parallelib:
-        if packagespec.parallelib.lower() == 'none':
-            if 'nodelist' in options.common:
-                for item in queuespec.serialat:
+    if iospecs.parallelib:
+        if iospecs.parallelib.lower() == 'none':
+            if 'hosts' in options.common:
+                for item in configs.serialat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in queuespec.serial:
+                for item in configs.serial:
                     script.header.append(item.format(**options.common))
-        elif packagespec.parallelib.lower() == 'openmp':
-            if 'nodelist' in options.common:
-                for item in queuespec.singlehostat:
+        elif iospecs.parallelib.lower() == 'openmp':
+            if 'hosts' in options.common:
+                for item in configs.singlehostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in queuespec.singlehost:
+                for item in configs.singlehost:
                     script.header.append(item.format(**options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif packagespec.parallelib.lower() == 'standalone':
-            if 'nodelist' in options.common:
-                for item in queuespec.multihostat:
+        elif iospecs.parallelib.lower() == 'standalone':
+            if 'hosts' in options.common:
+                for item in configs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in queuespec.multihost:
+                for item in configs.multihost:
                     script.header.append(item.format(**options.common))
-        elif packagespec.parallelib.lower() in wrappers:
-            if 'nodelist' in options.common:
-                for item in queuespec.multihostat:
+        elif iospecs.parallelib.lower() in wrappers:
+            if 'hosts' in options.common:
+                for item in configs.multihostat:
                     script.header.append(item.format(**options.common))
             else:
-                for item in queuespec.multihost:
+                for item in configs.multihost:
                     script.header.append(item.format(**options.common))
-            script.main.append(queuespec.mpilauncher[packagespec.parallelib])
+            script.main.append(configs.mpilauncher[iospecs.parallelib])
         else:
-            messages.error('El tipo de paralelización', packagespec.parallelib, 'no está soportado', spec='parallelib')
+            messages.error('El tipo de paralelización', iospecs.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
 
-    if not sysconf.versions:
+    if not configs.versions:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
-    for version in sysconf.versions:
-        if not 'executable' in sysconf.versions[version]:
+    for version in configs.versions:
+        if not 'executable' in configs.versions[version]:
             messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(version))
     
-    for version in sysconf.versions:
-        sysconf.versions[version].merge({'load':[], 'source':[], 'export':{}})
+    for version in configs.versions:
+        configs.versions[version].merge({'load':[], 'source':[], 'export':{}})
 
     selector.message = 'Seleccione una versión:'
-    selector.options = tuple(sysconf.versions.keys())
+    selector.options = tuple(configs.versions.keys())
 
     if 'version' in options.common:
-        if options.common.version not in sysconf.versions:
+        if options.common.version not in configs.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
         settings.version = options.common.version
-    elif 'version' in sysconf.defaults:
-        if not sysconf.defaults.version in sysconf.versions:
+    elif 'version' in configs.defaults:
+        if not configs.defaults.version in configs.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
         if settings.defaults:
-            settings.version = sysconf.defaults.version
+            settings.version = configs.defaults.version
         else:
-            selector.default = sysconf.defaults.version
+            selector.default = configs.defaults.version
             settings.version = selector.single_choice()
     else:
         settings.version = selector.single_choice()
@@ -262,11 +259,11 @@ def initialize():
     formatdict.update(names)
 
     if settings.defaults:
-        formatdict.update(sysconf.defaults.parameterkeys)
+        formatdict.update(configs.defaults.parameterkeys)
 
     formatdict.update(options.parameterkeys)
 
-    for path in sysconf.parameterpaths:
+    for path in configs.parameterpaths:
         componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -289,111 +286,111 @@ def initialize():
 
     ############ End of interactive parameter selection ###########
 
-    for envar, value in sysconf.export.items() | sysconf.versions[settings.version].export.items():
+    for envar, value in configs.export.items() | configs.versions[settings.version].export.items():
         if value:
             script.setup.append('export {0}={1}'.format(envar, value))
         else:
             messages.error('El valor de la variable de entorno {} es nulo'.format(envar), spec='export')
 
-    for path in sysconf.source + sysconf.versions[settings.version].source:
+    for path in configs.source + configs.versions[settings.version].source:
         if path:
             script.setup.append('source {}'.format(AbsPath(path.format_map(names))))
         else:
             messages.error('La ruta al script de configuración es nula', spec='source')
 
-    if sysconf.load or sysconf.versions[settings.version].load:
+    if configs.load or configs.versions[settings.version].load:
         script.setup.append('module purge')
 
-    for module in sysconf.load + sysconf.versions[settings.version].load:
+    for module in configs.load + configs.versions[settings.version].load:
         if module:
             script.setup.append('module load {}'.format(module))
         else:
             messages.error('El nombre del módulo es nulo', spec='load')
 
     try:
-        script.main.append(AbsPath(sysconf.versions[settings.version].executable.format_map(names)))
+        script.main.append(AbsPath(configs.versions[settings.version].executable.format_map(names)))
     except NotAbsolutePath:
-        script.main.append(sysconf.versions[settings.version].executable)
+        script.main.append(configs.versions[settings.version].executable)
 
-    for path in queuespec.logfiles:
-        script.header.append(path.format(AbsPath(sysconf.logdir.format_map(names))))
+    for path in configs.logfiles:
+        script.header.append(path.format(AbsPath(configs.logdir.format_map(names))))
 
     script.setup.append("shopt -s nullglob extglob")
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(queuespec.envars.items())
+    script.envars.extend(configs.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k + 'node', v) for k, v in nodes.items())
-    script.envars.extend((k, packagespec.filekeys[v]) for k, v in packagespec.filevars.items())
+    script.envars.extend((k, iospecs.filekeys[v]) for k, v in iospecs.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
     script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
 
-    for key in packagespec.optargs:
-        if not packagespec.optargs[key] in packagespec.filekeys:
+    for key in iospecs.optargs:
+        if not iospecs.optargs[key] in iospecs.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
-        script.main.append('-{key} {val}'.format(key=key, val=packagespec.filekeys[packagespec.optargs[key]]))
+        script.main.append('-{key} {val}'.format(key=key, val=iospecs.filekeys[iospecs.optargs[key]]))
     
-    for item in packagespec.posargs:
+    for item in iospecs.posargs:
         for key in item.split('|'):
-            if not key in packagespec.filekeys:
+            if not key in iospecs.filekeys:
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
-        script.main.append('@' + p('|'.join(packagespec.filekeys[i] for i in item.split('|'))))
+        script.main.append('@' + p('|'.join(iospecs.filekeys[i] for i in item.split('|'))))
     
-    if 'stdinfile' in packagespec:
+    if 'stdinfile' in iospecs:
         try:
-            script.main.append('0<' + ' ' + packagespec.filekeys[packagespec.stdinfile])
+            script.main.append('0<' + ' ' + iospecs.filekeys[iospecs.stdinfile])
         except KeyError:
-            messages.error('La clave', q(packagespec.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
-    if 'stdoutfile' in packagespec:
+            messages.error('La clave', q(iospecs.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
+    if 'stdoutfile' in iospecs:
         try:
-            script.main.append('1>' + ' ' + packagespec.filekeys[packagespec.stdoutfile])
+            script.main.append('1>' + ' ' + iospecs.filekeys[iospecs.stdoutfile])
         except KeyError:
-            messages.error('La clave', q(packagespec.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
-    if 'stderror' in packagespec:
+            messages.error('La clave', q(iospecs.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
+    if 'stderror' in iospecs:
         try:
-            script.main.append('2>' + ' ' + packagespec.filekeys[packagespec.stderror])
+            script.main.append('2>' + ' ' + iospecs.filekeys[iospecs.stderror])
         except KeyError:
-            messages.error('La clave', q(packagespec.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
+            messages.error('La clave', q(iospecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    if sysconf.filesync == 'local':
+    if configs.filesync == 'local':
         script.makedir = 'mkdir -p -m 700 "{}"'.format
         script.removedir = 'rm -rf "{}"'.format
-        if options.common.temporary:
+        if options.common.move:
             script.importfile = 'mv "{}" "{}"'.format
         else:
             script.importfile = 'cp "{}" "{}"'.format
         script.importdir = 'cp -r "{}/." "{}"'.format
         script.exportfile = 'cp "{}" "{}"'.format
-    elif sysconf.filesync == 'remote':
-        script.makedir = 'for host in ${{hostlist[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.removedir = 'for host in ${{hostlist[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
-        if options.common.temporary:
-            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'" && rsh $headnode rm "\'{0}\'"; done'.format
+    elif configs.filesync == 'remote':
+        script.makedir = 'for host in ${{hosts[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.removedir = 'for host in ${{hosts[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
+        if options.common.move:
+            script.importfile = 'for host in ${{hosts[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'" && rsh $headnode rm "\'{0}\'"; done'.format
         else:
-            script.importfile = 'for host in ${{hostlist[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.importdir = 'for host in ${{hostlist[*]}}; do rsh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
+            script.importfile = 'for host in ${{hosts[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hosts[*]}}; do rsh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
         script.exportfile = 'rcp "{}" $headnode:"\'{}\'"'.format
-    elif sysconf.filesync == 'secure':
-        script.makedir = 'for host in ${{hostlist[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
-        script.removedir = 'for host in ${{hostlist[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
-        if options.common.temporary:
-            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'" && ssh $headnode rm "\'{0}\'"; done'.format
+    elif configs.filesync == 'secure':
+        script.makedir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
+        script.removedir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
+        if options.common.move:
+            script.importfile = 'for host in ${{hosts[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'" && ssh $headnode rm "\'{0}\'"; done'.format
         else:
-            script.importfile = 'for host in ${{hostlist[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
-        script.importdir = 'for host in ${{hostlist[*]}}; do ssh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
+            script.importfile = 'for host in ${{hosts[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
+        script.importdir = 'for host in ${{hosts[*]}}; do ssh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
         script.exportfile = 'scp "{}" $headnode:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(sysconf.filesync), 'no es válido', spec='filesync')
+        messages.error('El método de copia', q(configs.filesync), 'no es válido', spec='filesync')
 
 
 def submit(parentdir, inputname, filtergroups):
 
-    filebools = {key: AbsPath(pathjoin(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in packagespec.filekeys}
-    for conflict, message in packagespec.conflicts.items():
+    filebools = {key: AbsPath(pathjoin(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in iospecs.filekeys}
+    for conflict, message in iospecs.conflicts.items():
         if BoolParser(conflict).evaluate(filebools):
             messages.error(message, p(inputname))
 
@@ -420,11 +417,11 @@ def submit(parentdir, inputname, filtergroups):
             messages.failure('El directorio de salida debe ser distinto al directorio padre')
             return
         stagedir = outdir
-        for key in packagespec.inputfiles:
+        for key in iospecs.inputfiles:
             srcpath = AbsPath(pathjoin(parentdir, (inputname, key)))
             destpath = pathjoin(stagedir, (jobname, key))
             if srcpath.isfile():
-                if 'interpolable' in packagespec and key in packagespec.interpolable:
+                if 'interpolable' in iospecs and key in iospecs.interpolable:
                     with open(srcpath, 'r') as f:
                         contents = f.read()
                         if options.interpolation.interpolate:
@@ -469,16 +466,16 @@ def submit(parentdir, inputname, filtergroups):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in packagespec.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in iospecs.outputfiles):
             completer.message = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
             completer.options = {True: ['si', 'yes'], False: ['no']}
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return
-        for key in packagespec.outputfiles:
+        for key in iospecs.outputfiles:
             remove(pathjoin(outdir, (jobname, key)))
         if parentdir != outdir:
-            for key in packagespec.inputfiles:
+            for key in iospecs.inputfiles:
                 remove(pathjoin(outdir, (jobname, key)))
     else:
         try:
@@ -495,7 +492,7 @@ def submit(parentdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(pathjoin(stagedir, (jobname, packagespec.fileoptions[key])))
+        targetfile.linkto(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])))
 
     if options.remote.host:
 
@@ -503,25 +500,25 @@ def submit(parentdir, inputname, filtergroups):
         remotehome = pathjoin(options.remote.root, (names.user, names.host))
         remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))
         remoteargs.switches.add('raw')
-        remoteargs.switches.add('jobargs')
-        remoteargs.switches.add('temporary')
+        remoteargs.switches.add('job')
+        remoteargs.switches.add('move')
         remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():
             remoteargs.constants[key] = interpolate(value, anchor='%', formlist=filtergroups)
         filelist = []
-        for key in packagespec.filekeys:
+        for key in iospecs.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append('jobsubmit')
-        arglist.append(names.package)
+        arglist.append(names.command)
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
         arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)
         arglist.append(jobname)
-        if options.debug.dryrun:
+        if options.debug.dry_run:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
@@ -540,7 +537,7 @@ def submit(parentdir, inputname, filtergroups):
     formatdict.update(names)
 
     if settings.defaults:
-        for key, value in sysconf.defaults.parameterkeys.items():
+        for key, value in configs.defaults.parameterkeys.items():
             try:
                 formatdict[key] = interpolate(value, anchor='%', formlist=filtergroups)
             except ValueError:
@@ -556,7 +553,7 @@ def submit(parentdir, inputname, filtergroups):
         except IndexError:
             messages.error('Hay variables de interpolación sin definir en la opción', key)
 
-    for path in sysconf.parameterpaths:
+    for path in configs.parameterpaths:
         componentlist = pathsplit(path.format_map(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -573,12 +570,12 @@ def submit(parentdir, inputname, filtergroups):
     imports = []
     exports = []
 
-    for key in packagespec.inputfiles:
+    for key in iospecs.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, packagespec.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, iospecs.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (jobname, packagespec.fileoptions[key])), pathjoin(settings.workdir, packagespec.filekeys[packagespec.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])), pathjoin(settings.workdir, iospecs.filekeys[iospecs.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
@@ -588,8 +585,8 @@ def submit(parentdir, inputname, filtergroups):
         else:
             messages.error('La ruta de parámetros', path, 'no existe')
 
-    for key in packagespec.outputfiles:
-        exports.append(script.exportfile(pathjoin(settings.workdir, packagespec.filekeys[key]), pathjoin(outdir, (jobname, key))))
+    for key in iospecs.outputfiles:
+        exports.append(script.exportfile(pathjoin(settings.workdir, iospecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
 
     try:
         jobdir.mkdir()
@@ -600,28 +597,27 @@ def submit(parentdir, inputname, filtergroups):
     jobscript = pathjoin(jobdir, 'script')
 
     with open(jobscript, 'w') as f:
-        f.write('#!/bin/bash' + '\n')
-        f.write(queuespec.jobname.format(jobname) + '\n')
+        f.write('#!/bin/bash -x' + '\n')
+        f.write(configs.jobname.format(jobname) + '\n')
         f.write(''.join(i + '\n' for i in script.header))
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
         f.write(script.setenv('jobname', jobname) + '\n')
-        f.write('for host in ${hostlist[*]}; do echo "<$host>"; done' + '\n')
         f.write(script.makedir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(settings.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in packagespec.prescript))
+        f.write(''.join(i + '\n' for i in iospecs.prescript))
         f.write(' '.join(script.main) + '\n')
-        f.write(''.join(i + '\n' for i in packagespec.postscript))
+        f.write(''.join(i + '\n' for i in iospecs.postscript))
         f.write(''.join(i + '\n' for i in exports))
         f.write(script.removedir(settings.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in sysconf.offscript))
+        f.write(''.join(i + '\n' for i in configs.offscript))
 
-    if options.debug.dryrun:
+    if options.debug.dry_run:
         messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
     else:
         try:
-            sleep(sysconf.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
+            sleep(configs.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
         except (ValueError, FileNotFoundError) as e:
             pass
         try:

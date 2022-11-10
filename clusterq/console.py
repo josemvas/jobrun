@@ -13,108 +13,79 @@ from .fileutils import AbsPath, pathjoin, mkdir, copyfile, symlink
 selector = Selector()
 completer = Completer()
 
-def install(relpath=False):
+def configure():
 
     pylibs = []
     syslibs = []
-    configured = []
+    clusterkeys = {}
     clusternames = {}
-    clusterspeckeys = {}
     clusterschedulers = {}
+    packagelist = []
+    packagekeys = {}
     packagenames = {}
-    packagespeckeys = {}
-    schedulernames = {}
-    schedulerspeckeys = {}
-    defaults = {}
+    enabledpackages = []
+    queuekeys = {}
+    queueschedulers = {}
+
+    srcdir = AbsPath(__file__).parent
 
     completer.message = 'Escriba la ruta donde se instalarán los programas'
-    rootdir = AbsPath(completer.directory_path(), cwd=os.getcwd())
+    installdir = AbsPath(completer.directory_path(), cwd=os.getcwd())
 
-    bindir = pathjoin(rootdir, 'bin')
-    etcdir = pathjoin(rootdir, 'etc')
-    specdir = pathjoin(etcdir, 'jobspecs')
+    bindir = pathjoin(installdir, 'bin')
+    cfgdir = pathjoin(installdir, 'clusterq')
 
     mkdir(bindir)
-    mkdir(etcdir)
-    mkdir(specdir)
-    
-    sourcedir = AbsPath(__file__).parent
-    srchostspecdir = pathjoin(sourcedir, 'specs', 'hosts')
-    srcqueuespecdir = pathjoin(sourcedir, 'specs', 'queues')
+    mkdir(cfgdir)
 
-    for diritem in os.listdir(srchostspecdir):
-        if not os.path.isfile(pathjoin(srchostspecdir, diritem, 'clusterconf.json')):
+    mkdir(pathjoin(cfgdir, 'iospecs'))
+    mkdir(pathjoin(cfgdir, 'packages'))
+
+    for diritem in os.listdir(pathjoin(srcdir, 'config', 'hosts')):
+        if not os.path.isfile(pathjoin(srcdir, 'config', 'hosts', diritem, 'clusterconf.json')):
             messages.warning('El directorio', diritem, 'no contiene ningún archivo de configuración')
-        clusterconf = readspec(pathjoin(srchostspecdir, diritem, 'clusterconf.json'))
+        clusterconf = readspec(pathjoin(srcdir, 'config', 'hosts', diritem, 'clusterconf.json'))
         clusternames[diritem] = clusterconf.clustername
-        clusterspeckeys[clusterconf.clustername] = diritem
-        clusterschedulers[diritem] = clusterconf.schedulername
+        clusterkeys[clusterconf.clustername] = diritem
+        clusterschedulers[diritem] = clusterconf.scheduler
 
-    for diritem in os.listdir(srcqueuespecdir):
-        queuespec = readspec(pathjoin(srcqueuespecdir, diritem, 'queuespec.json'))
-        schedulernames[diritem] = queuespec.schedulername
-        schedulerspeckeys[queuespec.schedulername] = diritem
+    for diritem in os.listdir(pathjoin(srcdir, 'config', 'queues')):
+        scheduler = readspec(pathjoin(srcdir, 'config', 'queues', diritem, 'queueconf.json')).scheduler
+        queueschedulers[diritem] = scheduler
+        queuekeys[scheduler] = diritem
 
-    if os.path.isfile(pathjoin(specdir, 'clusterconf.json')):
+    for diritem in os.listdir(pathjoin(srcdir, 'config', 'iospecs')):
+        mkdir(pathjoin(cfgdir, 'iospecs', diritem))
+        copyfile(pathjoin(srcdir, 'config', 'iospecs', diritem, 'iospec.json'), pathjoin(cfgdir, 'iospecs', diritem, 'iospec.json'))
+
+    if os.path.isfile(pathjoin(cfgdir, 'clusterconf.json')):
         selector.message = '¿Qué clúster desea configurar?'
         selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
-        clusterconf = readspec(pathjoin(specdir, 'clusterconf.json'))
+        clusterconf = readspec(pathjoin(cfgdir, 'clusterconf.json'))
         if clusterconf.clustername in clusternames.values():
             selector.default = clusterconf.clustername
-        selhost = clusterspeckeys[selector.single_choice()]
-        if clusternames[selhost] != clusterconf.clustername and readspec(pathjoin(srchostspecdir, selhost, 'clusterconf.json')) != readspec(pathjoin(specdir, 'clusterconf.json')):
+        selcluster = clusterkeys[selector.single_choice()]
+        if clusternames[selcluster] != clusterconf.clustername and readspec(pathjoin(srcdir, 'config', 'hosts', selcluster, 'clusterconf.json')) != readspec(pathjoin(cfgdir, 'clusterconf.json')):
             completer.message = 'Desea sobreescribir la configuración local del sistema?'
             completer.options = {True: ['si', 'yes'], False: ['no']}
             if completer.binary_choice():
-                copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
+                copyfile(pathjoin(srcdir, 'config', 'hosts', selcluster, 'clusterconf.json'), pathjoin(cfgdir, 'clusterconf.json'))
         selector.message = 'Seleccione el gestor de trabajos adecuado'
-        selector.options = sorted(schedulernames.values())
-        selector.default = clusterconf.schedulername
-        selschedulername = selector.single_choice()
-        selscheduler = schedulerspeckeys[selschedulername]
-        copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
+        selector.options = sorted(queueschedulers.values())
+        selector.default = clusterconf.scheduler
+        selscheduler = queuekeys[selector.single_choice()]
+        copyfile(pathjoin(srcdir, 'config', 'queues', selscheduler, 'queueconf.json'), pathjoin(cfgdir, 'queueconf.json'))
     else:
         selector.message = '¿Qué clúster desea configurar?'
         selector.options = sorted(sorted(clusternames.values()), key='Nuevo'.__eq__, reverse=True)
-        selhost = clusterspeckeys[selector.single_choice()]
-        copyfile(pathjoin(srchostspecdir, selhost, 'clusterconf.json'), pathjoin(specdir, 'clusterconf.json'))
+        selcluster = clusterkeys[selector.single_choice()]
+        copyfile(pathjoin(srcdir, 'config', 'hosts', selcluster, 'clusterconf.json'), pathjoin(cfgdir, 'clusterconf.json'))
         selector.message = 'Seleccione el gestor de trabajos adecuado'
-        selector.options = sorted(schedulernames.values())
-        selector.default = clusterschedulers[selhost]
-        selschedulername = selector.single_choice()
-        selscheduler = schedulerspeckeys[selschedulername]
-        copyfile(pathjoin(sourcedir, 'specs', 'queues', selscheduler, 'queuespec.json'), pathjoin(specdir, 'queuespec.json'))
-
-    for diritem in os.listdir(pathjoin(srchostspecdir, selhost, 'packages')):
-        packagespec = readspec(pathjoin(sourcedir, 'specs', 'packages', diritem, 'packagespec.json'))
-        packagenames[diritem] = (packagespec.packagename)
-        packagespeckeys[packagespec.packagename] = diritem
-
-    if not packagenames:
-        messages.warning('No hay programas preconfigurados para este host')
-        raise SystemExit()
-
-    for diritem in os.listdir(specdir):
-        if os.path.isdir(pathjoin(specdir, diritem)):
-            configured.append(readspec(pathjoin(specdir, diritem, 'packagespec.json')).packagename)
-
-    selector.message = 'Seleccione los programas que desea configurar o reconfigurar'
-    selector.options = sorted(packagenames.values())
-    selector.default = configured
-    selpackagenames = selector.multiple_choice()
-
-    for packagename in selpackagenames:
-        package = packagespeckeys[packagename]
-        mkdir(pathjoin(specdir, package))
-        copyfile(pathjoin(sourcedir, 'specs', 'packages', package, 'packagespec.json'), pathjoin(specdir, package, 'packagespec.json'))
-        copypathspec = True
-        if not os.path.isfile(pathjoin(specdir, package, 'packageconf.json')):
-            copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
-#        elif readspec(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json')) != readspec(pathjoin(specdir, package, 'packageconf.json')):
-#            completer.message = _('La configuración local del programa $name difiere de la configuración por defecto, ¿desea sobreescribirla?').substitute(name=packagenames[package])
-#            completer.options = {True: ['si', 'yes'], False: ['no']}
-#            if completer.binary_choice():
-#                copyfile(pathjoin(srchostspecdir, selhost, 'packages', package, 'packageconf.json'), pathjoin(specdir, package, 'packageconf.json'))
+        selector.options = sorted(queueschedulers.values())
+        selector.default = clusterschedulers[selcluster]
+        selscheduler = selector.single_choice()
+        selscheduler = queuekeys[selscheduler]
+        copyfile(pathjoin(srcdir, 'config', 'queues', selscheduler, 'queueconf.json'), pathjoin(cfgdir, 'queueconf.json'))
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
@@ -131,19 +102,37 @@ def install(relpath=False):
     installation = dict(
         python = sys.executable,
         libpath = os.pathsep.join(pylibs),
-        moduledir = os.path.dirname(sourcedir),
-        specdir = specdir,
+        moduledir = os.path.dirname(srcdir),
+        cfgdir = cfgdir,
     )
 
-    with open(pathjoin(sourcedir, 'bin', 'jobsubmit'), 'r') as r, open(pathjoin(bindir, 'jobsubmit'), 'w') as w:
+    with open(pathjoin(srcdir, 'config', 'submit.sh.tpl'), 'r') as r, open(pathjoin(cfgdir, 'submit.sh'), 'w') as w:
         w.write(Template(r.read()).substitute(installation))
 
-    for diritem in os.listdir(specdir):
-        if os.path.isdir(pathjoin(specdir, diritem)):
-            symlink(pathjoin(bindir, 'jobsubmit'), pathjoin(bindir, diritem))
+    os.chmod(pathjoin(cfgdir, 'submit.sh'), 0o755)
 
-    copyfile(pathjoin(sourcedir, 'bin','jobsync'), pathjoin(bindir, 'jobsync'))
+    for diritem in os.listdir(pathjoin(cfgdir, 'packages')):
+        displayname = readspec(pathjoin(cfgdir, 'packages', diritem, 'packageconf.json')).displayname
+        packagelist.append(diritem)
+        packagekeys[displayname] = diritem
+        packagenames[diritem] = displayname
 
-    os.chmod(pathjoin(bindir, 'jobsubmit'), 0o755)
-    os.chmod(pathjoin(bindir, 'jobsync'), 0o755)
+    for diritem in os.listdir(bindir):
+        if os.path.islink(pathjoin(bindir, diritem)):
+            if os.readlink(pathjoin(bindir, diritem)) == pathjoin(cfgdir, 'submit.sh'):
+                enabledpackages.append(diritem)
 
+    if packagelist:
+        selector.message = 'Seleccione los programas que desea activar/desactivar'
+        selector.options = sorted(packagenames.values())
+        selector.default = [packagenames[i] for i in enabledpackages]
+        selpackages = [packagekeys[i] for i in selector.multiple_choice()]
+    else:
+        messages.warning('No hay programas configurados para este host')
+
+    for package in enabledpackages:
+        os.remove(pathjoin(bindir, package))
+
+    for package in packagelist:
+        if package in selpackages:
+            symlink(pathjoin(cfgdir, 'submit.sh'), pathjoin(bindir, package))

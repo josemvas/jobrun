@@ -1,16 +1,16 @@
 {
-   "schedulername": "SLURM",
-   "submitcmd": [ "sbatch", "--export=ALL" ],
+   "scheduler": "SLURM",
+   "sbmtcmd": [ "sbatch", "--export=ALL" ],
    "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
-   "submitre": ".* ([0-9]+)",
-   "statre": "(.+)",
+   "sbmtregex": ".* ([0-9]+)",
+   "statregex": "(.+)",
 
    "jobname": "#SBATCH -J '{}'",
    "jobinfo": "#SBATCH --comment='{}'",
 
    "logfiles": [
        "#SBATCH -o '{}/%A.out'",
-       "#SBATCH -e '{}/%A.err'"
+       "#SBATCH -e '{}/%A.out'"
    ],
 
    "serial": [
@@ -20,7 +20,7 @@
 
    "serialat": [
        "#SBATCH -p '{queue}'",
-       "#SBATCH -w '{nodelist}'",
+       "#SBATCH -w '{hosts}'",
        "#SBATCH -n '1'"
    ],
 
@@ -33,7 +33,7 @@
    "singlehostat": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -w '{nodelist}'"
+       "#SBATCH -w '{hosts}'"
    ],
 
    "multihost": [
@@ -45,13 +45,13 @@
    "multihostat": [
        "#SBATCH -p '{queue}'",
        "#SBATCH -n '{nproc}'",
-       "#SBATCH -w '{hostlist}'"
+       "#SBATCH -w '{hosts}'"
    ],
 
    "envars": {
        "jobid": "$SLURM_JOB_ID",
        "nproc": "$SLURM_NTASKS",
-       "hostlist": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
+       "hosts": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
    },
    
    "mpilauncher": {
@@ -85,4 +85,3 @@
        "OUT_OF_MEMORY"
    ]
 }
-

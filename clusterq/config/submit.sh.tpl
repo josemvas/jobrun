@@ -1,7 +1,7 @@
 #!/bin/sh
-export LD_LIBRARY_PATH=$libpath
 export PYTHONPATH=$moduledir
-export SPECPATH=$specdir
+export CONFIGPATH=$$(dirname "$$(readlink -f "$$0")")
+export LD_LIBRARY_PATH=$libpath
 
 if test -L "$$0"; then
     exec $python -m clusterq.main "$$(basename "$$0")" "$$@"
