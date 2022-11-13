@@ -2,8 +2,32 @@ import os
 import string
 import shutil
 import fnmatch
-from . import messages
+from clinterface import messages
 from .utils import FormatDict, deepjoin
+
+def file_except_info(exception, path):
+    if isinstance(exception, IsADirectoryError):
+         messages.failure('La ruta {} es un directorio'.format(path))
+    elif isinstance(exception, FileExistsError):
+         messages.failure('El archivo {} ya existe'.format(path))
+    elif isinstance(exception, FileNotFoundError):
+         messages.failure('El archivo {} no existe'.format(path))
+    elif isinstance(exception, OSError):
+         messages.failure(str(exception).format(path))
+    else:
+         messages.error(type(exception).__name__)
+
+def dir_except_info(exception, path):
+    if isinstance(exception, NotADirectoryError):
+         messages.failure('La ruta {} no es un directorio'.format(path))
+    elif isinstance(exception, FileExistsError):
+         messages.failure('El directorio {} ya existe'.format(path))
+    elif isinstance(exception, FileNotFoundError):
+         messages.failure('El directorio {} no existe'.format(path))
+    elif isinstance(exception, OSError):
+         messages.failure(str(exception).format(path))
+    else:
+         messages.error(type(exception).__name__)
 
 class NotAbsolutePath(Exception):
     pass
@@ -115,24 +139,11 @@ def symlink(source, dest):
         os.remove(dest)
         os.symlink(source, dest)
 
-# Custom rmtree to only delete files modified after date
-def rmtree(path, date):
-    def delete_newer(node, date, delete):
-        if os.path.getmtime(node) > date:
-            try: delete(node)
-            except OSError as e: print(e)
-    for parent, dirs, files in os.walk(path, topdown=False):
-        for f in files:
-            delete_newer(os.path.join(parent, f), date, os.remove)
-        for d in dirs:
-            delete_newer(os.path.join(parent, d), date, os.rmdir)
-    delete_newer(path, date, os.rmdir)
-
 def dirbranches(trunk, componentlist, dirtree):
     try:
         trunk.assertdir()
-    except OSError as e:
-        messages.excinfo(e, trunk)
+    except Exception as e:
+        file_except_info(e, trunk)
         raise SystemExit
     if componentlist:
         formatdict = FormatDict()

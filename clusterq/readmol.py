@@ -1,11 +1,9 @@
 #from logging import WARNING
-from . import messages
-
+from clinterface import messages
 
 class ParseError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
-
 
 # Guess format and read molfile
 def readmol(molfile):
@@ -38,7 +36,6 @@ def readmol(molfile):
     else:
         messages.error('El archivo', molfile, 'no existe')
 
-
 # Parse XYZ molfile
 def parsexyz(fh):
     fh.seek(0)
@@ -64,7 +61,6 @@ def parsexyz(fh):
         except StopIteration:
             raise ParseError('Unexpected end of file')
         trajectory.append(coords)
-        
 
 # Parse MDL molfile
 def parsemdl(fh):
@@ -95,7 +91,6 @@ def parsemdl(fh):
             raise ParseError('Invalid format')
     return [coords]
 
-
 # Parse Gaussian logfile
 def parseglf(fh):
     try:
@@ -110,5 +105,3 @@ def parseglf(fh):
         raise ParseError('Invalid format')
     pt = cclib.parser.utils.PeriodicTable()
     return [(pt.element[data.atomnos[i]], e[0], e[1], e[2]) for i, e in enumerate(data.atomcoords[-1])]
-
-

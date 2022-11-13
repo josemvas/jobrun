@@ -1,13 +1,64 @@
 import os
+import re
 import sys
 from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
-from . import messages
+from clinterface import messages
 from .readspec import readspec
-from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches
-from .utils import AttrDict, FormatDict, _, o, p, q
-from .shared import ArgList, names, nodes, paths, environ, iospecs, configs, options, remoteargs
+from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches, file_except_info
+from .shared import names, nodes, paths, environ, iospecs, configs, options, remoteargs
+from .utils import AttrDict, FormatDict, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
+
+class ArgList:
+    def __init__(self, args):
+        self.current = None
+        if options.arguments.sort:
+            self.args = sorted(args)
+        elif options.arguments.sort_reverse:
+            self.args = sorted(args, reverse=True)
+        else:
+            self.args = args
+        if 'filter' in options.arguments:
+            self.filter = re.compile(options.arguments.filter)
+        else:
+            self.filter = re.compile('.+')
+    def __iter__(self):
+        return self
+    def __next__(self):
+        try:
+            self.current = self.args.pop(0)
+        except IndexError:
+            raise StopIteration
+        if options.common.job:
+            parentdir = AbsPath(options.common.cwd)
+            for key in iospecs.inputfiles:
+                if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
+                    inputname = self.current
+                    break
+            else:
+                messages.failure('No hay archivos de entrada de', names.display, 'asociados al trabajo', self.current)
+                return next(self)
+        else:
+            path = AbsPath(self.current, cwd=options.common.cwd)
+            parentdir = path.parent
+            try:
+                path.assertfile()
+            except Exception as e:
+                file_except_info(e, path)
+                return next(self)
+            for key in iospecs.inputfiles:
+                if path.name.endswith('.' + key):
+                    inputname = path.name[:-len('.' + key)]
+                    break
+            else:
+                messages.failure(q(path.name), 'no es un archivo de entrada de', configs.iospec)
+                return next(self)
+        matching = self.filter.fullmatch(inputname)
+        if matching:
+            return parentdir, inputname, matching.groups()
+        else:
+            return next(self)
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
@@ -16,7 +67,7 @@ class ListOptions(Action):
         if configs.versions:
             print(_('Versiones disponibles:'))
             default = configs.defaults.version if 'version' in configs.defaults else None
-            messages.printtree(tuple(configs.versions.keys()), [default], level=1)
+            print_tree(tuple(configs.versions.keys()), [default], level=1)
         for path in configs.parameterpaths:
             dirtree = {}
             formatdict = FormatDict()
@@ -28,7 +79,7 @@ class ListOptions(Action):
                 path.format_map(formatdict)
                 defaults = [configs.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
-                messages.printtree(dirtree, defaults, level=1)
+                print_tree(dirtree, defaults, level=1)
         sys.exit()
 
 class StorePath(Action):
@@ -46,23 +97,22 @@ class AppendPath(Action):
 
 try:
 
+    paths.srcdir = AbsPath(__file__).parent
+
     try:
-        paths.config = os.environ['CONFIGPATH']
+        paths.cfgdir = os.environ['CONFIGPATH']
     except KeyError:
         messages.error('No se definió la variable de entorno CONFIGPATH')
-    
+
     parser = ArgumentParser(add_help=False)
     parser.add_argument('command', metavar='PROGNAME', help='Nombre estandarizado del programa.')
     parsedargs, remainingargs = parser.parse_known_args()
     names.command = parsedargs.command
 
-    try:
-        configs.merge(readspec(pathjoin(paths.config, 'queueconf.json')))
-        configs.merge(readspec(pathjoin(paths.config, 'clusterconf.json')))
-        configs.merge(readspec(pathjoin(paths.config, 'packages', names.command, 'packageconf.json')))
-        iospecs.merge(readspec(pathjoin(paths.config, 'iospecs', configs.iospec, 'iospec.json')))
-    except FileNotFoundError as e:
-        messages.error(str(e))
+    configs.merge(readspec(pathjoin(paths.cfgdir, 'config.json')))
+    configs.merge(readspec(pathjoin(paths.srcdir, 'schedulers', configs.scheduler, 'config.json')))
+    configs.merge(readspec(pathjoin(paths.cfgdir, 'packages', names.command, 'config.json')))
+    iospecs.merge(readspec(pathjoin(paths.srcdir, 'iospecs', configs.iospec, 'iospec.json')))
 
     userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
@@ -205,7 +255,7 @@ try:
     if not parsedargs.files:
         messages.error('Debe especificar al menos un archivo de entrada')
 
-    arguments =ArgList(parsedargs.files)
+    arguments = ArgList(parsedargs.files)
 
     try:
         environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']
@@ -235,4 +285,3 @@ try:
 except KeyboardInterrupt:
 
     messages.error('Interrumpido por el usuario')
-

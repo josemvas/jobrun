@@ -4,11 +4,6 @@ import sys
 from string import Template, Formatter
 from collections import OrderedDict
 
-booldict = {
-    'True' : True,
-    'False' : False
-}
-
 class FormatKeyError(Exception):
     pass
 
@@ -55,7 +50,7 @@ def format_parse(fmtstr, text):
     match = re.fullmatch(regexp, text)
     return match.groupdict()
 
-def getformatkeys(fmtstr):
+def get_format_keys(fmtstr):
     return [i[1] for i in Formatter().parse(fmtstr) if i[1] is not None]
 
 def interpolate(template, anchor, formlist=[], formdict={}):
@@ -100,16 +95,6 @@ def deepjoin(nestedlist, nextseparators, pastseparators=[]):
             raise TypeError('Components must be strings')
     return separator.join(itemlist)
 
-def join_args(f):
-    def wrapper(*args, **kwargs):
-        return f(' '.join(args), **kwargs)
-    return wrapper
-
-def join_args_and_kwargs(f):
-    def wrapper(*args, **kwargs):
-        return f(' '.join(args), ', '.join('{}={}'.format(k, v) for k, v in kwargs.items()))
-    return wrapper
-
 def catch_keyboard_interrupt(message):
     def decorator(f):
         def wrapper(*args, **kwargs):
@@ -141,3 +126,11 @@ def q(string):
 def Q(string):
     return "'{}'".format(string)
 
+def print_tree(options, defaults=[], level=0):
+    for opt in sorted(options):
+        if defaults and opt == defaults[0]:
+            print(' '*level + opt + '  (default)')
+        else:
+            print(' '*level + opt)
+        if isinstance(options, dict):
+            print_tree(options[opt], defaults[1:], level + 1)

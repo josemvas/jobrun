@@ -2,14 +2,12 @@ import os
 import sys
 from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
-from clinterface import Selector, Completer
-from . import messages
-from .defs import wrappers
+from clinterface import messages, prompts
 from .queue import submitjob, getjobstate
-from .utils import natsorted as sorted
-from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _, join_args, booldict, getformatkeys, interpolate, format_parse
-from .shared import names, nodes, paths, environ, configs, iospecs, options, remoteargs
-from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove
+from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _
+from .utils import interpolate, format_parse, get_format_keys, natsorted as sorted
+from .shared import names, nodes, paths, configs, iospecs, options, remoteargs, environ, wrappers
+from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -17,8 +15,12 @@ parameterpaths = []
 settings = AttrDict()
 script = AttrDict()
 
-selector = Selector()
-completer = Completer()
+selector = prompts.Selector()
+completer = prompts.Completer()
+completer.set_truthy_options(['si', 'yes'])
+completer.set_falsy_options(['no'])
+
+booleans = {'True':True, 'False':False}
 
 def geometry_block(coords):
     if names.display in ('Gaussian', 'deMon2k'):
@@ -133,7 +135,7 @@ def initialize():
             messages.error(options.parameterkeys[key], 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in iospecs:
-        try: iospecs.mpilaunch = booldict[iospecs.mpilaunch]
+        try: iospecs.mpilaunch = booleans[iospecs.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
@@ -235,8 +237,8 @@ def initialize():
     for version in configs.versions:
         configs.versions[version].merge({'load':[], 'source':[], 'export':{}})
 
-    selector.message = 'Seleccione una versión:'
-    selector.options = tuple(configs.versions.keys())
+    selector.set_message('Seleccione una versión:')
+    selector.set_options(configs.versions.keys())
 
     if 'version' in options.common:
         if options.common.version not in configs.versions:
@@ -248,7 +250,7 @@ def initialize():
         if settings.defaults:
             settings.version = configs.defaults.version
         else:
-            selector.default = configs.defaults.version
+            selector.set_single_default(configs.defaults.version)
             settings.version = selector.single_choice()
     else:
         settings.version = selector.single_choice()
@@ -269,13 +271,13 @@ def initialize():
         for component in componentlist:
             try:
                 trunk.assertdir()
-            except OSError as e:
-                messages.excinfo(e, trunk)
+            except Exception as e:
+                file_except_info(e, trunk)
                 raise SystemExit
-            if getformatkeys(component):
-                selector.message = 'Seleccione un conjunto de parámetros:'
-                selector.options = sorted(trunk.glob(component.format_map(FormatDict('*'))))
-                if selector.options:
+            if get_format_keys(component):
+                if options:
+                    selector.set_message('Seleccione un conjunto de parámetros:')
+                    selector.set_options(sorted(trunk.glob(component.format_map(FormatDict('*')))))
                     choice = selector.single_choice()
                     options.parameterkeys.update(format_parse(component, choice))
                     trunk = trunk / choice
@@ -444,8 +446,7 @@ def submit(parentdir, inputname, filtergroups):
                             except ValueError:
                                 pass
                             except (IndexError, KeyError) as e:
-                                completer.message = _('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key)))
-                                completer.options = {True: ['si', 'yes'], False: ['no']}
+                                completer.set_message(_('Parece que hay variables de interpolación en el archivo de entrada $path ¿desea continuar sin interpolar?').substitute(path=pathjoin((inputname, key))))
                                 if completer.binary_choice():
                                     literalfiles[destpath] = srcpath
                                 else:
@@ -467,8 +468,7 @@ def submit(parentdir, inputname, filtergroups):
             except FileNotFoundError:
                 pass
         if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in iospecs.outputfiles):
-            completer.message = _('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir)
-            completer.options = {True: ['si', 'yes'], False: ['no']}
+            completer.set_message(_('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir))
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return
@@ -559,10 +559,10 @@ def submit(parentdir, inputname, filtergroups):
         for component in componentlist:
             try:
                 trunk.assertdir()
-            except OSError as e:
-                messages.excinfo(e, trunk)
+            except Exception as e:
+                file_except_info(e, trunk)
                 raise SystemExit
-            if getformatkeys(component):
+            if get_format_keys(component):
                 messages.error('El componente', component, 'de la ruta', path, 'no es literal')
             trunk = trunk / component
         parameterpaths.append(trunk)
@@ -626,7 +626,7 @@ def submit(parentdir, inputname, filtergroups):
             messages.failure('El gestor de trabajos reportó un error al enviar el trabajo', q(jobname), p(error))
             return
         else:
-            messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con número', jobid)
+            messages.success('El trabajo', q(jobname), 'se correrá en', str(options.common.nproc), 'núcleo(s) en', names.cluster, 'con el número', jobid)
             with open(pathjoin(jobdir, 'id'), 'w') as f:
                 f.write(jobid)
             with open(paths.lock, 'a'):

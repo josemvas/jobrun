@@ -1,6 +1,6 @@
 import json
 from collections import OrderedDict
-from . import messages
+from clinterface import messages
 
 class SpecList(list):
     def __init__(self, rawlist=[]):
@@ -58,4 +58,3 @@ def readspec(jsonfile):
             return SpecDict(json.load(f, object_pairs_hook=OrderedDict))
         except ValueError as e:
             messages.error('El archivo {} contiene JSON inválido: {}'.format(f.name, str(e)))
-
