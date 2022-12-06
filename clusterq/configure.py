@@ -12,63 +12,58 @@ completer = prompts.Completer()
 
 def manage_packages():
 
-    pylibs = []
-    syslibs = []
+    pythonlibs = []
+    systemlibs = []
     packagelist = []
     packagenames = {}
     enabledpackages = []
 
-    srcdir = AbsPath(__file__).parent
+    moduledir = AbsPath(__file__).parent
 
-    completer.set_message('Escriba la ruta donde se instalarán los programas')
-    rootdir = AbsPath(completer.directory_path(), cwd=os.getcwd())
+    completer.set_message('Escriba la ruta de los archivos de configuración')
+    confdir = AbsPath(completer.directory_path(), cwd=os.getcwd())
 
-    bindir = pathjoin(rootdir, 'bin')
-    etcdir = pathjoin(rootdir, 'etc')
-    cfgdir = pathjoin(rootdir, 'etc', 'clusterq')
+    completer.set_message('Escriba la ruta donde se instalarán los ejecutables')
+    bindir = AbsPath(completer.directory_path(), cwd=os.getcwd())
+
+    mainscript = 'clusterq-submit'
+    mainscriptpath = pathjoin(bindir, mainscript)
 
     mkdir(bindir)
-    mkdir(etcdir)
-    mkdir(cfgdir)
+    mkdir(confdir)
+    mkdir(pathjoin(confdir, 'packages'))
 
-    mkdir(pathjoin(cfgdir, 'cluster'))
-    mkdir(pathjoin(cfgdir, 'packages'))
-
-    if not os.path.isfile(pathjoin(cfgdir, 'config.json')):
+    if not os.path.isfile(pathjoin(confdir, 'config.json')):
         messages.warning('Aún no se ha configurado el clúster')
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
-        if match and match.group(1) not in syslibs:
-            syslibs.append(match.group(1))
+        if match and match.group(1) not in systemlibs:
+            systemlibs.append(match.group(1))
 
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
-            libdir = os.path.dirname(match.group(1))
-            if libdir not in syslibs:
-                pylibs.append(libdir)
+            library = os.path.dirname(match.group(1))
+            if library not in systemlibs:
+                pythonlibs.append(library)
 
-    installation = dict(
-        python = sys.executable,
-        libpath = os.pathsep.join(pylibs),
-        moduledir = os.path.dirname(srcdir),
-        cfgdir = cfgdir,
-    )
+    with open(mainscriptpath, 'w') as file:
+        file.write('#!/bin/sh -a\n')
+        if pythonlibs:
+            file.write('LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH\n'.format(os.pathsep.join(pythonlibs)))
+        file.write('exec env PYTHONPATH="{}" "{}" -m clusterq.main "{}" "$0" "$@"\n'.format(moduledir, sys.executable, confdir))
 
-    with open(pathjoin(srcdir, 'templates', 'scripts', 'submit.sh'), 'r') as r, open(pathjoin(cfgdir, 'submit.sh'), 'w') as w:
-        w.write(Template(r.read()).substitute(installation))
+    os.chmod(mainscriptpath, 0o755)
 
-    os.chmod(pathjoin(cfgdir, 'submit.sh'), 0o755)
-
-    for diritem in os.listdir(pathjoin(cfgdir, 'packages')):
-        displayname = readspec(pathjoin(cfgdir, 'packages', diritem, 'config.json')).displayname
+    for diritem in os.listdir(pathjoin(confdir, 'packages')):
+        displayname = readspec(pathjoin(confdir, 'packages', diritem, 'config.json')).displayname
         packagelist.append(diritem)
         packagenames[diritem] = displayname
 
     for diritem in os.listdir(bindir):
         if os.path.islink(pathjoin(bindir, diritem)):
-            if os.readlink(pathjoin(bindir, diritem)) == pathjoin(cfgdir, 'submit.sh'):
+            if os.readlink(pathjoin(bindir, diritem)) == mainscript:
                 enabledpackages.append(diritem)
 
     if packagelist:
@@ -84,7 +79,7 @@ def manage_packages():
 
     for package in packagelist:
         if package in selpackages:
-            symlink(pathjoin(cfgdir, 'submit.sh'), pathjoin(bindir, package))
+            symlink(mainscript, pathjoin(bindir, package))
 
 
 def configure_cluster():
@@ -95,45 +90,45 @@ def configure_cluster():
     schedulerkeys = {}
     schedulernames = {}
 
-    for diritem in os.listdir(pathjoin(srcdir, 'templates', 'hosts')):
-        if not os.path.isfile(pathjoin(srcdir, 'templates', 'hosts', diritem, 'cluster', 'config.json')):
+    for diritem in os.listdir(pathjoin(moduledir, 'templates', 'hosts')):
+        if not os.path.isfile(pathjoin(moduledir, 'templates', 'hosts', diritem, 'cluster', 'config.json')):
             messages.warning('El directorio', diritem, 'no contiene ningún archivo de configuración')
-        clusterconf = readspec(pathjoin(srcdir, 'templates', 'hosts', diritem, 'cluster', 'config.json'))
+        clusterconf = readspec(pathjoin(moduledir, 'templates', 'hosts', diritem, 'cluster', 'config.json'))
         clusternames[diritem] = clusterconf.clustername
         clusterkeys[clusterconf.clustername] = diritem
         defaultschedulers[diritem] = clusterconf.scheduler
 
-    for diritem in os.listdir(pathjoin(srcdir, 'schedulers')):
-        scheduler = readspec(pathjoin(srcdir, 'schedulers', diritem, 'config.json')).scheduler
+    for diritem in os.listdir(pathjoin(moduledir, 'schedulers')):
+        scheduler = readspec(pathjoin(moduledir, 'schedulers', diritem, 'config.json')).scheduler
         schedulernames[diritem] = scheduler
         schedulerkeys[scheduler] = diritem
 
-    if os.path.isfile(pathjoin(cfgdir, 'cluster', 'config.json')):
+    if os.path.isfile(pathjoin(confdir, 'cluster', 'config.json')):
         selector.set_message('¿Qué clúster desea configurar?')
         selector.set_options(clusternames)
-        clusterconf = readspec(pathjoin(cfgdir, 'cluster', 'config.json'))
+        clusterconf = readspec(pathjoin(confdir, 'cluster', 'config.json'))
         if clusterconf.clustername in clusternames.values():
             selector.set_single_default(clusterkeys[clusterconf.clustername])
         selcluster = selector.single_choice()
         if selcluster != clusterkeys[clusterconf.clustername]:
-            if readspec(pathjoin(srcdir, 'templates', 'hosts', selcluster, 'cluster', 'config.json')) != readspec(pathjoin(cfgdir, 'cluster', 'config.json')):
+            if readspec(pathjoin(moduledir, 'templates', 'hosts', selcluster, 'cluster', 'config.json')) != readspec(pathjoin(confdir, 'cluster', 'config.json')):
                 completer.set_message('Desea sobreescribir la configuración local del sistema?')
                 completer.set_truthy_options(['si', 'yes'])
                 completer.set_falsy_options(['no'])
                 if completer.binary_choice():
-                    copyfile(pathjoin(srcdir, 'templates', 'hosts', selcluster, 'cluster', 'config.json'), pathjoin(cfgdir, 'cluster', 'config.json'))
+                    copyfile(pathjoin(moduledir, 'templates', 'hosts', selcluster, 'cluster', 'config.json'), pathjoin(confdir, 'cluster', 'config.json'))
         selector.set_message('Seleccione el gestor de trabajos adecuado')
         selector.set_options(schedulernames)
         selector.set_single_default(schedulerkeys[clusterconf.scheduler])
         selscheduler = selector.single_choice()
-        copyfile(pathjoin(srcdir, 'schedulers', selscheduler, 'config.json'), pathjoin(cfgdir, 'config.json'))
+        copyfile(pathjoin(moduledir, 'schedulers', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))
     else:
         selector.set_message('¿Qué clúster desea configurar?')
         selector.set_options(clusternames)
         selcluster = selector.single_choice()
-        copyfile(pathjoin(srcdir, 'templates', 'hosts', selcluster, 'cluster', 'config.json'), pathjoin(cfgdir, 'cluster', 'config.json'))
+        copyfile(pathjoin(moduledir, 'templates', 'hosts', selcluster, 'cluster', 'config.json'), pathjoin(confdir, 'cluster', 'config.json'))
         selector.set_message('Seleccione el gestor de trabajos adecuado')
         selector.set_options(schedulernames)
         selector.set_single_default(selcluster)
         selscheduler = selector.single_choice()
-        copyfile(pathjoin(srcdir, 'schedulers', selscheduler, 'config.json'), pathjoin(cfgdir, 'config.json'))
+        copyfile(pathjoin(moduledir, 'schedulers', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))

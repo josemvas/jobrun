@@ -69,4 +69,4 @@ names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = AbsPath(path.expanduser('~'))
-paths.lock = paths.home / '.jobsubmit.lock'
+paths.lock = paths.home / '.clusterqlock'

@@ -512,7 +512,6 @@ def submit(parentdir, inputname, filtergroups):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
-        arglist.append('jobsubmit')
         arglist.append(names.command)
         arglist.extend(o(opt) for opt in remoteargs.switches)
         arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())

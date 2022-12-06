@@ -97,22 +97,19 @@ class AppendPath(Action):
 
 try:
 
-    paths.srcdir = AbsPath(__file__).parent
-
-    try:
-        paths.cfgdir = os.environ['CONFIGPATH']
-    except KeyError:
-        messages.error('No se definió la variable de entorno CONFIGPATH')
-
     parser = ArgumentParser(add_help=False)
-    parser.add_argument('command', metavar='PROGNAME', help='Nombre estandarizado del programa.')
+    parser.add_argument('confdir')
+    parser.add_argument('filepath')
     parsedargs, remainingargs = parser.parse_known_args()
-    names.command = parsedargs.command
 
-    configs.merge(readspec(pathjoin(paths.cfgdir, 'config.json')))
-    configs.merge(readspec(pathjoin(paths.srcdir, 'schedulers', configs.scheduler, 'config.json')))
-    configs.merge(readspec(pathjoin(paths.cfgdir, 'packages', names.command, 'config.json')))
-    iospecs.merge(readspec(pathjoin(paths.srcdir, 'iospecs', configs.iospec, 'iospec.json')))
+    paths.confdir = parsedargs.confdir
+    names.command = os.path.basename(parsedargs.filepath)
+    paths.moduledir = AbsPath(__file__).parent
+
+    configs.merge(readspec(pathjoin(paths.confdir, 'config.json')))
+    configs.merge(readspec(pathjoin(paths.moduledir, 'schedulers', configs.scheduler, 'config.json')))
+    configs.merge(readspec(pathjoin(paths.confdir, 'packages', names.command, 'config.json')))
+    iospecs.merge(readspec(pathjoin(paths.moduledir, 'iospecs', configs.iospec, 'iospec.json')))
 
     userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
@@ -182,12 +179,12 @@ try:
     group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
+    group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
     group2.add_argument('-p', '--prompt', action='store_true', help='Seleccionar interactivamente las opciones disponibles.')
     group2.add_argument('-n', '--nproc', type=int, metavar='#PROCS', default=1, help='Requerir #PROCS núcleos de procesamiento.')
     group2.add_argument('-q', '--queue', metavar='QUEUE', default=SUPPRESS, help='Requerir la cola QUEUE.')
-    group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
-    group2.add_argument('-o', '--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('-j', '--job', action='store_true', help='Interpretar los argumentos como nombres de trabajo en vez de rutas de archivo.')
+    group2.add_argument('-o', '--out', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos de salida en el directorio PATH.')
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Usar PATH como directorio actual de trabajo.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('--move', action='store_true', help='Mover los archivos de entrada al directorio de salida en vez de copiarlos.')
