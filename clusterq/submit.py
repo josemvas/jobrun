@@ -7,7 +7,7 @@ from .queue import submitjob, getjobstate
 from .utils import AttrDict, FormatDict, IdentityList, o, p, q, Q, _
 from .utils import interpolate, format_parse, get_format_keys, natsorted as sorted
 from .shared import names, nodes, paths, configs, iospecs, options, remoteargs, environ, wrappers
-from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, remove, file_except_info
+from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -391,9 +391,13 @@ def initialize():
 
 def submit(parentdir, inputname, filtergroups):
 
-    filebools = {key: AbsPath(pathjoin(parentdir, (inputname, key))).isfile() or key in options.targetfiles for key in iospecs.filekeys}
+    filestatus = {}
+    for key in iospecs.filekeys:
+        path = AbsPath(pathjoin(parentdir, (inputname, key)))
+        filestatus[key] = path.isfile() or key in options.targetfiles
+
     for conflict, message in iospecs.conflicts.items():
-        if BoolParser(conflict).evaluate(filebools):
+        if BoolParser(conflict).evaluate(filestatus):
             messages.error(message, p(inputname))
 
     jobname = inputname
@@ -456,6 +460,9 @@ def submit(parentdir, inputname, filtergroups):
 
     jobdir = AbsPath(pathjoin(stagedir, '.job'))
 
+    inputfileexts = ['.' + i for i in iospecs.inputfiles]
+    outputfileexts = ['.' + i for i in iospecs.outputfiles]
+
     if outdir.isdir():
         if jobdir.isdir():
             try:
@@ -472,11 +479,11 @@ def submit(parentdir, inputname, filtergroups):
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return
-        for key in iospecs.outputfiles:
-            remove(pathjoin(outdir, (jobname, key)))
+        for ext in outputfileexts:
+            outdir.append(jobname + ext).remove()
         if parentdir != outdir:
-            for key in iospecs.inputfiles:
-                remove(pathjoin(outdir, (jobname, key)))
+            for ext in inputfileexts:
+                outdir.append(jobname + ext).remove()
     else:
         try:
             outdir.makedirs()
@@ -485,14 +492,14 @@ def submit(parentdir, inputname, filtergroups):
             return
 
     for destpath, litfile in literalfiles.items():
-        litfile.copyto(destpath)
+        litfile.copyfile(destpath)
 
     for destpath, contents in interpolatedfiles.items():
         with open(destpath, 'w') as f:
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.linkto(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])))
+        targetfile.symlink(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])))
 
     if options.remote.host:
 
@@ -630,4 +637,3 @@ def submit(parentdir, inputname, filtergroups):
                 f.write(jobid)
             with open(paths.lock, 'a'):
                 os.utime(paths.lock, None)
-

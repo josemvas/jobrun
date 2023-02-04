@@ -56,6 +56,21 @@ class AbsPath(str):
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
+    def __truediv__(self, right):
+        if not isinstance(right, str):
+            raise TypeError('Right operand must be a string')
+        if os.path.isabs(right):
+            raise ValueError('Can not join two absolute paths')
+        return AbsPath(right, cwd=self)
+    def append(self, *args):
+        path = self
+        for i in args:
+            if not isinstance(i, str):
+                raise TypeError('Right operand must be a string')
+            if os.path.isabs(i):
+                raise ValueError('Can not join two absolute paths')
+            path = AbsPath(i, cwd=path)
+        return path
     @property
     def parent(self):
         return AbsPath(os.path.dirname(self))
@@ -65,26 +80,48 @@ class AbsPath(str):
         return self.suffix == suffix
     def exists(self):
         return os.path.exists(self)
+    def remove(self):
+        try: os.remove(self)
+        except FileNotFoundError:
+            pass
+    def rmdir(self):
+        try: os.rmdir(self)
+        except FileNotFoundError:
+            pass
     def mkdir(self):
-        mkdir(self)
+        try: os.mkdir(self)
+        except FileExistsError:
+            if os.path.isdir(self):
+                pass
+            else:
+                raise
+    def chmod(self, mode):
+        os.chmod(self, mode)
     def makedirs(self):
-        makedirs(self)
-    def linkto(self, *dest):
-        symlink(self, os.path.join(*dest))
-    def copyto(self, *dest):
-        copyfile(self, os.path.join(*dest))
+        try: os.makedirs(self)
+        except FileExistsError:
+            if os.path.isdir(self):
+                pass
+            else:
+                raise
+    def copyfile(self, dest):
+        shutil.copyfile(self, dest)
+    def symlink(self, dest):
+        try:
+            os.symlink(self, dest)
+        except FileExistsError:
+            os.remove(dest)
+            os.symlink(self, dest)
+    def readlink(self):
+        return os.readlink(self)
     def glob(self, expr):
         return fnmatch.filter(os.listdir(self), expr)
-    def __truediv__(self, right):
-        if not isinstance(right, str):
-            raise TypeError('Right operand must be a string')
-        if os.path.isabs(right):
-            raise ValueError('Can not join two absolute paths')
-        return AbsPath(right, cwd=self)
     def isfile(self):
         return os.path.isfile(self)
     def isdir(self):
         return os.path.isdir(self)
+    def islink(self):
+        return os.path.islink(self)
     def assertfile(self):
         if os.path.exists(self):
             if not os.path.isfile(self):
@@ -100,61 +137,6 @@ class AbsPath(str):
                 raise NotADirectoryError
         else:
             raise FileNotFoundError
-
-def mkdir(path):
-    try: os.mkdir(path)
-    except FileExistsError:
-        if os.path.isdir(path):
-            pass
-        else:
-            raise
-
-def makedirs(path):
-    try: os.makedirs(path)
-    except FileExistsError:
-        if os.path.isdir(path):
-            pass
-        else:
-            raise
-
-def remove(path):
-    try: os.remove(path)
-    except FileNotFoundError:
-        pass
-
-def rmdir(path):
-    try: os.rmdir(path)
-    except FileNotFoundError:
-        pass
-
-def copyfile(source, dest):
-    try: shutil.copyfile(source, dest)
-    except FileExistsError:
-        os.remove(dest)
-        shutil.copyfile(source, dest)
-
-def symlink(source, dest):
-    try: os.symlink(source, dest)
-    except FileExistsError:
-        os.remove(dest)
-        os.symlink(source, dest)
-
-def dirbranches(trunk, componentlist, dirtree):
-    try:
-        trunk.assertdir()
-    except Exception as e:
-        file_except_info(e, trunk)
-        raise SystemExit
-    if componentlist:
-        formatdict = FormatDict()
-        component = componentlist.pop(0).format_map(formatdict)
-        if formatdict.missing_keys:
-            branches = trunk.glob(component.format_map(FormatDict('*')))
-            for branch in branches:
-                dirtree[branch] = {}
-                dirbranches(trunk/branch, componentlist, dirtree[branch])
-        else:
-            dirbranches(trunk/component, componentlist, dirtree)
 
 def pathjoin(*components):
     return deepjoin(components, [os.path.sep, '.'])
@@ -173,3 +155,19 @@ def pathsplit(path):
     else:
         return []
 
+def dirbranches(trunk, componentlist, dirtree):
+    try:
+        trunk.assertdir()
+    except Exception as e:
+        file_except_info(e, trunk)
+        raise SystemExit
+    if componentlist:
+        formatdict = FormatDict()
+        component = componentlist.pop(0).format_map(formatdict)
+        if formatdict.missing_keys:
+            branches = trunk.glob(component.format_map(FormatDict('*')))
+            for branch in branches:
+                dirtree[branch] = {}
+                dirbranches(trunk/branch, componentlist, dirtree[branch])
+        else:
+            dirbranches(trunk/component, componentlist, dirtree)

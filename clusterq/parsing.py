@@ -25,15 +25,15 @@ class Node:
             a += self.right.pr()
         a += ')'
         return a
-    def evaluate(self, values):
+    def evaluate(self):
         if self.name == 'not':
-            return not self.right.evaluate(values)
+            return not self.right.evaluate()
         elif self.name == 'and':
-            return self.left.evaluate(values) and self.right.evaluate(values)
+            return self.left.evaluate() and self.right.evaluate()
         elif self.name == 'or':
-            return self.left.evaluate(values) or self.right.evaluate(values)
-        elif self.name in values:
-            return values[self.name]
+            return self.left.evaluate() or self.right.evaluate()
+        elif self.name in evaldict:
+            return evaldict[self.name]
         else:
             raise Exception(self.name, 'not in value dict')
 
@@ -45,7 +45,9 @@ class BoolParser:
     def pr(self):
         return self.etree.pr()
     def evaluate(self, values):
-        return self.etree.evaluate(values)
+        global evaldict
+        evaldict = values
+        return self.etree.evaluate()
     def accept(self, c):
         if self.current == c:
             self.current = next(self.tokens, None)
@@ -91,4 +93,3 @@ class BoolParser:
             return Node(None, None, l)
         else:
             raise Exception('Expected an alphanumeric string')
-

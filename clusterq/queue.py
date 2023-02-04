@@ -23,14 +23,10 @@ def getjobstate(jobid):
     if process.returncode == 0:
         status = re.fullmatch(configs.statregex, output).group(1)
         if status not in configs.ready_states:
-            if status in configs.queued_states:
-                return 'El trabajo {name} no se envió porque hay otro trabajo en cola con número {id} que usa la misma carpeta de salida'
-            else:
-                return 'El trabajo "{name}" no se envió porque está en cola pero su estado es inválido: ' + status
+            return 'El trabajo {name} no se envió porque ya hay otro trabajo corriendo con el mismo nombre'
     else:
         for regex in configs.warn_errors:
             if re.fullmatch(regex, error):
                 break
         else:
             return 'El trabajo "{name}" no se envió porque ocurrió un error al revisar su estado: ' + error
-       
