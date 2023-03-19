@@ -66,51 +66,49 @@ def initialize():
     else:
         settings.defaults = True
 
-    if options.interpolation.vars or options.interpolation.mol or 'trjmol' in options.interpolation:
-        options.interpolation.interpolate = True
+    options.interpolationdict = {}
+
+    for key in iospecs.interpolationvars:
+        try:
+            options.interpolationdict[key] = options.interpolation[key]
+        except KeyError:
+            pass
+    for idx, value in enumerate(options.interpolation.posvars, start=1):
+        options.interpolationdict[str(idx)] = value
+
+    if options.interpolationdict or options.interpolation.mol or options.interpolation.trjmol:
+        options.interpolate = True
     else:
-        options.interpolation.interpolate = False
+        options.interpolate = False
 
-    options.interpolation.keydict = {}
-
-    if options.interpolation.interpolate:
-        if options.interpolation.vars:
-            vardict = {}
-            varlist = []
-            for var in options.interpolation.vars:
-                left, separator, right = var.partition('=')
-                if separator:
-                    if right:
-                        vardict[left] = right
-                    else:
-                        messages.error('No se especificó ningín valor para la variable de interpolación', left)
-                else:
-                    varlist.append(left)
-
-            options.interpolation.keydict.update(vardict)
-            options.interpolation.keydict.update({str(i): x for i, x in enumerate(varlist)})
+    if options.interpolate:
         if options.interpolation.mol:
-            index = 0
-            for path in options.interpolation.mol:
-                index += 1
+            for i, path in enumerate(options.interpolation.mol, start=1):
                 path = AbsPath(path, cwd=options.common.cwd)
+                molprefix = path.stem
                 coords = readmol(path)[-1]
-                options.interpolation.keydict['mol' + str(index)] = geometry_block(coords)
-            if not 'prefix' in options.interpolation:
+                options.interpolationdict['mol' + str(i)] = geometry_block(coords)
+        elif options.interpolation.trjmol:
+            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
+            molprefix = path.stem
+            for i, coords in enumerate(readmol(path), start=1):
+                options.interpolationdict['mol' + str(i)] = geometry_block(coords)
+        if options.interpolation.prefix:
+            try:
+                settings.prefix = PrefixTemplate(options.interpolation.prefix).substitute(options.interpolationdict)
+            except ValueError as e:
+                messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
+            except KeyError as e:
+                messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
+        else:
+            if options.interpolation.mol:
                 if len(options.interpolation.mol) == 1:
-                    settings.prefix = path.stem
+                    settings.prefix = molprefix
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
-        elif 'trjmol' in options.interpolation:
-            index = 0
-            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
-            for coords in readmol(path):
-                index += 1
-                options.interpolation.keydict['mol' + str(index)] = geometry_block(coords)
-            if not 'prefix' in options.interpolation:
-                settings.prefix = path.stem
-        else:
-            if not 'prefix' in options.interpolation:
+            elif options.interpolation.trjmol:
+                settings.prefix = molprefix
+            else:
                 messages.error('Se debe especificar un prefijo para interpolar sin archivo coordenadas')
 
     try:
@@ -159,14 +157,6 @@ def initialize():
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
-
-    if 'prefix' in options.interpolation:
-        try:
-            settings.prefix = PrefixTemplate(options.interpolation.prefix).substitute(options.interpolation.keydict)
-        except ValueError as e:
-            messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
-        except KeyError as e:
-            messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
 
     if options.remote.host:
         return
@@ -411,11 +401,11 @@ def submit(parentdir, inputname, filtergroups):
                 if 'interpolable' in iospecs and key in iospecs.interpolable:
                     with open(srcpath, 'r') as f:
                         contents = f.read()
-                        if options.interpolation.interpolate:
+                        if options.interpolate:
                             try:
                                 interpolatedfiles[destpath] = template_substitute(
                                     contents,
-                                    options.interpolation.keydict,
+                                    options.interpolationdict,
                                     anchor=options.interpolation.anchor,
                                 )
                             except ValueError:

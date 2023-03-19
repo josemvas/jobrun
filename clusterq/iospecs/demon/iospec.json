@@ -44,6 +44,14 @@
       "inp"
    ],
 
+   "interpolationvars": [
+      "method",
+      "basis",
+      "auxis",
+      "charge",
+      "multiplicity"
+   ],
+
    "parametersets": [
       "bases"
    ]

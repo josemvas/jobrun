@@ -51,6 +51,7 @@ iospecs = SpecDict({
     'inputfiles': [],
     'outputfiles': [],
     'interpolable': [],
+    'interpolationvars': [],
     'parametersets': [],
     'parameterkeys': [],
     'optargs': [],

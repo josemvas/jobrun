@@ -48,6 +48,14 @@
       "com"
    ],
 
+   "interpolationvars": [
+      "method",
+      "basis",
+      "auxis",
+      "charge",
+      "multiplicity"
+   ],
+
    "posargs": [
       "gjf|com"
    ],
