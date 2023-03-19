@@ -1,8 +1,8 @@
-# HF/3-21G opt
+# HF/$basis opt
 
-Interpolated charge and multiplicity
+Interpolated basis set
 
-$charge, $spin
+0, 1
  O     0.0000     0.0000     0.0000
  H     0.0000     0.7593     0.5960
  H     0.0000    -0.7593     0.5960

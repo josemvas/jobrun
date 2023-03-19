@@ -5,47 +5,47 @@
    "sbmtregex": ".*<([0-9]+)>.*",
    "statregex": "(.+)",
 
-   "jobname": "#BSUB -J '{}'",
-   "jobinfo": "#BSUB -P '{}'",
+   "jobname": "#BSUB -J '%name'",
+   "jobtype": "#BSUB -P '%type'",
 
    "logfiles": [
-      "#BSUB -o '{}/%J.out'",
-      "#BSUB -e '{}/%J.out'"
+      "#BSUB -o '%logdir/%J.out'",
+      "#BSUB -e '%logdir/%J.out'"
    ],
 
    "serial": [
-      "#BSUB -q '{queue}'",
+      "#BSUB -q '%queue'",
       "#BSUB -n '1'"
    ],
 
    "serialat": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -m '{hosts}'",
+      "#BSUB -q '%queue'",
+      "#BSUB -m '%hosts'",
       "#BSUB -n '1'"
    ],
 
    "singlehost": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
+      "#BSUB -q '%queue'",
+      "#BSUB -n '%nproc'",
       "#BSUB -R 'span[hosts=1]'"
    ],
 
    "singlehostat": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -q '%queue'",
+      "#BSUB -n '%nproc'",
+      "#BSUB -m '%hosts'"
    ],
 
    "multihost": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
-      "#BSUB -R 'span[hosts={nhost}]'"
+      "#BSUB -q '%queue'",
+      "#BSUB -n '%nproc'",
+      "#BSUB -R 'span[hosts=%nhost]'"
    ],
 
    "multihostat": [
-      "#BSUB -q '{queue}'",
-      "#BSUB -n '{nproc}'",
-      "#BSUB -m '{hosts}'"
+      "#BSUB -q '%queue'",
+      "#BSUB -n '%nproc'",
+      "#BSUB -m '%hosts'"
    ],
 
    "envars": {

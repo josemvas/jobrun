@@ -5,47 +5,47 @@
    "sbmtregex": ".* ([0-9]+)",
    "statregex": "(.+)",
 
-   "jobname": "#SBATCH -J '{}'",
-   "jobinfo": "#SBATCH --comment='{}'",
+   "jobname": "#SBATCH -J '%name'",
+   "jobtype": "#SBATCH --comment='%type'",
 
    "logfiles": [
-       "#SBATCH -o '{}/%A.out'",
-       "#SBATCH -e '{}/%A.out'"
+       "#SBATCH -o '%logdir/%A.out'",
+       "#SBATCH -e '%logdir/%A.out'"
    ],
 
    "serial": [
-       "#SBATCH -p '{queue}'",
+       "#SBATCH -p '%queue'",
        "#SBATCH -n '1'"
    ],
 
    "serialat": [
-       "#SBATCH -p '{queue}'",
-       "#SBATCH -w '{hosts}'",
+       "#SBATCH -p '%queue'",
+       "#SBATCH -w '%hosts'",
        "#SBATCH -n '1'"
    ],
 
    "singlehost": [
-       "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
+       "#SBATCH -p '%queue'",
+       "#SBATCH -n '%nproc'",
        "#SBATCH -N '1'"
    ],
 
    "singlehostat": [
-       "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -p '%queue'",
+       "#SBATCH -n '%nproc'",
+       "#SBATCH -w '%hosts'"
    ],
 
    "multihost": [
-       "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
-       "#SBATCH -N '{nhost}'"
+       "#SBATCH -p '%queue'",
+       "#SBATCH -n '%nproc'",
+       "#SBATCH -N '%nhost'"
    ],
 
    "multihostat": [
-       "#SBATCH -p '{queue}'",
-       "#SBATCH -n '{nproc}'",
-       "#SBATCH -w '{hosts}'"
+       "#SBATCH -p '%queue'",
+       "#SBATCH -n '%nproc'",
+       "#SBATCH -w '%hosts'"
    ],
 
    "envars": {

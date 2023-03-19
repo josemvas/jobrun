@@ -3,7 +3,7 @@ import string
 import shutil
 import fnmatch
 from clinterface import messages
-from .utils import FormatDict, deepjoin
+from .utils import deepjoin
 
 def file_except_info(exception, path):
     if isinstance(exception, IsADirectoryError):
@@ -154,20 +154,3 @@ def pathsplit(path):
         return componentlist
     else:
         return []
-
-def dirbranches(trunk, componentlist, dirtree):
-    try:
-        trunk.assertdir()
-    except Exception as e:
-        file_except_info(e, trunk)
-        raise SystemExit
-    if componentlist:
-        formatdict = FormatDict()
-        component = componentlist.pop(0).format_map(formatdict)
-        if formatdict.missing_keys:
-            branches = trunk.glob(component.format_map(FormatDict('*')))
-            for branch in branches:
-                dirtree[branch] = {}
-                dirbranches(trunk/branch, componentlist, dirtree[branch])
-        else:
-            dirbranches(trunk/component, componentlist, dirtree)

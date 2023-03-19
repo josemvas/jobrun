@@ -18,67 +18,88 @@ class AttrDict(OrderedDict):
     def __getattr__(self, name):
         if not name.startswith('_'):
             return self[name]
-        super(AttrDict, self).__getattr__(name)
+        super().__getattr__(name)
     def __setattr__(self, name, value):
         if not name.startswith('_'):
             self[name] = value
         else:
-            super(AttrDict, self).__setattr__(name, value)
+            super().__setattr__(name, value)
 
 # This class is used to interpolate format strings without raising key errors
 # Missing keys are logged in the missing_keys attribute
 # Default value can be set at initiation
-class FormatDict(dict):
+class DefaultDict(dict):
     def __init__(self, default=None):
         self.missing_keys = []
-        self.__default = default
+        self.__default__ = default
     def __missing__(self, key):
         self.missing_keys.append(key)
-        if self.__default:
-            return self.__default
-        else:
-            return '{' + key + '}'
+        return self.__default__
+
+class ConfTemplate(Template):
+    delimiter = '%'
+    idpattern = r'[a-z][a-z0-9]*'
+
+class GroupTemplate(Template):
+    delimiter = '%'
+    idpattern = r'[0-9]+'
+
+class PrefixTemplate(Template):
+    delimiter = '%'
+    idpattern = r'[a-z0-9]+'
 
 class _(Template):
     def __str__(self):
         return(self.safe_substitute())
 
+def template_substitute(template, keydict, anchor):
+    class InputTemplate(Template):
+        delimiter = anchor
+        idpattern = r'[a-z0-9]+'
+    return InputTemplate(template).substitute(keydict)
+
+def template_parse(template_str, s):
+    """Match s against the given format string, return dict of matches.
+
+    We assume all of the arguments in format string are named keyword arguments (i.e. no {} or
+    {:0.2f}). We also assume that all chars are allowed in each keyword argument, so separators
+    need to be present which aren't present in the keyword arguments (i.e. '{one}{two}' won't work
+    reliably as a format string but '{one}-{two}' will if the hyphen isn't used in {one} or {two}).
+
+    We raise if the format string does not match s.
+
+    Example:
+    fs = '{test}-{flight}-{go}'
+    s = fs.format('first', 'second', 'third')
+    template_parse(fs, s) -> {'test': 'first', 'flight': 'second', 'go': 'third'}
+    """
+
+    # First split on any keyword arguments, note that the names of keyword arguments will be in the
+    # 1st, 3rd, ... positions in this list
+    tokens = re.split(r'%([_a-z][_a-z0-9]*)', template_str, flags=re.IGNORECASE)
+    keywords = tokens[1::2]
+
+    # Now replace keyword arguments with named groups matching them. We also escape between keyword
+    # arguments so we support meta-characters there. Re-join tokens to form our regexp pattern
+    tokens[1::2] = map(u'(?P<{}>.*)'.format, keywords)
+    tokens[0::2] = map(re.escape, tokens[0::2])
+    pattern = ''.join(tokens)
+
+    # Use our pattern to match the given string, raise if it doesn't match
+    matches = re.match(pattern, s)
+    if not matches:
+        raise Exception("Format string did not match")
+
+    # Return a dict with all of our keywords and their values
+    return {x: matches.group(x) for x in keywords}
+
 def format_parse(fmtstr, text):
     regexp = ''
     for lit, name, spec, conv in Formatter().parse(fmtstr):
-        regexp += lit + '(?P<' + name + '>[a-zA-Z0-9_]+)'
-    match = re.fullmatch(regexp, text)
+        if name:
+            regexp += lit + '(?P<{}>[_a-z0-9]+)'.format(name)
+    match = re.fullmatch(regexp, text, re.IGNORECASE)
     return match.groupdict()
-
-def get_format_keys(fmtstr):
-    return [i[1] for i in Formatter().parse(fmtstr) if i[1] is not None]
-
-def interpolate(template, anchor, formlist=[], formdict={}):
-    class DictTemplate(Template):
-        delimiter = anchor
-        idpattern = r'[a-z][a-z0-9]*'
-    class ListTemplate(Template):
-        delimiter = anchor
-        idpattern = r'[0-9]+'
-    class DualTemplate(Template):
-        delimiter = anchor
-        idpattern = r'([0-9]+|[a-z][a-z0-9]*)'
-#    if isinstance(formlist, (tuple, list)):
-#        if isinstance(formdict, dict):
-#            return DualTemplate(template).substitute(FormatDict()).format('', *formlist, **formdict)
-#        elif formdict is None:
-#            return ListTemplate(template).substitute(FormatDict()).format('', *formlist)
-#    elif formlist is None:
-#        if isinstance(formdict, dict):
-#            return DictTemplate(template).substitute(FormatDict()).format(**formdict)
-#        elif formdict is None:
-#            return None
-#    raise TypeError()
-    tpldict = {}
-    tpldict.update(formdict)
-    for idx, item in enumerate(formlist):
-        tpldict[idx] = item
-    return DictTemplate(template).substitute(tpldict)
 
 def deepjoin(nestedlist, nextseparators, pastseparators=[]):
     itemlist = []

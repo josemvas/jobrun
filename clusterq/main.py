@@ -5,9 +5,9 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
-from .fileutils import AbsPath, pathsplit, pathjoin, dirbranches, file_except_info
+from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
 from .shared import names, nodes, paths, environ, iospecs, configs, options, remoteargs
-from .utils import AttrDict, FormatDict, natsorted as sorted, o, p, q, _
+from .utils import AttrDict, DefaultDict, ConfTemplate, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
 
 class ArgList:
@@ -52,11 +52,12 @@ class ArgList:
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure(q(path.name), 'no es un archivo de entrada de', configs.iospec)
+                messages.failure(q(path.name), 'no es un archivo de entrada de', configs.specname)
                 return next(self)
-        matching = self.filter.fullmatch(inputname)
-        if matching:
-            return parentdir, inputname, matching.groups()
+        matched = self.filter.fullmatch(inputname)
+        if matched:
+            filtergroups = {str(i): x for i, x in enumerate(matched.groups())}
+            return parentdir, inputname, filtergroups
         else:
             return next(self)
 
@@ -70,14 +71,12 @@ class ListOptions(Action):
             print_tree(tuple(configs.versions.keys()), [default], level=1)
         for path in configs.parameterpaths:
             dirtree = {}
-            formatdict = FormatDict()
-            formatdict.update(names)
-            parts = pathsplit(path.format_map(formatdict))
+            parts = pathsplit(ConfTemplate(path).safe_substitute(names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                formatdict = FormatDict()
-                path.format_map(formatdict)
-                defaults = [configs.defaults.parameterkeys.get(i, None) for i in formatdict.missing_keys]
+                defaultdict = DefaultDict()
+                ConfTemplate(path).substitute(defaultdict)
+                defaults = [configs.defaults.parameterkeys.get(i, None) for i in defaultdict.missing_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
                 print_tree(dirtree, defaults, level=1)
         sys.exit()
@@ -95,6 +94,19 @@ class AppendPath(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
 
+def dirbranches(trunk, componentlist, dirtree):
+    trunk.assertdir()
+    if componentlist:
+        defaultdict = DefaultDict()
+        component = ConfTemplate(componentlist.pop(0)).substitute(defaultdict)
+        if defaultdict.missing_keys:
+            branches = trunk.glob(ConfTemplate(component).substitute(DefaultDict('*')))
+            for branch in branches:
+                dirtree[branch] = {}
+                dirbranches(trunk/branch, componentlist, dirtree[branch])
+        else:
+            dirbranches(trunk/component, componentlist, dirtree)
+
 try:
 
     parser = ArgumentParser(add_help=False)
@@ -109,7 +121,7 @@ try:
     configs.merge(readspec(pathjoin(paths.confdir, 'config.json')))
     configs.merge(readspec(pathjoin(paths.moduledir, 'schedulers', configs.scheduler, 'config.json')))
     configs.merge(readspec(pathjoin(paths.confdir, 'packages', names.command, 'config.json')))
-    iospecs.merge(readspec(pathjoin(paths.moduledir, 'iospecs', configs.iospec, 'iospec.json')))
+    iospecs.merge(readspec(pathjoin(paths.moduledir, 'iospecs', configs.specname, 'iospec.json')))
 
     userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
@@ -141,26 +153,31 @@ try:
         nodes.head = names.host
 
     parameterpaths = []
-    foundparameterkeys = set()
-    formatdict = FormatDict()
-    formatdict.update(names)
 
     for paramset in iospecs.parametersets:
         try:
             parampath = configs.parameterpaths[paramset]
         except KeyError:
-            messages.error('No se definió la ruta al conjunto de parámetros', paramset)
+            messages.error(_('No se definió la ruta al conjunto de parámetros $name').substitute(name=paramset))
         if not parampath:
             messages.error(_('La ruta al conjunto de parámetros $name está vacía').substitute(name=paramset))
-        try:
-            parameterpaths.append(parampath.format_map(formatdict))
-        except ValueError as e:
-            messages.error('Hay variables de interpolación inválidas en la ruta', parampath, var=e.args[0])
-        foundparameterkeys.update(formatdict.missing_keys)
+        parameterpaths.append(parampath)
 
-    for key in foundparameterkeys:
+    foundparamkeys = set()
+    defaultdict = DefaultDict()
+    defaultdict.update(names)
+
+    for parampath in parameterpaths:
+        try:
+            ConfTemplate(parampath).substitute(defaultdict)
+        except ValueError as e:
+            messages.error(_('Hay variables de interpolación inválidas en la ruta $path').substitute(path=parampath), var=e.args[0])
+        else:
+            foundparamkeys.update(defaultdict.missing_keys)
+
+    for key in foundparamkeys:
         if key not in iospecs.parameterkeys:
-            messages.error('Hay variables de interpolación inválidas en las rutas de parámetros')
+            messages.error('Hay variables de interpolación sin definir en las rutas de parámetros')
 
     # Replace parameter path dict with a list for easier handling
     configs.parameterpaths = parameterpaths
@@ -206,7 +223,7 @@ try:
     group4 = parser.add_argument_group('Conjuntos de parámetros')
     group4.name = 'parameterkeys'
     group4.remote = True
-    for key in foundparameterkeys:
+    for key in foundparamkeys:
         group4.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Seleccionar el conjunto SETNAME de parámetros.')
 
     group8 = parser.add_argument_group('Manipulación de argumentos')
@@ -225,7 +242,6 @@ try:
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=SUPPRESS, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('--prefix', metavar='PREFIX', default=SUPPRESS, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group5.add_argument('--suffix', metavar='SUFFIX', default=SUPPRESS, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     group5.add_argument('-a', '--anchor', metavar='CHARACTER', default='$', help='Usar el caracter CHARACTER como delimitador de las variables de interpolación en los archivos de entrada.')
 
     group6 = parser.add_argument_group('Archivos reutilizables')
