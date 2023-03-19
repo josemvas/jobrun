@@ -6,7 +6,7 @@ from clinterface import messages, prompts
 from .queue import submitjob, getjobstate
 from .utils import AttrDict, DefaultDict, IdentityList, ConfTemplate, GroupTemplate, PrefixTemplate
 from .utils import _, o, p, q, Q, template_substitute, template_parse, natsorted as sorted
-from .shared import names, nodes, paths, configs, iospecs, options, remoteargs, environ, wrappers
+from .shared import names, nodes, paths, config, iospec, options, remoteargs, environ, wrappers
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
@@ -68,7 +68,7 @@ def initialize():
 
     options.interpolationdict = {}
 
-    for key in iospecs.interpolationvars:
+    for key in iospec.interpolationvars:
         try:
             options.interpolationdict[key] = options.interpolation[key]
         except KeyError:
@@ -112,23 +112,23 @@ def initialize():
                 messages.error('Se debe especificar un prefijo para interpolar sin archivo coordenadas')
 
     try:
-        configs.delay = float(configs.delay)
+        config.delay = float(config.delay)
     except ValueError:
         messages.error('El tiempo de espera debe ser un número', conf='delay')
     except AttributeError:
-        configs.delay = 0
+        config.delay = 0
     
-    if not 'scratch' in configs.defaults:
+    if not 'scratch' in config.defaults:
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
         settings.workdir = options.common.scratch / '$jobid'
     else:
-        settings.workdir = AbsPath(ConfTemplate(configs.defaults.scratch).substitute(names)) / '$jobid'
+        settings.workdir = AbsPath(ConfTemplate(config.defaults.scratch).substitute(names)) / '$jobid'
 
     if 'queue' not in options.common:
-        if 'queue' in configs.defaults:
-            options.common.queue = configs.defaults.queue
+        if 'queue' in config.defaults:
+            options.common.queue = config.defaults.queue
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
@@ -136,24 +136,24 @@ def initialize():
         if '/' in options.parameterkeys[key]:
             messages.error(options.parameterkeys[key], 'no puede ser una ruta', option=key)
 
-    if 'mpilaunch' in iospecs:
-        try: iospecs.mpilaunch = booleans[iospecs.mpilaunch]
+    if 'mpilaunch' in iospec:
+        try: iospec.mpilaunch = booleans[iospec.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
-    if not iospecs.filekeys:
+    if not iospec.filekeys:
         messages.error('La lista de archivos del programa no existe o está vacía', spec='filekeys')
     
-    if iospecs.inputfiles:
-        for key in iospecs.inputfiles:
-            if not key in iospecs.filekeys:
+    if iospec.inputfiles:
+        for key in iospec.inputfiles:
+            if not key in iospec.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='inputfiles')
     else:
         messages.error('La lista de archivos de entrada no existe o está vacía', spec='inputfiles')
     
-    if iospecs.outputfiles:
-        for key in iospecs.outputfiles:
-            if not key in iospecs.filekeys:
+    if iospec.outputfiles:
+        for key in iospec.outputfiles:
+            if not key in iospec.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
@@ -163,70 +163,70 @@ def initialize():
 
     ############ Local execution ###########
 
-    if 'jobtype' in configs:
-        script.header.append(ConfTemplate(configs.jobtype).substitute(type=configs.specname))
+    if 'jobtype' in config:
+        script.header.append(ConfTemplate(config.jobtype).substitute(type=config.specname))
 
     #TODO MPI support for Slurm
-    if iospecs.parallelib:
-        if iospecs.parallelib.lower() == 'none':
+    if iospec.parallelib:
+        if iospec.parallelib.lower() == 'none':
             if 'hosts' in options.common:
-                for item in configs.serialat:
+                for item in config.serialat:
                     script.header.append(ConfTemplate(item).substitute(options.common))
             else:
-                for item in configs.serial:
+                for item in config.serial:
                     script.header.append(ConfTemplate(item).substitute(options.common))
-        elif iospecs.parallelib.lower() == 'openmp':
+        elif iospec.parallelib.lower() == 'openmp':
             if 'hosts' in options.common:
-                for item in configs.singlehostat:
+                for item in config.singlehostat:
                     script.header.append(ConfTemplate(item).substitute(options.common))
             else:
-                for item in configs.singlehost:
+                for item in config.singlehost:
                     script.header.append(ConfTemplate(item).substitute(options.common))
             script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif iospecs.parallelib.lower() == 'standalone':
+        elif iospec.parallelib.lower() == 'standalone':
             if 'hosts' in options.common:
-                for item in configs.multihostat:
+                for item in config.multihostat:
                     script.header.append(ConfTemplate(item).substitute(options.common))
             else:
-                for item in configs.multihost:
+                for item in config.multihost:
                     script.header.append(ConfTemplate(item).substitute(options.common))
-        elif iospecs.parallelib.lower() in wrappers:
+        elif iospec.parallelib.lower() in wrappers:
             if 'hosts' in options.common:
-                for item in configs.multihostat:
+                for item in config.multihostat:
                     script.header.append(ConfTemplate(item).substitute(options.common))
             else:
-                for item in configs.multihost:
+                for item in config.multihost:
                     script.header.append(ConfTemplate(item).substitute(options.common))
-            script.main.append(ConfTemplate(configs.mpilauncher[iospecs.parallelib]).substitute(options.common))
+            script.main.append(ConfTemplate(config.mpilauncher[iospec.parallelib]).substitute(options.common))
         else:
-            messages.error('El tipo de paralelización', iospecs.parallelib, 'no está soportado', spec='parallelib')
+            messages.error('El tipo de paralelización', iospec.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
 
-    if not configs.versions:
+    if not config.versions:
         messages.error('La lista de versiones no existe o está vacía', spec='versions')
 
-    for version in configs.versions:
-        if not 'executable' in configs.versions[version]:
+    for version in config.versions:
+        if not 'executable' in config.versions[version]:
             messages.error('No se especificó el ejecutable', spec='versions[{}].executable'.format(version))
     
-    for version in configs.versions:
-        configs.versions[version].merge({'load':[], 'source':[], 'export':{}})
+    for version in config.versions:
+        config.versions[version].merge({'load':[], 'source':[], 'export':{}})
 
     selector.set_message('Seleccione una versión:')
-    selector.set_options(configs.versions.keys())
+    selector.set_options(config.versions.keys())
 
     if 'version' in options.common:
-        if options.common.version not in configs.versions:
+        if options.common.version not in config.versions:
             messages.error('La versión', options.common.version, 'no es válida', option='version')
         settings.version = options.common.version
-    elif 'version' in configs.defaults:
-        if not configs.defaults.version in configs.versions:
+    elif 'version' in config.defaults:
+        if not config.defaults.version in config.versions:
             messages.error('La versión establecida por defecto es inválida', spec='defaults.version')
         if settings.defaults:
-            settings.version = configs.defaults.version
+            settings.version = config.defaults.version
         else:
-            selector.set_single_default(configs.defaults.version)
+            selector.set_single_default(config.defaults.version)
             settings.version = selector.single_choice()
     else:
         settings.version = selector.single_choice()
@@ -237,11 +237,11 @@ def initialize():
     formatdict.update(names)
 
     if settings.defaults:
-        formatdict.update(configs.defaults.parameterkeys)
+        formatdict.update(config.defaults.parameterkeys)
 
     formatdict.update(options.parameterkeys)
 
-    for path in configs.parameterpaths:
+    for path in config.parameterpaths:
         componentlist = pathsplit(ConfTemplate(path).safe_substitute(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -262,77 +262,77 @@ def initialize():
 
     ############ End of interactive parameter selection ###########
 
-    for envar, value in configs.export.items() | configs.versions[settings.version].export.items():
+    for envar, value in config.export.items() | config.versions[settings.version].export.items():
         if value:
             script.setup.append('export {0}={1}'.format(envar, value))
         else:
             messages.error('El valor de la variable de entorno {} es nulo'.format(envar), spec='export')
 
-    for path in configs.source + configs.versions[settings.version].source:
+    for path in config.source + config.versions[settings.version].source:
         if path:
             script.setup.append('source {}'.format(AbsPath(ConfTemplate(path).substitute(names))))
         else:
             messages.error('La ruta al script de configuración es nula', spec='source')
 
-    if configs.load or configs.versions[settings.version].load:
+    if config.load or config.versions[settings.version].load:
         script.setup.append('module purge')
 
-    for module in configs.load + configs.versions[settings.version].load:
+    for module in config.load + config.versions[settings.version].load:
         if module:
             script.setup.append('module load {}'.format(module))
         else:
             messages.error('El nombre del módulo es nulo', spec='load')
 
     try:
-        script.main.append(AbsPath(ConfTemplate(configs.versions[settings.version].executable).substitute(names)))
+        script.main.append(AbsPath(ConfTemplate(config.versions[settings.version].executable).substitute(names)))
     except NotAbsolutePath:
-        script.main.append(configs.versions[settings.version].executable)
+        script.main.append(config.versions[settings.version].executable)
 
-    for path in configs.logfiles:
-        script.header.append(ConfTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfTemplate(configs.logdir).substitute(names)))))
+    for path in config.logfiles:
+        script.header.append(ConfTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfTemplate(config.logdir).substitute(names)))))
 
     script.setup.append("shopt -s nullglob extglob")
 
     script.setenv = '{}="{}"'.format
 
-    script.envars.extend(configs.envars.items())
+    script.envars.extend(config.envars.items())
     script.envars.extend((k + 'name', v) for k, v in names.items())
     script.envars.extend((k + 'node', v) for k, v in nodes.items())
-    script.envars.extend((k, iospecs.filekeys[v]) for k, v in iospecs.filevars.items())
+    script.envars.extend((k, iospec.filekeys[v]) for k, v in iospec.filevars.items())
 
     script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
     script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
     script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
 
-    for key in iospecs.optargs:
-        if not iospecs.optargs[key] in iospecs.filekeys:
+    for key in iospec.optargs:
+        if not iospec.optargs[key] in iospec.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
-        script.main.append('-{key} {val}'.format(key=key, val=iospecs.filekeys[iospecs.optargs[key]]))
+        script.main.append('-{key} {val}'.format(key=key, val=iospec.filekeys[iospec.optargs[key]]))
     
-    for item in iospecs.posargs:
+    for item in iospec.posargs:
         for key in item.split('|'):
-            if not key in iospecs.filekeys:
+            if not key in iospec.filekeys:
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
-        script.main.append('@' + p('|'.join(iospecs.filekeys[i] for i in item.split('|'))))
+        script.main.append('@' + p('|'.join(iospec.filekeys[i] for i in item.split('|'))))
     
-    if 'stdinfile' in iospecs:
+    if 'stdinfile' in iospec:
         try:
-            script.main.append('0<' + ' ' + iospecs.filekeys[iospecs.stdinfile])
+            script.main.append('0<' + ' ' + iospec.filekeys[iospec.stdinfile])
         except KeyError:
-            messages.error('La clave', q(iospecs.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
-    if 'stdoutfile' in iospecs:
+            messages.error('La clave', q(iospec.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
+    if 'stdoutfile' in iospec:
         try:
-            script.main.append('1>' + ' ' + iospecs.filekeys[iospecs.stdoutfile])
+            script.main.append('1>' + ' ' + iospec.filekeys[iospec.stdoutfile])
         except KeyError:
-            messages.error('La clave', q(iospecs.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
-    if 'stderror' in iospecs:
+            messages.error('La clave', q(iospec.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
+    if 'stderror' in iospec:
         try:
-            script.main.append('2>' + ' ' + iospecs.filekeys[iospecs.stderror])
+            script.main.append('2>' + ' ' + iospec.filekeys[iospec.stderror])
         except KeyError:
-            messages.error('La clave', q(iospecs.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
+            messages.error('La clave', q(iospec.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
-    if configs.filesync == 'local':
+    if config.filesync == 'local':
         script.makedir = 'mkdir -p -m 700 "{}"'.format
         script.removedir = 'rm -rf "{}"'.format
         if options.common.move:
@@ -341,7 +341,7 @@ def initialize():
             script.importfile = 'cp "{}" "{}"'.format
         script.importdir = 'cp -r "{}/." "{}"'.format
         script.exportfile = 'cp "{}" "{}"'.format
-    elif configs.filesync == 'remote':
+    elif config.filesync == 'remote':
         script.makedir = 'for host in ${{hosts[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hosts[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         if options.common.move:
@@ -350,7 +350,7 @@ def initialize():
             script.importfile = 'for host in ${{hosts[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.importdir = 'for host in ${{hosts[*]}}; do rsh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
         script.exportfile = 'rcp "{}" $headnode:"\'{}\'"'.format
-    elif configs.filesync == 'secure':
+    elif config.filesync == 'secure':
         script.makedir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         if options.common.move:
@@ -360,17 +360,17 @@ def initialize():
         script.importdir = 'for host in ${{hosts[*]}}; do ssh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
         script.exportfile = 'scp "{}" $headnode:"\'{}\'"'.format
     else:
-        messages.error('El método de copia', q(configs.filesync), 'no es válido', spec='filesync')
+        messages.error('El método de copia', q(config.filesync), 'no es válido', spec='filesync')
 
 
 def submit(parentdir, inputname, filtergroups):
 
     filestatus = {}
-    for key in iospecs.filekeys:
+    for key in iospec.filekeys:
         path = AbsPath(pathjoin(parentdir, (inputname, key)))
         filestatus[key] = path.isfile() or key in options.targetfiles
 
-    for conflict, message in iospecs.conflicts.items():
+    for conflict, message in iospec.conflicts.items():
         if BoolParser(conflict).evaluate(filestatus):
             messages.error(message, p(inputname))
 
@@ -394,11 +394,11 @@ def submit(parentdir, inputname, filtergroups):
             messages.failure('El directorio de salida debe ser distinto al directorio padre')
             return
         stagedir = outdir
-        for key in iospecs.inputfiles:
+        for key in iospec.inputfiles:
             srcpath = AbsPath(pathjoin(parentdir, (inputname, key)))
             destpath = pathjoin(stagedir, (jobname, key))
             if srcpath.isfile():
-                if 'interpolable' in iospecs and key in iospecs.interpolable:
+                if 'interpolable' in iospec and key in iospec.interpolable:
                     with open(srcpath, 'r') as f:
                         contents = f.read()
                         if options.interpolate:
@@ -430,8 +430,8 @@ def submit(parentdir, inputname, filtergroups):
 
     jobdir = AbsPath(pathjoin(stagedir, '.job'))
 
-    inputfileexts = ['.' + i for i in iospecs.inputfiles]
-    outputfileexts = ['.' + i for i in iospecs.outputfiles]
+    inputfileexts = ['.' + i for i in iospec.inputfiles]
+    outputfileexts = ['.' + i for i in iospec.outputfiles]
 
     if outdir.isdir():
         if jobdir.isdir():
@@ -444,7 +444,7 @@ def submit(parentdir, inputname, filtergroups):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in iospecs.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in iospec.outputfiles):
             completer.set_message(_('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir))
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
@@ -469,30 +469,30 @@ def submit(parentdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])))
+        targetfile.symlink(pathjoin(stagedir, (jobname, iospec.fileoptions[key])))
 
     if options.remote.host:
 
         reloutdir = os.path.relpath(outdir, paths.home)
         remotehome = pathjoin(options.remote.root, (names.user, names.host))
         remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))
-        remoteargs.switches.add('raw')
-        remoteargs.switches.add('job')
-        remoteargs.switches.add('move')
-        remoteargs.constants['cwd'] = pathjoin(remotetemp, reloutdir)
-        remoteargs.constants['out'] = pathjoin(remotehome, reloutdir)
+        remoteargs.flags.add('raw')
+        remoteargs.flags.add('job')
+        remoteargs.flags.add('move')
+        remoteargs.options['cwd'] = pathjoin(remotetemp, reloutdir)
+        remoteargs.options['out'] = pathjoin(remotehome, reloutdir)
         for key, value in options.parameterkeys.items():
-            remoteargs.constants[key] = GroupTemplate(value).substitute(filtergroups)
+            remoteargs.options[key] = GroupTemplate(value).substitute(filtergroups)
         filelist = []
-        for key in iospecs.filekeys:
+        for key in iospec.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(env + '=' + val for env, val in environ.items())
         arglist.append(names.command)
-        arglist.extend(o(opt) for opt in remoteargs.switches)
-        arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.constants.items())
-        arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.lists.items() for val in lst)
+        arglist.extend(o(opt) for opt in remoteargs.flags)
+        arglist.extend(o(opt, Q(val)) for opt, val in remoteargs.options.items())
+        arglist.extend(o(opt, Q(val)) for opt, lst in remoteargs.multoptions.items() for val in lst)
         arglist.append(jobname)
         if options.debug.dry_run:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
@@ -513,7 +513,7 @@ def submit(parentdir, inputname, filtergroups):
     formatdict.update(names)
 
     if settings.defaults:
-        for key, value in configs.defaults.parameterkeys.items():
+        for key, value in config.defaults.parameterkeys.items():
             try:
                 formatdict[key] = GroupTemplate(value).substitute(filtergroups)
             except ValueError:
@@ -529,7 +529,7 @@ def submit(parentdir, inputname, filtergroups):
         except KeyError:
             messages.error('Hay variables de interpolación sin definir en la opción', key)
 
-    for path in configs.parameterpaths:
+    for path in config.parameterpaths:
         componentlist = pathsplit(ConfTemplate(path).safe_substitute(formatdict))
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
@@ -546,12 +546,12 @@ def submit(parentdir, inputname, filtergroups):
     imports = []
     exports = []
 
-    for key in iospecs.inputfiles:
+    for key in iospec.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, iospecs.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, iospec.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (jobname, iospecs.fileoptions[key])), pathjoin(settings.workdir, iospecs.filekeys[iospecs.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (jobname, iospec.fileoptions[key])), pathjoin(settings.workdir, iospec.filekeys[iospec.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
@@ -561,8 +561,8 @@ def submit(parentdir, inputname, filtergroups):
         else:
             messages.error('La ruta de parámetros', path, 'no existe')
 
-    for key in iospecs.outputfiles:
-        exports.append(script.exportfile(pathjoin(settings.workdir, iospecs.filekeys[key]), pathjoin(outdir, (jobname, key))))
+    for key in iospec.outputfiles:
+        exports.append(script.exportfile(pathjoin(settings.workdir, iospec.filekeys[key]), pathjoin(outdir, (jobname, key))))
 
     try:
         jobdir.mkdir()
@@ -574,7 +574,7 @@ def submit(parentdir, inputname, filtergroups):
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash -x' + '\n')
-        f.write(ConfTemplate(configs.jobname).substitute(name=jobname) + '\n')
+        f.write(ConfTemplate(config.jobname).substitute(name=jobname) + '\n')
         f.write(''.join(i + '\n' for i in script.header))
         f.write(''.join(i + '\n' for i in script.setup))
         f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
@@ -582,18 +582,18 @@ def submit(parentdir, inputname, filtergroups):
         f.write(script.makedir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(settings.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in iospecs.prescript))
+        f.write(''.join(i + '\n' for i in iospec.prescript))
         f.write(' '.join(script.main) + '\n')
-        f.write(''.join(i + '\n' for i in iospecs.postscript))
+        f.write(''.join(i + '\n' for i in iospec.postscript))
         f.write(''.join(i + '\n' for i in exports))
         f.write(script.removedir(settings.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in configs.offscript))
+        f.write(''.join(i + '\n' for i in config.offscript))
 
     if options.debug.dry_run:
         messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
     else:
         try:
-            sleep(configs.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
+            sleep(config.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
         except (ValueError, FileNotFoundError) as e:
             pass
         try:

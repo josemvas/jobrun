@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
-from .shared import names, nodes, paths, environ, iospecs, configs, options, remoteargs
+from .shared import names, nodes, paths, environ, iospec, config, options, remoteargs
 from .utils import AttrDict, DefaultDict, ConfTemplate, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
 
@@ -32,7 +32,7 @@ class ArgList:
             raise StopIteration
         if options.common.job:
             parentdir = AbsPath(options.common.cwd)
-            for key in iospecs.inputfiles:
+            for key in iospec.inputfiles:
                 if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
                     inputname = self.current
                     break
@@ -47,12 +47,12 @@ class ArgList:
             except Exception as e:
                 file_except_info(e, path)
                 return next(self)
-            for key in iospecs.inputfiles:
+            for key in iospec.inputfiles:
                 if path.name.endswith('.' + key):
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure(q(path.name), 'no es un archivo de entrada de', configs.specname)
+                messages.failure(q(path.name), 'no es un archivo de entrada de', config.specname)
                 return next(self)
         matched = self.filter.fullmatch(inputname)
         if matched:
@@ -65,18 +65,18 @@ class ListOptions(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        if configs.versions:
+        if config.versions:
             print(_('Versiones disponibles:'))
-            default = configs.defaults.version if 'version' in configs.defaults else None
-            print_tree(tuple(configs.versions.keys()), [default], level=1)
-        for path in configs.parameterpaths:
+            default = config.defaults.version if 'version' in config.defaults else None
+            print_tree(tuple(config.versions.keys()), [default], level=1)
+        for path in config.parameterpaths:
             dirtree = {}
             parts = pathsplit(ConfTemplate(path).safe_substitute(names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
                 defaultdict = DefaultDict()
                 ConfTemplate(path).substitute(defaultdict)
-                defaults = [configs.defaults.parameterkeys.get(i, None) for i in defaultdict.missing_keys]
+                defaults = [config.defaults.parameterkeys.get(i, None) for i in defaultdict.missing_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
                 print_tree(dirtree, defaults, level=1)
         sys.exit()
@@ -118,45 +118,45 @@ try:
     names.command = os.path.basename(parsedargs.filepath)
     paths.moduledir = AbsPath(__file__).parent
 
-    configs.merge(readspec(pathjoin(paths.confdir, 'config.json')))
-    configs.merge(readspec(pathjoin(paths.moduledir, 'schedulers', configs.scheduler, 'config.json')))
-    configs.merge(readspec(pathjoin(paths.confdir, 'packages', names.command, 'config.json')))
-    iospecs.merge(readspec(pathjoin(paths.moduledir, 'iospecs', configs.specname, 'iospec.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'config.json')))
+    config.merge(readspec(pathjoin(paths.moduledir, 'schedulers', config.scheduler, 'config.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'packages', names.command, 'config.json')))
+    iospec.merge(readspec(pathjoin(paths.moduledir, 'iospecs', config.specname, 'iospec.json')))
 
     userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
     userpackageconf = pathjoin(userconfdir, names.command, 'packageconf.json')
     
     try:
-        configs.merge(readspec(userclusterconf))
+        config.merge(readspec(userclusterconf))
     except FileNotFoundError:
         pass
 
     try:
-        configs.merge(readspec(userpackageconf))
+        config.merge(readspec(userpackageconf))
     except FileNotFoundError:
         pass
     
     try:
-        names.display = configs.displayname
+        names.display = config.displayname
     except AttributeError:
         messages.error('No se definió el nombre del programa', key='displayname')
 
     try:
-        names.cluster = configs.clustername
+        names.cluster = config.clustername
     except AttributeError:
         messages.error('No se definió el nombre del clúster', key='clustername')
 
     try:
-        nodes.head = configs.headnode
+        nodes.head = config.headnode
     except AttributeError:
         nodes.head = names.host
 
     parameterpaths = []
 
-    for paramset in iospecs.parametersets:
+    for paramset in iospec.parametersets:
         try:
-            parampath = configs.parameterpaths[paramset]
+            parampath = config.parameterpaths[paramset]
         except KeyError:
             messages.error(_('No se definió la ruta al conjunto de parámetros $name').substitute(name=paramset))
         if not parampath:
@@ -176,11 +176,11 @@ try:
             foundparamkeys.update(defaultdict.missing_keys)
 
     for key in foundparamkeys:
-        if key not in iospecs.parameterkeys:
+        if key not in iospec.parameterkeys:
             messages.error('Hay variables de interpolación sin definir en las rutas de parámetros')
 
     # Replace parameter path dict with a list for easier handling
-    configs.parameterpaths = parameterpaths
+    config.parameterpaths = parameterpaths
 
     parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(names.display))
 
@@ -235,13 +235,13 @@ try:
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group5.add_argument('-a', '--anchor', metavar='CHARACTER', default='$', help='Usar el caracter CHARACTER como delimitador de las variables de interpolación en los archivos de entrada.')
-    for key in iospecs.interpolationvars:
+    for key in iospec.interpolationvars:
         group5.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
-    for key, value in iospecs.fileoptions.items():
+    for key, value in iospec.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')

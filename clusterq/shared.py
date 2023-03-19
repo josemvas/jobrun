@@ -9,20 +9,22 @@ from .utils import AttrDict
 
 class ArgGroups:
     def __init__(self):
-        self.__dict__['switches'] = set()
-        self.__dict__['constants'] = dict()
-        self.__dict__['lists'] = dict()
+        self.__dict__['flags'] = set()
+        self.__dict__['options'] = dict()
+        self.__dict__['multoptions'] = dict()
     def gather(self, options):
         if isinstance(options, AttrDict):
             for key, value in options.items():
                 if value is False:
                     pass
                 elif value is True:
-                    self.__dict__['switches'].add(key)
+                    self.__dict__['flags'].add(key)
+                elif isinstance(value, (int, float, str)):
+                    self.__dict__['options'].update({key:value})
                 elif isinstance(value, list):
-                    self.__dict__['lists'].update({key:value})
+                    self.__dict__['multoptions'].update({key:value})
                 else:
-                    self.__dict__['constants'].update({key:value})
+                    raise ValueError()
     def __repr__(self):
         return repr(self.__dict__)
 
@@ -32,7 +34,7 @@ wrappers = (
     'mpich',
 )
 
-configs = SpecDict({
+config = SpecDict({
     'load': [],
     'source': [],
     'export': {},
@@ -43,7 +45,7 @@ configs = SpecDict({
     'offscript': [],
 })
 
-iospecs = SpecDict({
+iospec = SpecDict({
     'conflicts': {},
     'filekeys': {},
     'filevars': {},
