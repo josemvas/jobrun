@@ -5,40 +5,36 @@
    "sbmtregex": "([0-9]+)\\.[^.]+",
    "statregex": ".*<job_state>([^<]+)</job_state>.*",
 
-   "jobname": "#PBS -N '%name'",
-
    "logfiles": [
       "#PBS -o '%logdir/%J.out'",
       "#PBS -e '%logdir/%J.out'"
    ],
 
+   "jobname": "#PBS -N '%jobname'",
+
+   "queue": "#PBS -q '%queue'",
+
    "serial": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=1:ppn=1'"
    ],
 
    "serialat": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=%hosts:ppn=1'"
    ],
 
    "singlehost": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=1:ppn=%nproc'"
    ],
 
    "singlehostat": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=%hosts:ppn=%nproc'"
    ],
 
    "multihost": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=%nhost:ppn=%nproc'"
    ],
 
    "multihostat": [
-      "#PBS -q '%queue'",
       "#PBS -l 'nodes=%hosts:ppn=%nproc'"
    ],
 

@@ -41,10 +41,8 @@ def geometry_block(coords):
 
 def initialize():
 
-    script.main = []
-    script.setup = []
-    script.header = []
-    script.envars = []
+    script.head = {}
+    script.body = []
 
     for key, path in options.targetfiles.items():
         if not path.isfile():
@@ -73,8 +71,8 @@ def initialize():
             options.interpolationdict[key] = options.interpolation[key]
         except KeyError:
             pass
-    for idx, value in enumerate(options.interpolation.posvars, start=1):
-        options.interpolationdict[str(idx)] = value
+    for i, var in enumerate(options.interpolation.posvars, start=1):
+        options.interpolationdict[str(i)] = var
 
     if options.interpolationdict or options.interpolation.mol or options.interpolation.trjmol:
         options.interpolate = True
@@ -163,41 +161,45 @@ def initialize():
 
     ############ Local execution ###########
 
+    script.head['jobname'] = None
+
     if 'jobtype' in config:
-        script.header.append(ConfTemplate(config.jobtype).substitute(type=config.specname))
+        script.head['jobtype'] = ConfTemplate(config.jobtype).substitute(jobtype=config.specname)
+
+    script.head['queue'] = ConfTemplate(config.queue).substitute(options.common)
 
     #TODO MPI support for Slurm
     if iospec.parallelib:
         if iospec.parallelib.lower() == 'none':
             if 'hosts' in options.common:
-                for item in config.serialat:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.serialat):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
-                for item in config.serial:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.serial):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
         elif iospec.parallelib.lower() == 'openmp':
             if 'hosts' in options.common:
-                for item in config.singlehostat:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.singlehostat):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
-                for item in config.singlehost:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
-            script.main.append('OMP_NUM_THREADS=' + str(options.common.nproc))
+                for i, item in enumerate(config.singlehost):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+            script.body.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif iospec.parallelib.lower() == 'standalone':
             if 'hosts' in options.common:
-                for item in config.multihostat:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.multihostat):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
-                for item in config.multihost:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.multihost):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
         elif iospec.parallelib.lower() in wrappers:
             if 'hosts' in options.common:
-                for item in config.multihostat:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
+                for i, item in enumerate(config.multihostat):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
-                for item in config.multihost:
-                    script.header.append(ConfTemplate(item).substitute(options.common))
-            script.main.append(ConfTemplate(config.mpilauncher[iospec.parallelib]).substitute(options.common))
+                for i, item in enumerate(config.multihost):
+                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+            script.body.append(ConfTemplate(config.mpilauncher[iospec.parallelib]).substitute(options.common))
         else:
             messages.error('El tipo de paralelización', iospec.parallelib, 'no está soportado', spec='parallelib')
     else:
@@ -273,72 +275,77 @@ def initialize():
 
     ############ End of interactive parameter selection ###########
 
-    for envar, value in config.export.items() | config.versions[settings.version].export.items():
-        if value:
-            script.setup.append('export {0}={1}'.format(envar, value))
+    try:
+        script.body.append(AbsPath(ConfTemplate(config.versions[settings.version].executable).substitute(names)))
+    except NotAbsolutePath:
+        script.body.append(config.versions[settings.version].executable)
+
+    for i, path in enumerate(config.logfiles):
+        script.head['log' + str(i)] = ConfTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfTemplate(config.logdir).substitute(names))))
+
+    script.head['shopt'] = "shopt -s nullglob extglob"
+
+    for key, val in config.export.items() | config.versions[settings.version].export.items():
+        if val:
+            script.head[key + 'var'] = 'export {}={}'.format(key, val)
         else:
             messages.error('El valor de la variable de entorno {} es nulo'.format(envar), spec='export')
 
-    for path in config.source + config.versions[settings.version].source:
+    for i, path in enumerate(config.source + config.versions[settings.version].source):
         if path:
-            script.setup.append('source {}'.format(AbsPath(ConfTemplate(path).substitute(names))))
+            script.head['source' + str(i)] = 'source {}'.format(AbsPath(ConfTemplate(path).substitute(names)))
         else:
             messages.error('La ruta al script de configuración es nula', spec='source')
 
     if config.load or config.versions[settings.version].load:
-        script.setup.append('module purge')
+        script.head['purge'] = 'module purge'
 
-    for module in config.load + config.versions[settings.version].load:
+    for i, module in enumerate(config.load + config.versions[settings.version].load):
         if module:
-            script.setup.append('module load {}'.format(module))
+            script.head['load' + str(i)] = 'module load {}'.format(module)
         else:
             messages.error('El nombre del módulo es nulo', spec='load')
 
-    try:
-        script.main.append(AbsPath(ConfTemplate(config.versions[settings.version].executable).substitute(names)))
-    except NotAbsolutePath:
-        script.main.append(config.versions[settings.version].executable)
+    for key, val in config.envars.items():
+        script.head[key + 'var'] = '{}="{}"'.format(key, val)
 
-    for path in config.logfiles:
-        script.header.append(ConfTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfTemplate(config.logdir).substitute(names)))))
+    for key, val in iospec.filevars.items():
+        script.head[key + 'file'] = '{}="{}"'.format(key, iospec.filekeys[val])
 
-    script.setup.append("shopt -s nullglob extglob")
+    for key, val in names.items():
+        script.head[key + 'name'] = '{}name="{}"'.format(key, val)
 
-    script.setenv = '{}="{}"'.format
+    for key, val in nodes.items():
+        script.head[key + 'node'] = '{}node="{}"'.format(key, val)
 
-    script.envars.extend(config.envars.items())
-    script.envars.extend((k + 'name', v) for k, v in names.items())
-    script.envars.extend((k + 'node', v) for k, v in nodes.items())
-    script.envars.extend((k, iospec.filekeys[v]) for k, v in iospec.filevars.items())
-
-    script.envars.append(("freeram", "$(free -m | tail -n+3 | head -1 | awk '{print $4}')"))
-    script.envars.append(("totalram", "$(free -m | tail -n+2 | head -1 | awk '{print $2}')"))
-    script.envars.append(("jobram", "$(($nproc*$totalram/$(nproc --all)))"))
+    script.head['freeram'] = "freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')"
+    script.head['totalram'] = "totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')"
+    script.head['jobram'] = "jobram=$(($nproc*$totalram/$(nproc --all)))"
 
     for key in iospec.optargs:
         if not iospec.optargs[key] in iospec.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
-        script.main.append('-{key} {val}'.format(key=key, val=iospec.filekeys[iospec.optargs[key]]))
+        script.body.append('-{key} {val}'.format(key=key, val=iospec.filekeys[iospec.optargs[key]]))
     
     for item in iospec.posargs:
         for key in item.split('|'):
             if not key in iospec.filekeys:
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
-        script.main.append('@' + p('|'.join(iospec.filekeys[i] for i in item.split('|'))))
+        script.body.append('@' + p('|'.join(iospec.filekeys[i] for i in item.split('|'))))
     
     if 'stdinfile' in iospec:
         try:
-            script.main.append('0<' + ' ' + iospec.filekeys[iospec.stdinfile])
+            script.body.append('0<' + ' ' + iospec.filekeys[iospec.stdinfile])
         except KeyError:
             messages.error('La clave', q(iospec.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
     if 'stdoutfile' in iospec:
         try:
-            script.main.append('1>' + ' ' + iospec.filekeys[iospec.stdoutfile])
+            script.body.append('1>' + ' ' + iospec.filekeys[iospec.stdoutfile])
         except KeyError:
             messages.error('La clave', q(iospec.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
     if 'stderror' in iospec:
         try:
-            script.main.append('2>' + ' ' + iospec.filekeys[iospec.stderror])
+            script.body.append('2>' + ' ' + iospec.filekeys[iospec.stderror])
         except KeyError:
             messages.error('La clave', q(iospec.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
@@ -385,10 +392,13 @@ def submit(parentdir, inputname, filtergroups):
         if BoolParser(conflict).evaluate(filestatus):
             messages.error(message, p(inputname))
 
-    jobname = inputname
-
     if 'prefix' in settings:
-        jobname = settings.prefix + '.' + jobname
+        jobname = settings.prefix + '.' + inputname
+    else:
+        jobname = inputname
+
+    script.head['jobname'] = ConfTemplate(config.jobname).substitute(jobname=jobname)
+    script.head['jobnamevar'] = 'jobname="{}"'.format(jobname)
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, cwd=parentdir)
@@ -456,7 +466,7 @@ def submit(parentdir, inputname, filtergroups):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, k)) for k in iospec.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, key)) for key in iospec.outputfiles):
             completer.set_message(_('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir))
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
@@ -493,8 +503,8 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.flags.add('move')
         remoteargs.options['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.options['out'] = pathjoin(remotehome, reloutdir)
-        for key, value in options.parametervars.items():
-            remoteargs.options[key] = value
+        for key, val in options.parametervars.items():
+            remoteargs.options[key] = val
         filelist = []
         for key in iospec.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
@@ -572,16 +582,12 @@ def submit(parentdir, inputname, filtergroups):
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash -x' + '\n')
-        f.write(ConfTemplate(config.jobname).substitute(name=jobname) + '\n')
-        f.write(''.join(i + '\n' for i in script.header))
-        f.write(''.join(i + '\n' for i in script.setup))
-        f.write(''.join(script.setenv(i, j) + '\n' for i, j in script.envars))
-        f.write(script.setenv('jobname', jobname) + '\n')
+        f.write(''.join(i + '\n' for i in script.head.values()))
         f.write(script.makedir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in iospec.prescript))
-        f.write(' '.join(script.main) + '\n')
+        f.write(' '.join(script.body) + '\n')
         f.write(''.join(i + '\n' for i in iospec.postscript))
         f.write(''.join(i + '\n' for i in exports))
         f.write(script.removedir(settings.workdir) + '\n')

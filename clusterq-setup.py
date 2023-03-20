@@ -1,7 +1,7 @@
 import sys
 assert sys.version_info >= (3, 3)
-from clusterq import console_scripts
+from clusterq import scripts
 try:
-    console_scripts.clusterq_config()
+    scripts.setup()
 except KeyboardInterrupt:
     print('No se completó la instalación')

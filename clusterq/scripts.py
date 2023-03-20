@@ -10,7 +10,7 @@ from .fileutils import AbsPath
 selector = prompts.Selector()
 completer = prompts.Completer()
 
-def clusterq_config():
+def setup():
 
     pythonlibs = []
     systemlibs = []
@@ -68,7 +68,7 @@ def clusterq_config():
     for package in packagelist:
         if package in selpackages:
             with open(bindir.append(package), 'w') as file:
-                file.write('#!/bin/sh -a\n')
+                file.write('#!/bin/sh\n')
                 if pythonlibs:
                     file.write('LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH\n'.format(os.pathsep.join(pythonlibs)))
                 file.write('exec env PYTHONPATH="{}" "{}" -m clusterq.main "{}" "$0" "$@"\n'.format(moduledir, sys.executable, confdir))

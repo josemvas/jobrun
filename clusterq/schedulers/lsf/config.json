@@ -5,45 +5,41 @@
    "sbmtregex": ".*<([0-9]+)>.*",
    "statregex": "(.+)",
 
-   "jobname": "#BSUB -J '%name'",
-   "jobtype": "#BSUB -P '%type'",
-
    "logfiles": [
       "#BSUB -o '%logdir/%J.out'",
       "#BSUB -e '%logdir/%J.out'"
    ],
 
+   "jobname": "#BSUB -J '%jobname'",
+   "jobtype": "#BSUB -P '%jobtype'",
+
+   "queue": "#BSUB -q '%queue'",
+
    "serial": [
-      "#BSUB -q '%queue'",
       "#BSUB -n '1'"
    ],
 
    "serialat": [
-      "#BSUB -q '%queue'",
       "#BSUB -m '%hosts'",
       "#BSUB -n '1'"
    ],
 
    "singlehost": [
-      "#BSUB -q '%queue'",
       "#BSUB -n '%nproc'",
       "#BSUB -R 'span[hosts=1]'"
    ],
 
    "singlehostat": [
-      "#BSUB -q '%queue'",
       "#BSUB -n '%nproc'",
       "#BSUB -m '%hosts'"
    ],
 
    "multihost": [
-      "#BSUB -q '%queue'",
       "#BSUB -n '%nproc'",
       "#BSUB -R 'span[hosts=%nhost]'"
    ],
 
    "multihostat": [
-      "#BSUB -q '%queue'",
       "#BSUB -n '%nproc'",
       "#BSUB -m '%hosts'"
    ],
