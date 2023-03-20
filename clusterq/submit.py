@@ -4,7 +4,7 @@ from time import time, sleep
 from subprocess import CalledProcessError, call, check_output
 from clinterface import messages, prompts
 from .queue import submitjob, getjobstate
-from .utils import AttrDict, DefaultDict, IdentityList, ConfTemplate, GroupTemplate, PrefixTemplate
+from .utils import AttrDict, GlobDict, IdentityList, ConfTemplate, FormatTemplate, PrefixTemplate
 from .utils import _, o, p, q, Q, template_substitute, template_parse, natsorted as sorted
 from .shared import names, nodes, paths, config, iospec, options, remoteargs, environ, wrappers
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
@@ -97,9 +97,9 @@ def initialize():
             try:
                 settings.prefix = PrefixTemplate(options.interpolation.prefix).substitute(options.interpolationdict)
             except ValueError as e:
-                messages.error('Hay variables de interpolación inválidas en el prefijo', opt='--prefix', var=e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación inválidas').substitute(prefix=options.interpolation.prefix), e.args[0])
             except KeyError as e:
-                messages.error('Hay variables de interpolación sin definir en el prefijo', opt='--prefix', var=e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación indefinidas').substitute(prefix=options.interpolation.prefix), key=e.args[0])
         else:
             if options.interpolation.mol:
                 if len(options.interpolation.mol) == 1:
@@ -132,9 +132,9 @@ def initialize():
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
-    for key in options.parameterkeys:
-        if '/' in options.parameterkeys[key]:
-            messages.error(options.parameterkeys[key], 'no puede ser una ruta', option=key)
+    for key in options.parametervars:
+        if '/' in options.parametervars[key]:
+            messages.error(options.parametervars[key], 'no puede ser una ruta', option=key)
 
     if 'mpilaunch' in iospec:
         try: iospec.mpilaunch = booleans[iospec.mpilaunch]
@@ -231,15 +231,26 @@ def initialize():
     else:
         settings.version = selector.single_choice()
 
+    ############ Find parameter paths ############
+
+    config.parameterpaths = []
+
+    for paramset in iospec.parameters:
+        if paramset in config.parameters:
+            for path in config.parameters[paramset]:
+                config.parameterpaths.append(path)
+        else:
+            messages.error(_('No se definió la ruta al conjunto de parámetros $name').substitute(name=paramset))
+
     ############ Interactive parameter selection ###########
 
     formatdict = {}
     formatdict.update(names)
 
     if settings.defaults:
-        formatdict.update(config.defaults.parameterkeys)
+        formatdict.update(config.defaults.parametervars)
 
-    formatdict.update(options.parameterkeys)
+    formatdict.update(options.parametervars)
 
     for path in config.parameterpaths:
         componentlist = pathsplit(ConfTemplate(path).safe_substitute(formatdict))
@@ -251,9 +262,9 @@ def initialize():
             except KeyError:
                 if options:
                     selector.set_message('Seleccione un conjunto de parámetros:')
-                    selector.set_options(sorted(trunk.glob(ConfTemplate(component).substitute(DefaultDict('*')))))
+                    selector.set_options(sorted(trunk.glob(ConfTemplate(component).substitute(GlobDict()))))
                     choice = selector.single_choice()
-                    options.parameterkeys.update(template_parse(component, choice))
+                    options.parametervars.update(template_parse(component, choice))
                     trunk = trunk/choice
                 else:
                     messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
@@ -408,11 +419,12 @@ def submit(parentdir, inputname, filtergroups):
                                     options.interpolationdict,
                                     anchor=options.interpolation.anchor,
                                 )
+#                                print(interpolatedfiles[destpath])
                             except ValueError:
-                                messages.failure('Hay variables de interpolación inválidas en el archivo de entrada', pathjoin((inputname, key)))
+                                messages.failure(_('El archivo de entrada $file contiene variables de interpolación inválidas').substitute(file=pathjoin((inputname, key))), e.args[0])
                                 return
                             except KeyError as e:
-                                messages.failure('Hay variables de interpolación sin definir en el archivo de entrada', pathjoin((inputname, key)), p(e.args[0]))
+                                messages.failure(_('El archivo de entrada $file contiene variables de interpolación indefinidas').substitute(file=pathjoin((inputname, key))), key=e.args[0])
                                 return
                         else:
                             try:
@@ -481,8 +493,8 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.flags.add('move')
         remoteargs.options['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.options['out'] = pathjoin(remotehome, reloutdir)
-        for key, value in options.parameterkeys.items():
-            remoteargs.options[key] = GroupTemplate(value).substitute(filtergroups)
+        for key, value in options.parametervars.items():
+            remoteargs.options[key] = value
         filelist = []
         for key in iospec.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
@@ -511,35 +523,21 @@ def submit(parentdir, inputname, filtergroups):
 
     formatdict = {}
     formatdict.update(names)
-
-    if settings.defaults:
-        for key, value in config.defaults.parameterkeys.items():
-            try:
-                formatdict[key] = GroupTemplate(value).substitute(filtergroups)
-            except ValueError:
-                messages.error('Hay variables de interpolación inválidas en la opción por defecto', key)
-            except KeyError:
-                messages.error('Hay variables de interpolación sin definir en la opción por defecto', key)
-
-    for key, value in options.parameterkeys.items():
-        try:
-            formatdict[key] = GroupTemplate(value).substitute(filtergroups)
-        except ValueError:
-            messages.error('Hay variables de interpolación inválidas en la opción', key)
-        except KeyError:
-            messages.error('Hay variables de interpolación sin definir en la opción', key)
+    formatdict.update(config.defaults.parametervars)
+    formatdict.update(options.parametervars)
 
     for path in config.parameterpaths:
-        componentlist = pathsplit(ConfTemplate(path).safe_substitute(formatdict))
+        try:
+            path = FormatTemplate(path).safe_substitute(formatdict)
+            path = FormatTemplate(path).substitute(filtergroups)
+        except ValueError as e:
+            messages.error(_('La ruta $path contiene variables de interpolación inválidas').substitute(path=path), e.args[0])
+        except KeyError as e:
+            messages.error(_('La ruta $path contiene variables de interpolación indefinidas').substitute(path=path), key=e.args[0])
+        componentlist = pathsplit(path)
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
             trunk.assertdir()
-            try:
-                ConfTemplate(component).substitute()
-            except ValueError:
-                messages.error('El componente', component, 'de la ruta', path, 'es inválido')
-            except KeyError:
-                messages.error('El componente', component, 'de la ruta', path, 'no está definido')
             trunk = trunk / component
         parameterpaths.append(trunk)
 

@@ -77,7 +77,7 @@
       "log"
    ],
 
-   "parametersets": [
+   "parameters": [
       "kernel"
    ]
 }

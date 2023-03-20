@@ -25,24 +25,25 @@ class AttrDict(OrderedDict):
         else:
             super().__setattr__(name, value)
 
-# This class is used to interpolate format strings without raising key errors
-# Missing keys are logged in the missing_keys attribute
-# Default value can be set at initiation
-class DefaultDict(dict):
-    def __init__(self, default=None):
-        self.missing_keys = []
-        self.__default__ = default
+# This class is used to interpolate format and template strings without raising key errors
+# Missing keys are logged in the logged_keys attribute
+class LogDict(dict):
+    def __init__(self):
+        self.logged_keys = []
     def __missing__(self, key):
-        self.missing_keys.append(key)
-        return self.__default__
+        self.logged_keys.append(key)
+
+class GlobDict(dict):
+    def __missing__(self, key):
+        return '*'
 
 class ConfTemplate(Template):
     delimiter = '%'
     idpattern = r'[a-z][a-z0-9]*'
 
-class GroupTemplate(Template):
+class FormatTemplate(Template):
     delimiter = '%'
-    idpattern = r'[0-9]+'
+    idpattern = r'[a-z0-9]+'
 
 class PrefixTemplate(Template):
     delimiter = '%'
@@ -53,10 +54,10 @@ class _(Template):
         return(self.safe_substitute())
 
 def template_substitute(template, keydict, anchor):
-    class InputTemplate(Template):
+    class CustomTemplate(Template):
         delimiter = anchor
         idpattern = r'[a-z0-9]+'
-    return InputTemplate(template).substitute(keydict)
+    return CustomTemplate(template).substitute(keydict)
 
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.

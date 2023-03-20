@@ -75,11 +75,11 @@
       "dftb_in.hsd"
    ],
 
-   "parametersets": [
+   "parameters": [
       "slako"
    ],
 
-   "parameterkeys": [
+   "parametervars": [
       "slako"
    ],
 

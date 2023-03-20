@@ -23,12 +23,12 @@
       "l": "dlg"
    },
 
-   "parametersets": [
+   "parameters": [
       "ligand",
       "receptor"
    ],
 
-   "parameterkeys": [
+   "parametervars": [
       "ligand",
       "receptor"
    ]

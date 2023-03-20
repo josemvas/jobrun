@@ -7,7 +7,7 @@ from clinterface import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
 from .shared import names, nodes, paths, environ, iospec, config, options, remoteargs
-from .utils import AttrDict, DefaultDict, ConfTemplate, natsorted as sorted, o, p, q, _
+from .utils import AttrDict, LogDict, GlobDict, ConfTemplate, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
 
 class ArgList:
@@ -74,9 +74,9 @@ class ListOptions(Action):
             parts = pathsplit(ConfTemplate(path).safe_substitute(names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                defaultdict = DefaultDict()
+                defaultdict = LogDict()
                 ConfTemplate(path).substitute(defaultdict)
-                defaults = [config.defaults.parameterkeys.get(i, None) for i in defaultdict.missing_keys]
+                defaults = [config.defaults.parametervars.get(i, None) for i in defaultdict.logged_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
                 print_tree(dirtree, defaults, level=1)
         sys.exit()
@@ -97,10 +97,10 @@ class AppendPath(Action):
 def dirbranches(trunk, componentlist, dirtree):
     trunk.assertdir()
     if componentlist:
-        defaultdict = DefaultDict()
+        defaultdict = LogDict()
         component = ConfTemplate(componentlist.pop(0)).substitute(defaultdict)
-        if defaultdict.missing_keys:
-            branches = trunk.glob(ConfTemplate(component).substitute(DefaultDict('*')))
+        if defaultdict.logged_keys:
+            branches = trunk.glob(ConfTemplate(component).substitute(GlobDict()))
             for branch in branches:
                 dirtree[branch] = {}
                 dirbranches(trunk/branch, componentlist, dirtree[branch])
@@ -152,36 +152,6 @@ try:
     except AttributeError:
         nodes.head = names.host
 
-    parameterpaths = []
-
-    for paramset in iospec.parametersets:
-        try:
-            parampath = config.parameterpaths[paramset]
-        except KeyError:
-            messages.error(_('No se definió la ruta al conjunto de parámetros $name').substitute(name=paramset))
-        if not parampath:
-            messages.error(_('La ruta al conjunto de parámetros $name está vacía').substitute(name=paramset))
-        parameterpaths.append(parampath)
-
-    foundparamkeys = set()
-    defaultdict = DefaultDict()
-    defaultdict.update(names)
-
-    for parampath in parameterpaths:
-        try:
-            ConfTemplate(parampath).substitute(defaultdict)
-        except ValueError as e:
-            messages.error(_('Hay variables de interpolación inválidas en la ruta $path').substitute(path=parampath), var=e.args[0])
-        else:
-            foundparamkeys.update(defaultdict.missing_keys)
-
-    for key in foundparamkeys:
-        if key not in iospec.parameterkeys:
-            messages.error('Hay variables de interpolación sin definir en las rutas de parámetros')
-
-    # Replace parameter path dict with a list for easier handling
-    config.parameterpaths = parameterpaths
-
     parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(names.display))
 
     group1 = parser.add_argument_group('Argumentos')
@@ -221,9 +191,9 @@ try:
     group3.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group4 = parser.add_argument_group('Conjuntos de parámetros')
-    group4.name = 'parameterkeys'
+    group4.name = 'parametervars'
     group4.remote = True
-    for key in foundparamkeys:
+    for key in iospec.parametervars:
         group4.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Seleccionar el conjunto SETNAME de parámetros.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
