@@ -233,17 +233,6 @@ def initialize():
     else:
         settings.version = selector.single_choice()
 
-    ############ Find parameter paths ############
-
-    config.parameterpaths = []
-
-    for paramset in iospec.parameters:
-        if paramset in config.parameters:
-            for path in config.parameters[paramset]:
-                config.parameterpaths.append(path)
-        else:
-            messages.error(_('No se definió la ruta al conjunto de parámetros $name').substitute(name=paramset))
-
     ############ Interactive parameter selection ###########
 
     formatdict = {}

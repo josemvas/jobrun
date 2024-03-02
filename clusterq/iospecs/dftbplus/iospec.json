@@ -75,10 +75,6 @@
       "dftb_in.hsd"
    ],
 
-   "parameters": [
-      "slako"
-   ],
-
    "parametervars": [
       "slako"
    ],
@@ -86,4 +82,5 @@
    "prescript": [
       "sed -ri 's,(^|[{;])\\s*OutputPrefix\\s*=\\s*\"[^\"]*\"\\s*($|[;}]),\\1\\2,I' $dftbin"
    ]
+
 }

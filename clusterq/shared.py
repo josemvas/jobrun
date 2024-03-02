@@ -40,7 +40,7 @@ config = SpecDict({
     'export': {},
     'versions': {},
     'defaults': {'parametervars': {}},
-    'parameters': {},
+    'parameterpaths': [],
     'onscript': [],
     'offscript': [],
 })
@@ -54,7 +54,6 @@ iospec = SpecDict({
     'outputfiles': [],
     'interpolable': [],
     'interpolationvars': [],
-    'parameters': [],
     'parametervars': [],
     'optargs': [],
     'posargs': [],

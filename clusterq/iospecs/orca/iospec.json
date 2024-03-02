@@ -44,4 +44,5 @@
    "prescript": [
       "sed -i '/\\s*%pal\\s\\s*end/Id;1i'\"%pal nprocs $nproc end\" $inp"
    ]
+
 }

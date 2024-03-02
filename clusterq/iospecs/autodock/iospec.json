@@ -23,13 +23,9 @@
       "l": "dlg"
    },
 
-   "parameters": [
-      "ligand",
-      "receptor"
-   ],
-
    "parametervars": [
       "ligand",
       "receptor"
    ]
+
 }
