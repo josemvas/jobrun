@@ -64,7 +64,7 @@
       "C"
    ],
 
-   "warn_errors": [
+   "known_errors": [
       "qstat: Unknown Job Id Error [0-9]+\\.[^.]+"
    ]
 

@@ -1,12 +1,13 @@
 import os
 import sys
-from time import time, sleep
+import time
+from string import Template
 from subprocess import CalledProcessError, call, check_output
 from clinterface import messages, prompts
 from .queue import submitjob, getjobstate
 from .utils import AttrDict, GlobDict, IdentityList, ConfTemplate, FormatTemplate, PrefixTemplate
 from .utils import _, o, p, q, Q, template_substitute, template_parse, natsorted as sorted
-from .shared import names, nodes, paths, config, iospec, options, remoteargs, environ, wrappers
+from .shared import names, nodes, paths, config, options, remoteargs, environ, wrappers
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
@@ -66,7 +67,7 @@ def initialize():
 
     options.interpolationdict = {}
 
-    for key in iospec.interpolationvars:
+    for key in config.interpolationvars:
         try:
             options.interpolationdict[key] = options.interpolation[key]
         except KeyError:
@@ -134,24 +135,24 @@ def initialize():
         if '/' in options.parametervars[key]:
             messages.error(options.parametervars[key], 'no puede ser una ruta', option=key)
 
-    if 'mpilaunch' in iospec:
-        try: iospec.mpilaunch = booleans[iospec.mpilaunch]
+    if 'mpilaunch' in config:
+        try: config.mpilaunch = booleans[config.mpilaunch]
         except KeyError:
             messages.error('Este valor requiere ser "True" o "False"', spec='mpilaunch')
     
-    if not iospec.filekeys:
+    if not config.filekeys:
         messages.error('La lista de archivos del programa no existe o está vacía', spec='filekeys')
     
-    if iospec.inputfiles:
-        for key in iospec.inputfiles:
-            if not key in iospec.filekeys:
+    if config.inputfiles:
+        for key in config.inputfiles:
+            if not key in config.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='inputfiles')
     else:
         messages.error('La lista de archivos de entrada no existe o está vacía', spec='inputfiles')
     
-    if iospec.outputfiles:
-        for key in iospec.outputfiles:
-            if not key in iospec.filekeys:
+    if config.outputfiles:
+        for key in config.outputfiles:
+            if not key in config.filekeys:
                 messages.error('La clave', q(key), 'no tiene asociado ningún archivo', spec='outputfiles')
     else:
         messages.error('La lista de archivos de salida no existe o está vacía', spec='outputfiles')
@@ -169,15 +170,15 @@ def initialize():
     script.head['queue'] = ConfTemplate(config.queue).substitute(options.common)
 
     #TODO MPI support for Slurm
-    if iospec.parallelib:
-        if iospec.parallelib.lower() == 'none':
+    if config.parallelib:
+        if config.parallelib.lower() == 'none':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.serialat):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.serial):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
-        elif iospec.parallelib.lower() == 'openmp':
+        elif config.parallelib.lower() == 'openmp':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.singlehostat):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
@@ -185,23 +186,23 @@ def initialize():
                 for i, item in enumerate(config.singlehost):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             script.body.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif iospec.parallelib.lower() == 'standalone':
+        elif config.parallelib.lower() == 'standalone':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
-        elif iospec.parallelib.lower() in wrappers:
+        elif config.parallelib.lower() in wrappers:
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
                     script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
-            script.body.append(ConfTemplate(config.mpilauncher[iospec.parallelib]).substitute(options.common))
+            script.body.append(ConfTemplate(config.mpilauncher[config.parallelib]).substitute(options.common))
         else:
-            messages.error('El tipo de paralelización', iospec.parallelib, 'no está soportado', spec='parallelib')
+            messages.error('El tipo de paralelización', config.parallelib, 'no está soportado', spec='parallelib')
     else:
         messages.error('No se especificó el tipo de paralelización del programa', spec='parallelib')
 
@@ -298,8 +299,8 @@ def initialize():
     for key, val in config.envars.items():
         script.head[key + 'var'] = '{}="{}"'.format(key, val)
 
-    for key, val in iospec.filevars.items():
-        script.head[key + 'file'] = '{}="{}"'.format(key, iospec.filekeys[val])
+    for key, val in config.filevars.items():
+        script.head[key + 'file'] = '{}="{}"'.format(key, config.filekeys[val])
 
     for key, val in names.items():
         script.head[key + 'name'] = '{}name="{}"'.format(key, val)
@@ -311,32 +312,32 @@ def initialize():
     script.head['totalram'] = "totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')"
     script.head['jobram'] = "jobram=$(($nproc*$totalram/$(nproc --all)))"
 
-    for key in iospec.optargs:
-        if not iospec.optargs[key] in iospec.filekeys:
+    for key in config.optargs:
+        if not config.optargs[key] in config.filekeys:
             messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='optargs')
-        script.body.append('-{key} {val}'.format(key=key, val=iospec.filekeys[iospec.optargs[key]]))
+        script.body.append('-{key} {val}'.format(key=key, val=config.filekeys[config.optargs[key]]))
     
-    for item in iospec.posargs:
+    for item in config.posargs:
         for key in item.split('|'):
-            if not key in iospec.filekeys:
+            if not key in config.filekeys:
                 messages.error('La clave', q(key) ,'no tiene asociado ningún archivo', spec='posargs')
-        script.body.append('@' + p('|'.join(iospec.filekeys[i] for i in item.split('|'))))
+        script.body.append('@' + p('|'.join(config.filekeys[i] for i in item.split('|'))))
     
-    if 'stdinfile' in iospec:
+    if 'stdinfile' in config:
         try:
-            script.body.append('0<' + ' ' + iospec.filekeys[iospec.stdinfile])
+            script.body.append('0<' + ' ' + config.filekeys[config.stdinfile])
         except KeyError:
-            messages.error('La clave', q(iospec.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
-    if 'stdoutfile' in iospec:
+            messages.error('La clave', q(config.stdinfile) ,'no tiene asociado ningún archivo', spec='stdinfile')
+    if 'stdoutfile' in config:
         try:
-            script.body.append('1>' + ' ' + iospec.filekeys[iospec.stdoutfile])
+            script.body.append('1>' + ' ' + config.filekeys[config.stdoutfile])
         except KeyError:
-            messages.error('La clave', q(iospec.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
-    if 'stderror' in iospec:
+            messages.error('La clave', q(config.stdoutfile) ,'no tiene asociado ningún archivo', spec='stdoutfile')
+    if 'stderror' in config:
         try:
-            script.body.append('2>' + ' ' + iospec.filekeys[iospec.stderror])
+            script.body.append('2>' + ' ' + config.filekeys[config.stderror])
         except KeyError:
-            messages.error('La clave', q(iospec.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
+            messages.error('La clave', q(config.stderror) ,'no tiene asociado ningún archivo', spec='stderror')
     
     script.chdir = 'cd "{}"'.format
     if config.filesync == 'local':
@@ -373,11 +374,11 @@ def initialize():
 def submit(parentdir, inputname, filtergroups):
 
     filestatus = {}
-    for key in iospec.filekeys:
+    for key in config.filekeys:
         path = AbsPath(pathjoin(parentdir, (inputname, key)))
         filestatus[key] = path.isfile() or key in options.targetfiles
 
-    for conflict, message in iospec.conflicts.items():
+    for conflict, message in config.conflicts.items():
         if BoolParser(conflict).evaluate(filestatus):
             messages.error(message, p(inputname))
 
@@ -404,11 +405,11 @@ def submit(parentdir, inputname, filtergroups):
             messages.failure('El directorio de salida debe ser distinto al directorio padre')
             return
         stagedir = outdir
-        for key in iospec.inputfiles:
+        for key in config.inputfiles:
             srcpath = AbsPath(pathjoin(parentdir, (inputname, key)))
             destpath = pathjoin(stagedir, (jobname, key))
             if srcpath.isfile():
-                if 'interpolable' in iospec and key in iospec.interpolable:
+                if 'interpolable' in config and key in config.interpolable:
                     with open(srcpath, 'r') as f:
                         contents = f.read()
                         if options.interpolate:
@@ -441,8 +442,8 @@ def submit(parentdir, inputname, filtergroups):
 
     jobdir = AbsPath(pathjoin(stagedir, '.job'))
 
-    inputfileexts = ['.' + i for i in iospec.inputfiles]
-    outputfileexts = ['.' + i for i in iospec.outputfiles]
+    inputfileexts = ['.' + i for i in config.inputfiles]
+    outputfileexts = ['.' + i for i in config.outputfiles]
 
     if outdir.isdir():
         if jobdir.isdir():
@@ -451,20 +452,20 @@ def submit(parentdir, inputname, filtergroups):
                     jobid = f.read()
                 jobstate = getjobstate(jobid)
                 if jobstate is not None:
-                    messages.failure(jobstate.format(id=jobid, name=jobname))
+                    messages.failure(Template(jobstate).substitute(name=jobname))
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, key)) for key in iospec.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, key)) for key in config.outputfiles):
             completer.set_message(_('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?').substitute(outdir=outdir))
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure('Cancelado por el usuario')
                 return
         for ext in outputfileexts:
-            outdir.append(jobname + ext).remove()
+            (outdir / (jobname + ext)).remove()
         if parentdir != outdir:
             for ext in inputfileexts:
-                outdir.append(jobname + ext).remove()
+                (outdir / (jobname + ext)).remove()
     else:
         try:
             outdir.makedirs()
@@ -473,14 +474,14 @@ def submit(parentdir, inputname, filtergroups):
             return
 
     for destpath, litfile in literalfiles.items():
-        litfile.copyfile(destpath)
+        litfile.copyas(destpath)
 
     for destpath, contents in interpolatedfiles.items():
         with open(destpath, 'w') as f:
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(pathjoin(stagedir, (jobname, iospec.fileoptions[key])))
+        targetfile.symlink(pathjoin(stagedir, (jobname, config.fileoptions[key])))
 
     if options.remote.host:
 
@@ -495,7 +496,7 @@ def submit(parentdir, inputname, filtergroups):
         for key, val in options.parametervars.items():
             remoteargs.options[key] = val
         filelist = []
-        for key in iospec.filekeys:
+        for key in config.filekeys:
             if os.path.isfile(pathjoin(outdir, (jobname, key))):
                 filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
@@ -543,12 +544,12 @@ def submit(parentdir, inputname, filtergroups):
     imports = []
     exports = []
 
-    for key in iospec.inputfiles:
+    for key in config.inputfiles:
         if AbsPath(pathjoin(parentdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, iospec.filekeys[key])))
+            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.workdir, config.filekeys[key])))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (jobname, iospec.fileoptions[key])), pathjoin(settings.workdir, iospec.filekeys[iospec.fileoptions[key]])))
+        imports.append(script.importfile(pathjoin(stagedir, (jobname, config.fileoptions[key])), pathjoin(settings.workdir, config.filekeys[config.fileoptions[key]])))
 
     for path in parameterpaths:
         if path.isfile():
@@ -558,8 +559,8 @@ def submit(parentdir, inputname, filtergroups):
         else:
             messages.error('La ruta de parámetros', path, 'no existe')
 
-    for key in iospec.outputfiles:
-        exports.append(script.exportfile(pathjoin(settings.workdir, iospec.filekeys[key]), pathjoin(outdir, (jobname, key))))
+    for key in config.outputfiles:
+        exports.append(script.exportfile(pathjoin(settings.workdir, config.filekeys[key]), pathjoin(outdir, (jobname, key))))
 
     try:
         jobdir.mkdir()
@@ -575,9 +576,9 @@ def submit(parentdir, inputname, filtergroups):
         f.write(script.makedir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(settings.workdir) + '\n')
-        f.write(''.join(i + '\n' for i in iospec.prescript))
+        f.write(''.join(i + '\n' for i in config.prescript))
         f.write(' '.join(script.body) + '\n')
-        f.write(''.join(i + '\n' for i in iospec.postscript))
+        f.write(''.join(i + '\n' for i in config.postscript))
         f.write(''.join(i + '\n' for i in exports))
         f.write(script.removedir(settings.workdir) + '\n')
         f.write(''.join(i + '\n' for i in config.offscript))
@@ -586,7 +587,7 @@ def submit(parentdir, inputname, filtergroups):
         messages.success('Se procesó el trabajo', q(jobname), 'y se generaron los archivos para el envío en', jobdir)
     else:
         try:
-            sleep(config.delay + options.common.delay + os.stat(paths.lock).st_mtime - time())
+            time.sleep(config.delay + options.common.delay + os.stat(paths.lock).st_mtime - time.time())
         except (ValueError, FileNotFoundError) as e:
             pass
         try:

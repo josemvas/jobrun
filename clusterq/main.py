@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
-from .shared import names, nodes, paths, environ, iospec, config, options, remoteargs
+from .shared import names, nodes, paths, environ, config, options, remoteargs
 from .utils import AttrDict, LogDict, GlobDict, ConfTemplate, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
 
@@ -32,7 +32,7 @@ class ArgList:
             raise StopIteration
         if options.common.job:
             parentdir = AbsPath(options.common.cwd)
-            for key in iospec.inputfiles:
+            for key in config.inputfiles:
                 if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
                     inputname = self.current
                     break
@@ -47,7 +47,7 @@ class ArgList:
             except Exception as e:
                 file_except_info(e, path)
                 return next(self)
-            for key in iospec.inputfiles:
+            for key in config.inputfiles:
                 if path.name.endswith('.' + key):
                     inputname = path.name[:-len('.' + key)]
                     break
@@ -116,12 +116,11 @@ try:
 
     paths.confdir = parsedargs.confdir
     names.command = os.path.basename(parsedargs.filepath)
-    paths.moduledir = AbsPath(__file__).parent
 
-    config.merge(readspec(pathjoin(paths.confdir, 'config.json')))
-    config.merge(readspec(pathjoin(paths.moduledir, 'schedulers', config.scheduler, 'config.json')))
-    config.merge(readspec(pathjoin(paths.confdir, 'packages', names.command, 'config.json')))
-    iospec.merge(readspec(pathjoin(paths.moduledir, 'iospecs', config.specname, 'iospec.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'environments', '__cluster__', 'config.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'environments', names.command, 'config.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'qspecs', config.scheduler, 'config.json')))
+    config.merge(readspec(pathjoin(paths.confdir, 'pspecs', config.specname, 'config.json')))
 
     userconfdir = pathjoin(paths.home, '.clusterq')
     userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
@@ -193,7 +192,7 @@ try:
     group4 = parser.add_argument_group('Conjuntos de parámetros')
     group4.name = 'parametervars'
     group4.remote = True
-    for key in iospec.parametervars:
+    for key in config.parametervars:
         group4.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Seleccionar el conjunto SETNAME de parámetros.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
@@ -205,13 +204,13 @@ try:
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     group5.add_argument('-a', '--anchor', metavar='CHARACTER', default='$', help='Usar el caracter CHARACTER como delimitador de las variables de interpolación en los archivos de entrada.')
-    for key in iospec.interpolationvars:
+    for key in config.interpolationvars:
         group5.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     group6.remote = False
-    for key, value in iospec.fileoptions.items():
+    for key, value in config.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')

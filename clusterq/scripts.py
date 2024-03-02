@@ -12,11 +12,11 @@ completer = prompts.Completer()
 
 def setup():
 
-    pythonlibs = []
-    systemlibs = []
-    packagelist = []
-    packagenames = {}
+    pythonlibs = set()
+    systemlibs = set()
+    packages = []
     enabledpackages = []
+    packagenames = {}
 
     mainscript = 'clusterq-submit'
     moduledir = AbsPath(__file__).parent
@@ -31,33 +31,44 @@ def setup():
         messages.error('El directorio de configuración no existe')
 
     bindir.mkdir()
+    (confdir/'qspecs').mkdir()
+    (confdir/'pspecs').mkdir()
+
+    for specdir in (moduledir/'qspecs').listdir():
+        (confdir/'qspecs'/specdir).mkdir()
+        (moduledir/'qspecs'/specdir/'config.json').copyto(confdir/'qspecs'/specdir)
+
+    for specdir in (moduledir/'pspecs').listdir():
+        (confdir/'pspecs'/specdir).mkdir()
+        (moduledir/'pspecs'/specdir/'config.json').copyto(confdir/'pspecs'/specdir)
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
         if match and match.group(1) not in systemlibs:
-            systemlibs.append(match.group(1))
+            systemlibs.add(match.group(1))
 
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
             library = os.path.dirname(match.group(1))
             if library not in systemlibs:
-                pythonlibs.append(library)
+                pythonlibs.add(library)
 
-    if confdir.append('packages').isdir():
-        for diritem in confdir.append('packages').listdir():
-            displayname = readspec(confdir.append('packages', diritem, 'config.json')).displayname
-            packagelist.append(diritem)
-            packagenames[diritem] = displayname
+    if (confdir/'environments').isdir():
+        for specdir in (confdir/'environments').listdir():
+            specs = readspec(confdir/'environments'/specdir/'config.json')
+            if 'displayname' in specs:
+                packages.append(specdir)
+                packagenames[specdir] = specs.displayname
 
     if bindir.isdir():
-        for diritem in bindir.listdir():
-            if bindir.append(diritem).isfile():
-                if diritem in packagelist:
-                    enabledpackages.append(diritem)
-                    bindir.append(diritem).remove()
+        for runfile in bindir.listdir():
+            if (bindir/runfile).isfile():
+                if runfile in packages:
+                    enabledpackages.append(runfile)
+                    (bindir/runfile).remove()
 
-    if packagelist:
+    if packages:
         selector.set_message('Seleccione los programas que desea activar/desactivar')
         selector.set_options(packagenames)
         selector.set_multiple_defaults(enabledpackages)
@@ -65,14 +76,14 @@ def setup():
     else:
         messages.warning('No hay ningún programa configurado todavía')
 
-    for package in packagelist:
+    for package in packages:
         if package in selpackages:
-            with open(bindir.append(package), 'w') as file:
+            with open(bindir/package, 'w') as file:
                 file.write('#!/bin/sh\n')
                 if pythonlibs:
                     file.write('LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH\n'.format(os.pathsep.join(pythonlibs)))
                 file.write('exec env PYTHONPATH="{}" "{}" -m clusterq.main "{}" "$0" "$@"\n'.format(moduledir, sys.executable, confdir))
-            bindir.append(package).chmod(0o755)
+            (bindir/package).chmod(0o755)
 
 #def configure_cluster():
 #
@@ -90,8 +101,8 @@ def setup():
 #        clusterkeys[clusterconf.clustername] = diritem
 #        defaultschedulers[diritem] = clusterconf.scheduler
 #
-#    for diritem in os.listdir(pathjoin(moduledir, 'schedulers')):
-#        scheduler = readspec(pathjoin(moduledir, 'schedulers', diritem, 'config.json')).scheduler
+#    for diritem in os.listdir(pathjoin(moduledir, 'qspecs')):
+#        scheduler = readspec(pathjoin(moduledir, 'qspecs', diritem, 'config.json')).scheduler
 #        schedulernames[diritem] = scheduler
 #        schedulerkeys[scheduler] = diritem
 #
@@ -113,7 +124,7 @@ def setup():
 #        selector.set_options(schedulernames)
 #        selector.set_single_default(schedulerkeys[clusterconf.scheduler])
 #        selscheduler = selector.single_choice()
-#        copyfile(pathjoin(moduledir, 'schedulers', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))
+#        copyfile(pathjoin(moduledir, 'qspecs', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))
 #    else:
 #        selector.set_message('¿Qué clúster desea configurar?')
 #        selector.set_options(clusternames)
@@ -123,4 +134,4 @@ def setup():
 #        selector.set_options(schedulernames)
 #        selector.set_single_default(selcluster)
 #        selscheduler = selector.single_choice()
-#        copyfile(pathjoin(moduledir, 'schedulers', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))
+#        copyfile(pathjoin(moduledir, 'qspecs', selscheduler, 'config.json'), pathjoin(confdir, 'config.json'))

@@ -62,15 +62,6 @@ class AbsPath(str):
         if os.path.isabs(right):
             raise ValueError('Can not join two absolute paths')
         return AbsPath(right, cwd=self)
-    def append(self, *args):
-        path = self
-        for i in args:
-            if not isinstance(i, str):
-                raise TypeError('Right operand must be a string')
-            if os.path.isabs(i):
-                raise ValueError('Can not join two absolute paths')
-            path = AbsPath(i, cwd=path)
-        return path
     @property
     def parent(self):
         return AbsPath(os.path.dirname(self))
@@ -104,7 +95,9 @@ class AbsPath(str):
                 pass
             else:
                 raise
-    def copyfile(self, dest):
+    def copyto(self, dest):
+        shutil.copy(self, dest)
+    def copyas(self, dest):
         shutil.copyfile(self, dest)
     def symlink(self, dest):
         try:

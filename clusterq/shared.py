@@ -43,9 +43,6 @@ config = SpecDict({
     'parameterpaths': [],
     'onscript': [],
     'offscript': [],
-})
-
-iospec = SpecDict({
     'conflicts': {},
     'filekeys': {},
     'filevars': {},
