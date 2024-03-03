@@ -1,6 +1,4 @@
-import os
 import re
-import sys
 from string import Template, Formatter
 from collections import OrderedDict
 
@@ -37,27 +35,21 @@ class GlobDict(dict):
     def __missing__(self, key):
         return '*'
 
-class ConfTemplate(Template):
+class ConfigTemplate(Template):
     delimiter = '%'
-    idpattern = r'[a-z][a-z0-9]*'
+    idpattern = r'[a-z][a-z0-9_]*'
 
-class FormatTemplate(Template):
+class FilterGroupTemplate(Template):
     delimiter = '%'
-    idpattern = r'[a-z0-9]+'
+    idpattern = r'[a-z][a-z0-9_]*'
 
-class PrefixTemplate(Template):
-    delimiter = '%'
-    idpattern = r'[a-z0-9]+'
+class InterpolationTemplate(Template):
+    delimiter = '$'
+    idpattern = r'[a-z][a-z0-9_]*'
 
 class _(Template):
     def __str__(self):
         return(self.safe_substitute())
-
-def template_substitute(template, keydict, anchor):
-    class CustomTemplate(Template):
-        delimiter = anchor
-        idpattern = r'[a-z0-9]+'
-    return CustomTemplate(template).substitute(keydict)
 
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.
@@ -77,7 +69,7 @@ def template_parse(template_str, s):
 
     # First split on any keyword arguments, note that the names of keyword arguments will be in the
     # 1st, 3rd, ... positions in this list
-    tokens = re.split(r'%([_a-z][_a-z0-9]*)', template_str, flags=re.IGNORECASE)
+    tokens = re.split(r'\$([a-z][a-z0-9_]*)', template_str, flags=re.IGNORECASE)
     keywords = tokens[1::2]
 
     # Now replace keyword arguments with named groups matching them. We also escape between keyword
@@ -148,11 +140,8 @@ def q(string):
 def Q(string):
     return "'{}'".format(string)
 
-def print_tree(options, defaults=[], level=0):
+def print_tree(options, level=0):
     for opt in sorted(options):
-        if defaults and opt == defaults[0]:
-            print(' '*level + opt + '  (default)')
-        else:
-            print(' '*level + opt)
+        print(' '*level + opt)
         if isinstance(options, dict):
             print_tree(options[opt], defaults[1:], level + 1)

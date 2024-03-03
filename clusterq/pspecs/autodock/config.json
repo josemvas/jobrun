@@ -23,7 +23,7 @@
       "l": "dlg"
    },
 
-   "parametervars": [
+   "optvars": [
       "ligand",
       "receptor"
    ]

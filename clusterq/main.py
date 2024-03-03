@@ -1,13 +1,12 @@
 import os
 import re
-import sys
 from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
 from .shared import names, nodes, paths, environ, config, options, remoteargs
-from .utils import AttrDict, LogDict, GlobDict, ConfTemplate, natsorted as sorted, o, p, q, _
+from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, natsorted as sorted, o, p, q, _
 from .submit import initialize, submit 
 
 class ArgList:
@@ -71,15 +70,12 @@ class ListOptions(Action):
             print_tree(tuple(config.versions.keys()), [default], level=1)
         for path in config.parameterpaths:
             dirtree = {}
-            parts = pathsplit(ConfTemplate(path).safe_substitute(names))
+            parts = pathsplit(ConfigTemplate(path).safe_substitute(names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                defaultdict = LogDict()
-                ConfTemplate(path).substitute(defaultdict)
-                defaults = [config.defaults.parametervars.get(i, None) for i in defaultdict.logged_keys]
                 print(_('Conjuntos de parámetros disponibles:'))
-                print_tree(dirtree, defaults, level=1)
-        sys.exit()
+                print_tree(dirtree, level=1)
+        raise SystemExit
 
 class StorePath(Action):
     def __init__(self, **kwargs):
@@ -98,9 +94,9 @@ def dirbranches(trunk, componentlist, dirtree):
     trunk.assertdir()
     if componentlist:
         defaultdict = LogDict()
-        component = ConfTemplate(componentlist.pop(0)).substitute(defaultdict)
+        component = ConfigTemplate(componentlist.pop(0)).substitute(defaultdict)
         if defaultdict.logged_keys:
-            branches = trunk.glob(ConfTemplate(component).substitute(GlobDict()))
+            branches = trunk.glob(ConfigTemplate(component).substitute(GlobDict()))
             for branch in branches:
                 dirtree[branch] = {}
                 dirbranches(trunk/branch, componentlist, dirtree[branch])
@@ -189,23 +185,24 @@ try:
     group3.remote = False 
     group3.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
-    group4 = parser.add_argument_group('Conjuntos de parámetros')
-    group4.name = 'parametervars'
-    group4.remote = True
-    for key in config.parametervars:
-        group4.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Seleccionar el conjunto SETNAME de parámetros.')
+    group4 = parser.add_argument_group('Manipulación de argumentos')
+    group4.name = 'arguments'
+    group4.remote = False 
+    sortgroup = group4.add_mutually_exclusive_group()
+    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
+    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
+    group4.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
-    group5.name = 'interpolation'
+    group5.name = 'variables'
     group5.remote = False
-    group5.add_argument('-x', '--var', dest='posvars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
     molgroup = group5.add_mutually_exclusive_group()
+    group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
-    group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
-    group5.add_argument('-a', '--anchor', metavar='CHARACTER', default='$', help='Usar el caracter CHARACTER como delimitador de las variables de interpolación en los archivos de entrada.')
-    for key in config.interpolationvars:
-        group5.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
+    group5.add_argument('-x', '--var', dest='posvars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
+    for key in config.optvars:
+        group5.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de configuración e interpolación.')
 
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
@@ -217,14 +214,6 @@ try:
     group7.name = 'debug'
     group7.remote = False
     group7.add_argument('--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
-
-    group8 = parser.add_argument_group('Manipulación de argumentos')
-    group8.name = 'arguments'
-    group8.remote = False 
-    sortgroup = group8.add_mutually_exclusive_group()
-    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
-    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
-    group8.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)

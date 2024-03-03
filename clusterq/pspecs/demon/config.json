@@ -44,7 +44,7 @@
       "inp"
    ],
 
-   "interpolationvars": [
+   "optvars": [
       "method",
       "basis",
       "auxis",

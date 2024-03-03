@@ -5,8 +5,9 @@ from string import Template
 from subprocess import CalledProcessError, call, check_output
 from clinterface import messages, prompts
 from .queue import submitjob, getjobstate
-from .utils import AttrDict, GlobDict, IdentityList, ConfTemplate, FormatTemplate, PrefixTemplate
-from .utils import _, o, p, q, Q, template_substitute, template_parse, natsorted as sorted
+from .utils import AttrDict, GlobDict, LogDict, ConfigTemplate, FilterGroupTemplate, InterpolationTemplate
+from .utils import _, o, p, q, Q, template_parse, natsorted as sorted
+from .shared import parameterdict, interpolationdict
 from .shared import names, nodes, paths, config, options, remoteargs, environ, wrappers
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
 from .parsing import BoolParser
@@ -65,47 +66,57 @@ def initialize():
     else:
         settings.defaults = True
 
-    options.interpolationdict = {}
-
-    for key in config.interpolationvars:
+    for key in config.optvars:
         try:
-            options.interpolationdict[key] = options.interpolation[key]
+            interpolationdict[key] = options.variables[key]
         except KeyError:
             pass
-    for i, var in enumerate(options.interpolation.posvars, start=1):
-        options.interpolationdict[str(i)] = var
 
-    if options.interpolationdict or options.interpolation.mol or options.interpolation.trjmol:
+    for i, var in enumerate(options.variables.posvars, start=1):
+        interpolationdict[str(i)] = var
+
+    if options.variables.mol or options.variables.trjmol or interpolationdict:
         options.interpolate = True
     else:
         options.interpolate = False
 
+    logdict = LogDict()
+
+    for path in config.parameterpaths:
+        InterpolationTemplate(path).substitute(logdict)
+
+    for key, value in interpolationdict.items():
+        if key in logdict.logged_keys:
+            if '/' in value:
+                messages.error('El nombre del conjunto de parámetros no es válido', key=key, value=value)
+            parameterdict.update({key: value})
+
     if options.interpolate:
-        if options.interpolation.mol:
-            for i, path in enumerate(options.interpolation.mol, start=1):
+        if options.variables.mol:
+            for i, path in enumerate(options.variables.mol, start=1):
                 path = AbsPath(path, cwd=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
-                options.interpolationdict['mol' + str(i)] = geometry_block(coords)
-        elif options.interpolation.trjmol:
-            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
+                interpolationdict['mol' + str(i)] = geometry_block(coords)
+        elif options.variables.trjmol:
+            path = AbsPath(options.variables.trjmol, cwd=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
-                options.interpolationdict['mol' + str(i)] = geometry_block(coords)
-        if options.interpolation.prefix:
+                interpolationdict['mol' + str(i)] = geometry_block(coords)
+        if options.variables.prefix:
             try:
-                settings.prefix = PrefixTemplate(options.interpolation.prefix).substitute(options.interpolationdict)
+                settings.prefix = InterpolationTemplate(options.variables.prefix).substitute(interpolationdict)
             except ValueError as e:
-                messages.error(_('El prefijo $prefix contiene variables de interpolación inválidas').substitute(prefix=options.interpolation.prefix), e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación inválidas').substitute(prefix=options.variables.prefix), key=e.args[0])
             except KeyError as e:
-                messages.error(_('El prefijo $prefix contiene variables de interpolación indefinidas').substitute(prefix=options.interpolation.prefix), key=e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación indefinidas').substitute(prefix=options.variables.prefix), key=e.args[0])
         else:
-            if options.interpolation.mol:
-                if len(options.interpolation.mol) == 1:
+            if options.variables.mol:
+                if len(options.variables.mol) == 1:
                     settings.prefix = molprefix
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
-            elif options.interpolation.trjmol:
+            elif options.variables.trjmol:
                 settings.prefix = molprefix
             else:
                 messages.error('Se debe especificar un prefijo para interpolar sin archivo coordenadas')
@@ -123,7 +134,7 @@ def initialize():
     if 'scratch' in options.common:
         settings.workdir = options.common.scratch / '$jobid'
     else:
-        settings.workdir = AbsPath(ConfTemplate(config.defaults.scratch).substitute(names)) / '$jobid'
+        settings.workdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names)) / '$jobid'
 
     if 'queue' not in options.common:
         if 'queue' in config.defaults:
@@ -131,10 +142,6 @@ def initialize():
         else:
             messages.error('Debe especificar la cola a la que desea enviar el trabajo')
     
-    for key in options.parametervars:
-        if '/' in options.parametervars[key]:
-            messages.error(options.parametervars[key], 'no puede ser una ruta', option=key)
-
     if 'mpilaunch' in config:
         try: config.mpilaunch = booleans[config.mpilaunch]
         except KeyError:
@@ -165,42 +172,42 @@ def initialize():
     script.head['jobname'] = None
 
     if 'jobtype' in config:
-        script.head['jobtype'] = ConfTemplate(config.jobtype).substitute(jobtype=config.specname)
+        script.head['jobtype'] = ConfigTemplate(config.jobtype).substitute(jobtype=config.specname)
 
-    script.head['queue'] = ConfTemplate(config.queue).substitute(options.common)
+    script.head['queue'] = ConfigTemplate(config.queue).substitute(options.common)
 
     #TODO MPI support for Slurm
     if config.parallelib:
         if config.parallelib.lower() == 'none':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.serialat):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.serial):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
         elif config.parallelib.lower() == 'openmp':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.singlehostat):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.singlehost):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             script.body.append('OMP_NUM_THREADS=' + str(options.common.nproc))
         elif config.parallelib.lower() == 'standalone':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
         elif config.parallelib.lower() in wrappers:
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
-                    script.head['span' + str(i)] = ConfTemplate(item).substitute(options.common)
-            script.body.append(ConfTemplate(config.mpilauncher[config.parallelib]).substitute(options.common))
+                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+            script.body.append(ConfigTemplate(config.mpilauncher[config.parallelib]).substitute(options.common))
         else:
             messages.error('El tipo de paralelización', config.parallelib, 'no está soportado', spec='parallelib')
     else:
@@ -236,42 +243,44 @@ def initialize():
 
     ############ Interactive parameter selection ###########
 
-    formatdict = {}
-    formatdict.update(names)
-
-    if settings.defaults:
-        formatdict.update(config.defaults.parametervars)
-
-    formatdict.update(options.parametervars)
-
     for path in config.parameterpaths:
-        componentlist = pathsplit(ConfTemplate(path).safe_substitute(formatdict))
-        trunk = AbsPath(componentlist.pop(0))
-        for component in componentlist:
-            trunk.assertdir()
-            try:
-                ConfTemplate(component).substitute()
-            except KeyError:
-                if options:
-                    selector.set_message('Seleccione un conjunto de parámetros:')
-                    selector.set_options(sorted(trunk.glob(ConfTemplate(component).substitute(GlobDict()))))
-                    choice = selector.single_choice()
-                    options.parametervars.update(template_parse(component, choice))
-                    trunk = trunk/choice
+        logdict = LogDict()
+        FilterGroupTemplate(path).substitute(logdict)
+        if logdict.logged_keys:
+            logdict = LogDict()
+            InterpolationTemplate(path).safe_substitute(logdict)
+            if logdict.logged_keys:
+                messages.error(_('La ruta $path contiene variables de interpolación indefinidas').substitute(path=path))
+        else:
+            path = ConfigTemplate(path).safe_substitute(names)
+            path = InterpolationTemplate(path).safe_substitute(parameterdict)
+            componentlist = pathsplit(path)
+            trunk = AbsPath(componentlist.pop(0))
+            for component in componentlist:
+                trunk.assertdir()
+                try:
+                    InterpolationTemplate(component).substitute()
+                except KeyError:
+                    if options:
+                        selector.set_message('Seleccione un conjunto de parámetros:')
+                        selector.set_options(sorted(trunk.glob(InterpolationTemplate(component).substitute(GlobDict()))))
+                        choice = selector.single_choice()
+                        parameterdict.update(template_parse(component, choice))
+                        trunk = trunk/choice
+                    else:
+                        messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
                 else:
-                    messages.error(trunk, 'no contiene elementos coincidentes con la ruta', path)
-            else:
-                trunk = trunk/component
+                    trunk = trunk/component
 
     ############ End of interactive parameter selection ###########
 
     try:
-        script.body.append(AbsPath(ConfTemplate(config.versions[settings.version].executable).substitute(names)))
+        script.body.append(AbsPath(ConfigTemplate(config.versions[settings.version].executable).substitute(names)))
     except NotAbsolutePath:
         script.body.append(config.versions[settings.version].executable)
 
     for i, path in enumerate(config.logfiles):
-        script.head['log' + str(i)] = ConfTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfTemplate(config.logdir).substitute(names))))
+        script.head['log' + str(i)] = ConfigTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfigTemplate(config.logdir).substitute(names))))
 
     script.head['shopt'] = "shopt -s nullglob extglob"
 
@@ -283,7 +292,7 @@ def initialize():
 
     for i, path in enumerate(config.source + config.versions[settings.version].source):
         if path:
-            script.head['source' + str(i)] = 'source {}'.format(AbsPath(ConfTemplate(path).substitute(names)))
+            script.head['source' + str(i)] = 'source {}'.format(AbsPath(ConfigTemplate(path).substitute(names)))
         else:
             messages.error('La ruta al script de configuración es nula', spec='source')
 
@@ -387,7 +396,7 @@ def submit(parentdir, inputname, filtergroups):
     else:
         jobname = inputname
 
-    script.head['jobname'] = ConfTemplate(config.jobname).substitute(jobname=jobname)
+    script.head['jobname'] = ConfigTemplate(config.jobname).substitute(jobname=jobname)
     script.head['jobnamevar'] = 'jobname="{}"'.format(jobname)
 
     if 'out' in options.common:
@@ -414,12 +423,7 @@ def submit(parentdir, inputname, filtergroups):
                         contents = f.read()
                         if options.interpolate:
                             try:
-                                interpolatedfiles[destpath] = template_substitute(
-                                    contents,
-                                    options.interpolationdict,
-                                    anchor=options.interpolation.anchor,
-                                )
-#                                print(interpolatedfiles[destpath])
+                                interpolatedfiles[destpath] = InterpolationTemplate(contents).substitute(interpolationdict)
                             except ValueError:
                                 messages.failure(_('El archivo de entrada $file contiene variables de interpolación inválidas').substitute(file=pathjoin((inputname, key))), e.args[0])
                                 return
@@ -428,7 +432,7 @@ def submit(parentdir, inputname, filtergroups):
                                 return
                         else:
                             try:
-                                interpolatedfiles[destpath] = template_substitute(contents, {}, anchor=options.interpolation.anchor)
+                                interpolatedfiles[destpath] = InterpolationTemplate(contents).substitute({})
                             except ValueError:
                                 pass
                             except KeyError as e:
@@ -493,7 +497,7 @@ def submit(parentdir, inputname, filtergroups):
         remoteargs.flags.add('move')
         remoteargs.options['cwd'] = pathjoin(remotetemp, reloutdir)
         remoteargs.options['out'] = pathjoin(remotehome, reloutdir)
-        for key, val in options.parametervars.items():
+        for key, val in parameterdict.items():
             remoteargs.options[key] = val
         filelist = []
         for key in config.filekeys:
@@ -521,17 +525,13 @@ def submit(parentdir, inputname, filtergroups):
 
     ############ Local execution ###########
 
-    formatdict = {}
-    formatdict.update(names)
-    formatdict.update(config.defaults.parametervars)
-    formatdict.update(options.parametervars)
-
     for path in config.parameterpaths:
         try:
-            path = FormatTemplate(path).safe_substitute(formatdict)
-            path = FormatTemplate(path).substitute(filtergroups)
+            path = ConfigTemplate(path).safe_substitute(names)
+            path = FilterGroupTemplate(path).substitute(filtergroups)
+            path = InterpolationTemplate(path).substitute(parameterdict)
         except ValueError as e:
-            messages.error(_('La ruta $path contiene variables de interpolación inválidas').substitute(path=path), e.args[0])
+            messages.error(_('La ruta $path contiene variables de interpolación inválidas').substitute(path=path), key=e.args[0])
         except KeyError as e:
             messages.error(_('La ruta $path contiene variables de interpolación indefinidas').substitute(path=path), key=e.args[0])
         componentlist = pathsplit(path)
@@ -557,7 +557,7 @@ def submit(parentdir, inputname, filtergroups):
         elif path.isdir():
             imports.append(script.importdir(pathjoin(path), settings.workdir))
         else:
-            messages.error('La ruta de parámetros', path, 'no existe')
+            messages.error(_('La ruta de parámetros $path no existe').substitute(path=path))
 
     for key in config.outputfiles:
         exports.append(script.exportfile(pathjoin(settings.workdir, config.filekeys[key]), pathjoin(outdir, (jobname, key))))

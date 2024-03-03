@@ -39,7 +39,7 @@ config = SpecDict({
     'source': [],
     'export': {},
     'versions': {},
-    'defaults': {'parametervars': {}},
+    'defaults': {},
     'parameterpaths': [],
     'onscript': [],
     'offscript': [],
@@ -50,8 +50,7 @@ config = SpecDict({
     'inputfiles': [],
     'outputfiles': [],
     'interpolable': [],
-    'interpolationvars': [],
-    'parametervars': [],
+    'optvars': [],
     'optargs': [],
     'posargs': [],
     'prescript': [],
@@ -69,3 +68,5 @@ names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = AbsPath(path.expanduser('~'))
 paths.lock = paths.home / '.clusterqlock'
+parameterdict = {}
+interpolationdict = {}
