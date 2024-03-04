@@ -36,7 +36,7 @@ class GlobDict(dict):
         return '*'
 
 class ConfigTemplate(Template):
-    delimiter = '%'
+    delimiter = '&'
     idpattern = r'[a-z][a-z0-9_]*'
 
 class FilterGroupTemplate(Template):

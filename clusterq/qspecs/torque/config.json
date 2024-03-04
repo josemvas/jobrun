@@ -6,36 +6,36 @@
    "statregex": ".*<job_state>([^<]+)</job_state>.*",
 
    "logfiles": [
-      "#PBS -o '%logdir/%J.out'",
-      "#PBS -e '%logdir/%J.out'"
+      "#PBS -o '&logdir/%J.out'",
+      "#PBS -e '&logdir/%J.out'"
    ],
 
-   "jobname": "#PBS -N '%jobname'",
+   "jobname": "#PBS -N '&jobname'",
 
-   "queue": "#PBS -q '%queue'",
+   "queue": "#PBS -q '&queue'",
 
    "serial": [
       "#PBS -l 'nodes=1:ppn=1'"
    ],
 
    "serialat": [
-      "#PBS -l 'nodes=%hosts:ppn=1'"
+      "#PBS -l 'nodes=&hosts:ppn=1'"
    ],
 
    "singlehost": [
-      "#PBS -l 'nodes=1:ppn=%nproc'"
+      "#PBS -l 'nodes=1:ppn=&nproc'"
    ],
 
    "singlehostat": [
-      "#PBS -l 'nodes=%hosts:ppn=%nproc'"
+      "#PBS -l 'nodes=&hosts:ppn=&nproc'"
    ],
 
    "multihost": [
-      "#PBS -l 'nodes=%nhost:ppn=%nproc'"
+      "#PBS -l 'nodes=&nhost:ppn=&nproc'"
    ],
 
    "multihostat": [
-      "#PBS -l 'nodes=%hosts:ppn=%nproc'"
+      "#PBS -l 'nodes=&hosts:ppn=&nproc'"
    ],
 
    "envars": {

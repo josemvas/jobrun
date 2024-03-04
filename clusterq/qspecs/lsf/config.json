@@ -6,42 +6,42 @@
    "statregex": "(.+)",
 
    "logfiles": [
-      "#BSUB -o '%logdir/%J.out'",
-      "#BSUB -e '%logdir/%J.out'"
+      "#BSUB -o '&logdir/%J.out'",
+      "#BSUB -e '&logdir/%J.out'"
    ],
 
-   "jobname": "#BSUB -J '%jobname'",
-   "jobtype": "#BSUB -P '%jobtype'",
+   "jobname": "#BSUB -J '&jobname'",
+   "jobtype": "#BSUB -P '&jobtype'",
 
-   "queue": "#BSUB -q '%queue'",
+   "queue": "#BSUB -q '&queue'",
 
    "serial": [
       "#BSUB -n '1'"
    ],
 
    "serialat": [
-      "#BSUB -m '%hosts'",
+      "#BSUB -m '&hosts'",
       "#BSUB -n '1'"
    ],
 
    "singlehost": [
-      "#BSUB -n '%nproc'",
+      "#BSUB -n '&nproc'",
       "#BSUB -R 'span[hosts=1]'"
    ],
 
    "singlehostat": [
-      "#BSUB -n '%nproc'",
-      "#BSUB -m '%hosts'"
+      "#BSUB -n '&nproc'",
+      "#BSUB -m '&hosts'"
    ],
 
    "multihost": [
-      "#BSUB -n '%nproc'",
-      "#BSUB -R 'span[hosts=%nhost]'"
+      "#BSUB -n '&nproc'",
+      "#BSUB -R 'span[hosts=&nhost]'"
    ],
 
    "multihostat": [
-      "#BSUB -n '%nproc'",
-      "#BSUB -m '%hosts'"
+      "#BSUB -n '&nproc'",
+      "#BSUB -m '&hosts'"
    ],
 
    "envars": {

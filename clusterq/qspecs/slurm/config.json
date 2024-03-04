@@ -6,42 +6,42 @@
    "statregex": "(.+)",
 
    "logfiles": [
-       "#SBATCH -o '%logdir/%A.out'",
-       "#SBATCH -e '%logdir/%A.out'"
+       "#SBATCH -o '&logdir/%A.out'",
+       "#SBATCH -e '&logdir/%A.out'"
    ],
 
-   "jobname": "#SBATCH -J '%jobname'",
-   "jobtype": "#SBATCH --comment='%jobtype'",
+   "jobname": "#SBATCH -J '&jobname'",
+   "jobtype": "#SBATCH --comment='&jobtype'",
 
-   "queue": "#SBATCH -p '%queue'",
+   "queue": "#SBATCH -p '&queue'",
 
    "serial": [
        "#SBATCH -n '1'"
    ],
 
    "serialat": [
-       "#SBATCH -w '%hosts'",
+       "#SBATCH -w '&hosts'",
        "#SBATCH -n '1'"
    ],
 
    "singlehost": [
-       "#SBATCH -n '%nproc'",
+       "#SBATCH -n '&nproc'",
        "#SBATCH -N '1'"
    ],
 
    "singlehostat": [
-       "#SBATCH -n '%nproc'",
-       "#SBATCH -w '%hosts'"
+       "#SBATCH -n '&nproc'",
+       "#SBATCH -w '&hosts'"
    ],
 
    "multihost": [
-       "#SBATCH -n '%nproc'",
-       "#SBATCH -N '%nhost'"
+       "#SBATCH -n '&nproc'",
+       "#SBATCH -N '&nhost'"
    ],
 
    "multihostat": [
-       "#SBATCH -n '%nproc'",
-       "#SBATCH -w '%hosts'"
+       "#SBATCH -n '&nproc'",
+       "#SBATCH -w '&hosts'"
    ],
 
    "envars": {
