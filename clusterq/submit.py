@@ -66,57 +66,48 @@ def initialize():
     else:
         settings.defaults = True
 
-    for key in config.optvars:
-        try:
-            interpolationdict[key] = options.variables[key]
-        except KeyError:
-            pass
+    interpolationdict.update(options.interpolationoptions)
 
-    for i, var in enumerate(options.variables.posvars, start=1):
+    for i, var in enumerate(options.interpolation.posvars, start=1):
         interpolationdict[str(i)] = var
 
-    if options.variables.mol or options.variables.trjmol or interpolationdict:
+    if options.interpolation.mol or options.interpolation.trjmol or interpolationdict:
         options.interpolate = True
     else:
         options.interpolate = False
 
-    logdict = LogDict()
+    for key in options.parameteroptions:
+        if '/' in options.parameteroptions[key]:
+            messages.error('El nombre del conjunto de parámetros no es válido', key=key)
 
-    for path in config.parameterpaths:
-        InterpolationTemplate(path).substitute(logdict)
-
-    for key, value in interpolationdict.items():
-        if key in logdict.logged_keys:
-            if '/' in value:
-                messages.error('El nombre del conjunto de parámetros no es válido', key=key, value=value)
-            parameterdict.update({key: value})
+    parameterdict.update(options.parameteroptions)
 
     if options.interpolate:
-        if options.variables.mol:
-            for i, path in enumerate(options.variables.mol, start=1):
+        if options.interpolation.mol:
+            for i, path in enumerate(options.interpolation.mol, start=1):
                 path = AbsPath(path, cwd=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
                 interpolationdict['mol' + str(i)] = geometry_block(coords)
-        elif options.variables.trjmol:
-            path = AbsPath(options.variables.trjmol, cwd=options.common.cwd)
+        elif options.interpolation.trjmol:
+            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
                 interpolationdict['mol' + str(i)] = geometry_block(coords)
-        if options.variables.prefix:
+        if options.interpolation.prefix:
             try:
-                settings.prefix = InterpolationTemplate(options.variables.prefix).substitute(interpolationdict)
+                settings.prefix = InterpolationTemplate(options.interpolation.prefix).substitute(interpolationdict)
             except ValueError as e:
-                messages.error(_('El prefijo $prefix contiene variables de interpolación inválidas').substitute(prefix=options.variables.prefix), key=e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación inválidas').substitute(prefix=options.interpolation.prefix), key=e.args[0])
             except KeyError as e:
-                messages.error(_('El prefijo $prefix contiene variables de interpolación indefinidas').substitute(prefix=options.variables.prefix), key=e.args[0])
+                messages.error(_('El prefijo $prefix contiene variables de interpolación indefinidas').substitute(prefix=options.interpolation.prefix), key=e.args[0])
         else:
-            if options.variables.mol:
-                if len(options.variables.mol) == 1:
+            if options.interpolation.mol:
+                if len(options.interpolation.mol) == 1:
                     settings.prefix = molprefix
                 else:
                     messages.error('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas')
-            elif options.variables.trjmol:
+            elif options.interpolation.trjmol:
                 settings.prefix = molprefix
             else:
                 messages.error('Se debe especificar un prefijo para interpolar sin archivo coordenadas')
@@ -489,6 +480,7 @@ def submit(parentdir, inputname, filtergroups):
 
     if options.remote.host:
 
+        remoteargs.gather(options.common)
         reloutdir = os.path.relpath(outdir, paths.home)
         remotehome = pathjoin(options.remote.root, (names.user, names.host))
         remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))

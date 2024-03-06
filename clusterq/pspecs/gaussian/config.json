@@ -48,7 +48,7 @@
       "com"
    ],
 
-   "optvars": [
+   "interpolationoptions": [
       "method",
       "basis",
       "auxis",

@@ -1,7 +1,6 @@
-.. mode: rst -*-
-
 General
 -------
+
 - Implementar un menú para activar o desactivar los programas configurados
 - Usar srun/sbcast para correr trabajos multinodo con slurm
 - Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
@@ -34,12 +33,14 @@ General
 
 Python 3.6
 ----------
+
 - dict conserva el orden de las entradas (ya no es necesario usar OrderedDict)
 - Las bibliotecas pyjson5 requieren python 3.6
 - Se pueden usar f-strings en vez de format
 
 console.py
 ----------
+
 - Usar diccionarios de dos vias para relacionar los nombres y las llaves de los archivos de specificaciones
 - Usar un menú interactivo para seleccionar el scheduler (y todas las demás opciones de configuración)
 - Mover hostspec.json y queuespec.json dentro del directorio jobspecs y eliminar los links dentro de las carpetas de programa
@@ -47,11 +48,13 @@ console.py
 
 queue.py
 ----------
+
 - Preguntar si se lanza el trabajo en caso de error al consultar su estado
 - Checar el error estandar ademas de la salida estandar aunque no haya error
 
 AbsPath
 ------------------
+
 - No aceptar listas de componentes de path como argumento
 - Mover los métodos setkeys y validate de Abspath a joinpath
 - Convertir los metodos parts y parent de AbsPath en atributos como en Pathlib
@@ -59,8 +62,10 @@ AbsPath
 
 readspec.py
 -----------
+
 - Revisar el método merge de SpecList
 
 run.py
 ------
+
 - line 92: Manejar excepción cuando no está definida la ruta del conjunto de parámetros

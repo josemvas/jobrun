@@ -5,8 +5,8 @@ from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
 from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
-from .shared import names, nodes, paths, environ, config, options, remoteargs
 from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, natsorted as sorted, o, p, q, _
+from .shared import names, nodes, paths, environ, config, options
 from .submit import initialize, submit 
 
 class ArgList:
@@ -152,13 +152,11 @@ try:
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
     group1.name = 'arguments'
-    group1.remote = False
 
 #    group1 = parser.add_argument_group('Ejecución remota')
 
     group2 = parser.add_argument_group('Opciones comunes')
     group2.name = 'common'
-    group2.remote = True
     group2.add_argument('-h', '--help', action='help', help='Mostrar este mensaje de ayuda y salir.')
     group2.add_argument('-l', '--list', action=ListOptions, default=SUPPRESS, help='Mostrar las opciones disponibles y salir.')
     group2.add_argument('-v', '--version', metavar='VERSION', default=SUPPRESS, help='Usar la versión VERSION del ejecutable.')
@@ -182,38 +180,41 @@ try:
 
     group3 = parser.add_argument_group('Opciones remotas')
     group3.name = 'remote'
-    group3.remote = False 
     group3.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group4 = parser.add_argument_group('Manipulación de argumentos')
     group4.name = 'arguments'
-    group4.remote = False 
     sortgroup = group4.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
     sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
     group4.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
-    group5.name = 'variables'
-    group5.remote = False
+    group5.name = 'interpolation'
     molgroup = group5.add_mutually_exclusive_group()
     group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('-x', '--var', dest='posvars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
-    for key in config.optvars:
-        group5.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de configuración e interpolación.')
 
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
-    group6.remote = False
     for key, value in config.fileoptions.items():
         group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')
     group7.name = 'debug'
-    group7.remote = False
     group7.add_argument('--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
+
+    group8 = parser.add_argument_group('Parameter options')
+    group8.name = 'parameteroptions'
+    for key in config.parameteroptions:
+        group8.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
+
+    group9 = parser.add_argument_group('Interpolation options')
+    group9.name = 'interpolationoptions'
+    for key in config.interpolationoptions:
+        group9.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)
@@ -222,8 +223,6 @@ try:
         group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
         if hasattr(group, 'name'):
             options[group.name] = AttrDict(**group_dict)
-        if hasattr(group, 'remote') and group.remote:
-            remoteargs.gather(AttrDict(**group_dict))
 
     if not parsedargs.files:
         messages.error('Debe especificar al menos un archivo de entrada')
@@ -237,7 +236,6 @@ try:
         pass
 
 #    print(options)
-#    print(remoteargs)
 
 #    #TODO Add suport for dialog boxes
 #    if options.common.xdialog:

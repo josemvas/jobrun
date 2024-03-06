@@ -50,13 +50,16 @@ config = SpecDict({
     'inputfiles': [],
     'outputfiles': [],
     'interpolable': [],
-    'optvars': [],
+    'parameteroptions': [],
+    'interpolationoptions': [],
     'optargs': [],
     'posargs': [],
     'prescript': [],
     'postscript': [],
 })
 
+parameterdict = {}
+interpolationdict = {}
 names = AttrDict()
 nodes = AttrDict()
 paths = AttrDict()
@@ -68,5 +71,3 @@ names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = AbsPath(path.expanduser('~'))
 paths.lock = paths.home / '.clusterqlock'
-parameterdict = {}
-interpolationdict = {}
