@@ -33,7 +33,7 @@ class NotAbsolutePath(Exception):
     pass
 
 class AbsPath(str):
-    def __new__(cls, path, cwd=None):
+    def __new__(cls, path, parent=None):
         if not isinstance(path, str):
             raise TypeError('Path must be a string')
         if not path:
@@ -42,26 +42,32 @@ class AbsPath(str):
             path.format()
         except (IndexError, KeyError):
             raise ValueError('Path can not be a format string')
-        if cwd is None:
+        if parent is None:
             if not os.path.isabs(path):
                 raise NotAbsolutePath
         elif not os.path.isabs(path):
-            if not isinstance(cwd, str):
-                raise TypeError('Working directory must be a string')
-            if not os.path.isabs(cwd):
-                raise ValueError('Working directory must be an absolute path')
-            path = os.path.join(cwd, path)
+            if not isinstance(parent, str):
+                raise TypeError('Parent directory must be a string')
+            if not os.path.isabs(parent):
+                raise ValueError('Parent directory must be an absolute path')
+            path = os.path.join(parent, path)
         obj = str.__new__(cls, os.path.normpath(path))
         obj.parts = pathsplit(obj)
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
+    def __mod__(self, right):
+        if not isinstance(right, str):
+            raise TypeError('Right operand must be a string')
+        if '/' in right:
+            raise ValueError('Can not use a path as an extension')
+        return AbsPath(self.name + '.' + right, parent=self.parent)
     def __truediv__(self, right):
         if not isinstance(right, str):
             raise TypeError('Right operand must be a string')
-        if os.path.isabs(right):
+        if isinstance(right, AbsPath):
             raise ValueError('Can not join two absolute paths')
-        return AbsPath(right, cwd=self)
+        return AbsPath(right, parent=self)
     @property
     def parent(self):
         return AbsPath(os.path.dirname(self))

@@ -4,7 +4,7 @@ from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages
 from .readspec import readspec
-from .fileutils import AbsPath, pathsplit, pathjoin, file_except_info
+from .fileutils import AbsPath, pathsplit, file_except_info
 from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, natsorted as sorted, o, p, q, _
 from .shared import names, nodes, paths, environ, config, options
 from .submit import initialize, submit 
@@ -32,14 +32,14 @@ class ArgList:
         if options.common.job:
             parentdir = AbsPath(options.common.cwd)
             for key in config.inputfiles:
-                if AbsPath(pathjoin(parentdir, (self.current, key))).isfile():
+                if (parentdir/self.current%key).isfile():
                     inputname = self.current
                     break
             else:
                 messages.failure('No hay archivos de entrada de', names.display, 'asociados al trabajo', self.current)
                 return next(self)
         else:
-            path = AbsPath(self.current, cwd=options.common.cwd)
+            path = AbsPath(self.current, parent=options.common.cwd)
             parentdir = path.parent
             try:
                 path.assertfile()
@@ -81,14 +81,14 @@ class StorePath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], parent=os.getcwd()))
 
 #TODO How to append value to list?
 class AppendPath(Action):
     def __init__(self, **kwargs):
         super().__init__(nargs=1, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, AbsPath(values[0], cwd=os.getcwd()))
+        setattr(namespace, self.dest, AbsPath(values[0], parent=os.getcwd()))
 
 def dirbranches(trunk, componentlist, dirtree):
     trunk.assertdir()
@@ -106,21 +106,21 @@ def dirbranches(trunk, componentlist, dirtree):
 try:
 
     parser = ArgumentParser(add_help=False)
-    parser.add_argument('confdir')
+    parser.add_argument('cfgdir')
     parser.add_argument('filepath')
     parsedargs, remainingargs = parser.parse_known_args()
 
-    paths.confdir = parsedargs.confdir
+    paths.cfgdir = AbsPath(parsedargs.cfgdir)
     names.command = os.path.basename(parsedargs.filepath)
 
-    config.merge(readspec(pathjoin(paths.confdir, 'environments', '__cluster__', 'config.json')))
-    config.merge(readspec(pathjoin(paths.confdir, 'environments', names.command, 'config.json')))
-    config.merge(readspec(pathjoin(paths.confdir, 'qspecs', config.scheduler, 'config.json')))
-    config.merge(readspec(pathjoin(paths.confdir, 'pspecs', config.specname, 'config.json')))
+    config.merge(readspec(paths.cfgdir/'environ'/'__cluster__.json5'))
+    config.merge(readspec(paths.cfgdir/'environ'/names.command%'json5'))
+    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname%'json5'))
+    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler%'json5'))
 
-    userconfdir = pathjoin(paths.home, '.clusterq')
-    userclusterconf = pathjoin(userconfdir, 'clusterconf.json')
-    userpackageconf = pathjoin(userconfdir, names.command, 'packageconf.json')
+    userconfdir = paths.home/'.clusterq'
+    userclusterconf = userconfdir/'__cluster__.json5'
+    userpackageconf = userconfdir/names.command%'json5'
     
     try:
         config.merge(readspec(userclusterconf))

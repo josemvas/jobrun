@@ -52,7 +52,7 @@ def initialize():
 
     if options.remote.host:
         (paths.home/'.ssh').mkdir()
-        paths.socket = paths.home / '.ssh' / pathjoin((options.remote.host, 'sock'))
+        paths.socket = paths.home/'.ssh'/options.remote.host%'sock'
         try:
             options.remote.root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
                 options.remote.host, 'printenv QREMOTEROOT']).strip().decode(sys.stdout.encoding)
@@ -85,12 +85,12 @@ def initialize():
     if options.interpolate:
         if options.interpolation.mol:
             for i, path in enumerate(options.interpolation.mol, start=1):
-                path = AbsPath(path, cwd=options.common.cwd)
+                path = AbsPath(path, parent=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
                 interpolationdict['mol' + str(i)] = geometry_block(coords)
         elif options.interpolation.trjmol:
-            path = AbsPath(options.interpolation.trjmol, cwd=options.common.cwd)
+            path = AbsPath(options.interpolation.trjmol, parent=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
                 interpolationdict['mol' + str(i)] = geometry_block(coords)
@@ -123,9 +123,9 @@ def initialize():
         messages.error('No se especificó el directorio de escritura por defecto', spec='defaults.scratch')
 
     if 'scratch' in options.common:
-        settings.workdir = options.common.scratch / '$jobid'
+        settings.workdir = options.common.scratch/'$jobid'
     else:
-        settings.workdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names)) / '$jobid'
+        settings.workdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names))/'$jobid'
 
     if 'queue' not in options.common:
         if 'queue' in config.defaults:
@@ -391,9 +391,9 @@ def submit(parentdir, inputname, filtergroups):
     script.head['jobnamevar'] = 'jobname="{}"'.format(jobname)
 
     if 'out' in options.common:
-        outdir = AbsPath(options.common.out, cwd=parentdir)
+        outdir = AbsPath(options.common.out, parent=parentdir)
     else:
-        outdir = AbsPath(jobname, cwd=parentdir)
+        outdir = AbsPath(jobname, parent=parentdir)
 
     literalfiles = {}
     interpolatedfiles = {}
@@ -457,10 +457,10 @@ def submit(parentdir, inputname, filtergroups):
                 messages.failure('Cancelado por el usuario')
                 return
         for ext in outputfileexts:
-            (outdir / (jobname + ext)).remove()
+            (outdir/jobname%ext).remove()
         if parentdir != outdir:
             for ext in inputfileexts:
-                (outdir / (jobname + ext)).remove()
+                (outdir/jobname%ext).remove()
     else:
         try:
             outdir.makedirs()
@@ -530,7 +530,7 @@ def submit(parentdir, inputname, filtergroups):
         trunk = AbsPath(componentlist.pop(0))
         for component in componentlist:
             trunk.assertdir()
-            trunk = trunk / component
+            trunk = trunk/component
         parameterpaths.append(trunk)
 
     imports = []

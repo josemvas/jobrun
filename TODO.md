@@ -43,7 +43,6 @@ console.py
 
 - Usar diccionarios de dos vias para relacionar los nombres y las llaves de los archivos de specificaciones
 - Usar un menú interactivo para seleccionar el scheduler (y todas las demás opciones de configuración)
-- Mover hostspec.json y queuespec.json dentro del directorio jobspecs y eliminar los links dentro de las carpetas de programa
 - Manejar los permisos denegados cuando se instalan los programas
 
 queue.py

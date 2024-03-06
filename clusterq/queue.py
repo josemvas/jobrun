@@ -23,7 +23,7 @@ def getjobstate(jobid):
     if process.returncode == 0:
         status = re.fullmatch(config.statregex, output).group(1)
         if status not in config.ready_states:
-            return 'El trabajo $name no se envió porque ya hay otro trabajo corriendo con el mismo nombre'
+            return 'El trabajo $name no se envió porque hay otro trabajo corriendo en el mismo directorio'
     else:
         if 'known_errors' in config:
             for regex in config.known_errors:
