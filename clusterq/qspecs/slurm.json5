@@ -50,7 +50,7 @@
        hosts: "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)",
    },
    
-   mpilauncher: {
+   mpirun: {
        openmpi: "mpirun",
        intelmpi: "mpirun",
        mpich: "mpirun",

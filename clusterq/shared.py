@@ -28,12 +28,6 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
-wrappers = (
-    'openmpi',
-    'intelmpi',
-    'mpich',
-)
-
 config = SpecDict({
     'load': [],
     'source': [],

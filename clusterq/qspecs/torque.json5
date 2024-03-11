@@ -44,7 +44,7 @@
       hosts: "$(printf '%s\\n' $PBS_NODEFILE | uniq)",
    },
     
-   mpilauncher: {
+   mpirun: {
       openmpi: "mpirun -np %nproc",
       intelmpi: "mpirun -np %nproc",
       mpich: "mpirun -np %nproc",

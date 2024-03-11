@@ -1,5 +1,5 @@
 {
-   parallel: 'openmp',
+   parallel: 'omp',
    stdoutfile: 'dftb_out.log',
 
    conflicts: {

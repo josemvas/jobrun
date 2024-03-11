@@ -9,7 +9,7 @@ from .utils import AttrDict, GlobDict, LogDict
 from .utils import ConfigTemplate, FilterGroupTemplate, InterpolationTemplate
 from .utils import opt, template_parse, natsorted as sorted
 from .shared import parameterdict, interpolationdict
-from .shared import names, nodes, paths, config, options, remoteargs, environ, wrappers
+from .shared import names, nodes, paths, config, options, remoteargs, environ
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
@@ -177,7 +177,7 @@ def initialize():
             else:
                 for i, item in enumerate(config.serial):
                     script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
-        elif config.parallel.lower() == 'openmp':
+        elif config.parallel.lower() == 'omp':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.singlehostat):
                     script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
@@ -185,21 +185,22 @@ def initialize():
                 for i, item in enumerate(config.singlehost):
                     script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             script.body.append('OMP_NUM_THREADS=' + str(options.common.nproc))
-        elif config.parallel.lower() == 'standalone':
+        elif config.parallel.lower() == 'mpi':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
                     script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
                     script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
-        elif config.parallel.lower() in wrappers:
-            if 'hosts' in options.common:
-                for i, item in enumerate(config.multihostat):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+            if 'mpilib' in config:
+                if config.mpilib in config.mpirun:
+                    script.body.append(ConfigTemplate(config.mpirun[config.mpilib]).substitute(options.common))
+                elif config.mpilib == 'builtin':
+                    pass
+                else:
+                    messages.error(_('Libreríá MPI no soportada'), 'config.mpilib={config.mpilib}')
             else:
-                for i, item in enumerate(config.multihost):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
-            script.body.append(ConfigTemplate(config.mpilauncher[config.parallel]).substitute(options.common))
+                messages.error(_('No se especificó la librería MPI del programa'), 'config.mpilib')
         else:
             messages.error(_('Tipo de paralelización no soportado'), 'config.parallel={config.parallel}')
     else:

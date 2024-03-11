@@ -1,5 +1,5 @@
 {
-   parallel: 'intelmpi',
+   parallel: 'mpi',
    mpilaunch: 'True',
 
    conflicts: {

@@ -50,7 +50,7 @@
       hosts: "$(printf '%s\\n' $LSB_HOSTS | uniq)",
    },
     
-   mpilauncher: {
+   mpirun: {
       openmpi: "mpirun",
       intelmpi: "mpirun",
       mpich: "mpirun",
