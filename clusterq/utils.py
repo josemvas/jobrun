@@ -47,10 +47,6 @@ class InterpolationTemplate(Template):
     delimiter = '$'
     idpattern = r'[a-z][a-z0-9_]*'
 
-class _(Template):
-    def __str__(self):
-        return(self.safe_substitute())
-
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.
 
@@ -125,21 +121,12 @@ def natsorted(*args, **kwargs):
 def lowalnum(keystr):
     return ''.join(c.lower() for c in keystr if c.isalnum())
 
-def o(key, value=None):
-    if value is not None:
-        return('--{}={}'.format(key.replace('_', '-'), value))
-    else:
+def opt(key, value=None):
+    if value is None:
         return('--{}'.format(key.replace('_', '-')))
+    else:
+        return('--{}="{}"'.format(key.replace('_', '-'), value))
     
-def p(string):
-    return '({})'.format(string)
-
-def q(string):
-    return '"{}"'.format(string)
-
-def Q(string):
-    return "'{}'".format(string)
-
 def print_tree(options, level=0):
     for opt in sorted(options):
         print(' '*level + opt)

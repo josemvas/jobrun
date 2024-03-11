@@ -1,6 +1,6 @@
 import pyjson5 as json5
 from collections import OrderedDict
-from clinterface import messages
+from clinterface import messages, _
 
 class SpecList(list):
     def __init__(self, rawlist=[]):
@@ -57,4 +57,4 @@ def readspec(file):
         try:
             return SpecDict(json5.load(f, object_pairs_hook=OrderedDict))
         except ValueError as e:
-            messages.error('El archivo {} contiene JSON inválido: {}'.format(f.name, str(e)))
+            messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)

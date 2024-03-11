@@ -1,5 +1,5 @@
 {
-   "parallelib": "standalone",
+   "parallel": "standalone",
    "stdoutfile": "out",
 
    "conflicts": {

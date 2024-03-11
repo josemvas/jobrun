@@ -2,10 +2,12 @@ import os
 import re
 from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
-from clinterface import messages
+from clinterface import messages, _
+#from tkdialogs import messages
 from .readspec import readspec
+from .utils import opt, natsorted as sorted
+from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate
 from .fileutils import AbsPath, pathsplit, file_except_info
-from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, natsorted as sorted, o, p, q, _
 from .shared import names, nodes, paths, environ, config, options
 from .submit import initialize, submit 
 
@@ -36,7 +38,7 @@ class ArgList:
                     inputname = self.current
                     break
             else:
-                messages.failure('No hay archivos de entrada de', names.display, 'asociados al trabajo', self.current)
+                messages.failure(_('No hay archivos de entrada del trabajo $job', job=self.current))
                 return next(self)
         else:
             path = AbsPath(self.current, parent=options.common.cwd)
@@ -51,7 +53,7 @@ class ArgList:
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure(q(path.name), 'no es un archivo de entrada de', config.specname)
+                messages.failure(_('$file no es un archivo de entrada de $spec', file=path.name, spec=config.specname))
                 return next(self)
         matched = self.filter.fullmatch(inputname)
         if matched:
@@ -65,7 +67,7 @@ class ListOptions(Action):
         super().__init__(nargs=0, **kwargs)
     def __call__(self, parser, namespace, values, option_string=None):
         if config.versions:
-            print(_('Versiones disponibles:'))
+            print('Versiones disponibles:')
             default = config.defaults.version if 'version' in config.defaults else None
             print_tree(tuple(config.versions.keys()), [default], level=1)
         for path in config.parameterpaths:
@@ -73,7 +75,7 @@ class ListOptions(Action):
             parts = pathsplit(ConfigTemplate(path).safe_substitute(names))
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
-                print(_('Conjuntos de parámetros disponibles:'))
+                print('Conjuntos de parámetros disponibles:')
                 print_tree(dirtree, level=1)
         raise SystemExit
 
@@ -135,12 +137,12 @@ try:
     try:
         names.display = config.displayname
     except AttributeError:
-        messages.error('No se definió el nombre del programa', key='displayname')
+        messages.error(_('No se definió el nombre del programa'), 'config.displayname')
 
     try:
         names.cluster = config.clustername
     except AttributeError:
-        messages.error('No se definió el nombre del clúster', key='clustername')
+        messages.error(_('No se definió el nombre del clúster'), 'config.clustername')
 
     try:
         nodes.head = config.headnode
@@ -200,7 +202,7 @@ try:
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     for key, value in config.fileoptions.items():
-        group6.add_argument(o(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+        group6.add_argument(opt(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')
     group7.name = 'debug'
@@ -209,12 +211,12 @@ try:
     group8 = parser.add_argument_group('Parameter options')
     group8.name = 'parameteroptions'
     for key in config.parameteroptions:
-        group8.add_argument(o(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
+        group8.add_argument(opt(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
 
     group9 = parser.add_argument_group('Interpolation options')
     group9.name = 'interpolationoptions'
     for key in config.interpolationoptions:
-        group9.add_argument(o(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
+        group9.add_argument(opt(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     parsedargs = parser.parse_args(remainingargs)
 #    print(parsedargs)
@@ -225,7 +227,7 @@ try:
             options[group.name] = AttrDict(**group_dict)
 
     if not parsedargs.files:
-        messages.error('Debe especificar al menos un archivo de entrada')
+        messages.error(_('Debe especificar al menos un archivo de entrada'))
 
     arguments = ArgList(parsedargs.files)
 
@@ -235,19 +237,6 @@ try:
     except KeyError:
         pass
 
-#    print(options)
-
-#    #TODO Add suport for dialog boxes
-#    if options.common.xdialog:
-#        try:
-#            from tkdialog import TkDialog
-#        except ImportError:
-#            raise SystemExit()
-#        else:
-#            dialogs.yesno = join_args(TkDialog().yesno)
-#            messages.failure = join_args(TkDialog().message)
-#            messages.success = join_args(TkDialog().message)
-
     initialize()
 
     for parentdir, inputname, filtergroups in arguments:
@@ -255,4 +244,4 @@ try:
     
 except KeyboardInterrupt:
 
-    messages.error('Interrumpido por el usuario')
+    messages.error(_('Interrumpido por el usuario'))

@@ -3,7 +3,8 @@ import sys
 import re
 from string import Template
 from subprocess import check_output, DEVNULL
-from clinterface import messages, prompts
+from clinterface import messages, prompts, _
+#from tkdialogs import messages, prompts
 from .readspec import readspec
 from .fileutils import AbsPath
 
@@ -21,9 +22,9 @@ def setup(install=True):
     moduledir = AbsPath(__file__).parent
 
     if install:
-        completer.set_message('Escriba la ruta del directorio de configuración:')
+        completer.set_message(_('Escriba la ruta del directorio de configuración:'))
         cfgdir = AbsPath(completer.directory_path(), parent=os.getcwd())
-        completer.set_message('Escriba la ruta en la que se instalarán los ejecutables:')
+        completer.set_message(_('Escriba la ruta en la que se instalarán los ejecutables:'))
         bindir = AbsPath(completer.directory_path(), parent=os.getcwd())
         bindir.mkdir()
         cfgdir.mkdir()
@@ -32,7 +33,7 @@ def setup(install=True):
         for spec in (moduledir/'pspecs').listdir():
             if (cfgdir/'pspecs'/spec).isfile():
                 if readspec(moduledir/'pspecs'/spec) != readspec(cfgdir/'pspecs'/spec):
-                    completer.set_message('Desea reestablecer la configuración de los programas?')
+                    completer.set_message(_('¿Desea reestablecer la configuración de los programas?'))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
@@ -42,7 +43,7 @@ def setup(install=True):
         for spec in (moduledir/'qspecs').listdir():
             if (cfgdir/'qspecs'/spec).isfile():
                 if readspec(moduledir/'qspecs'/spec) != readspec(cfgdir/'qspecs'/spec):
-                    completer.set_message('Desea reestablecer la configuración de las colas?')
+                    completer.set_message(_('¿Desea reestablecer la configuración de las colas?'))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
@@ -81,12 +82,12 @@ def setup(install=True):
                     (bindir/runfile).remove()
 
     if packages:
-        selector.set_message('Seleccione los programas que desea activar/desactivar:')
+        selector.set_message(_('Seleccione los programas que desea activar/desactivar:'))
         selector.set_options(packagenames)
         selector.set_multiple_defaults(enabledpackages)
         selpackages = selector.multiple_choices()
     else:
-        messages.warning('No hay ningún programa configurado todavía')
+        messages.warning(_('No hay ningún programa configurado todavía'))
 
     for package in packages:
         if package in selpackages:

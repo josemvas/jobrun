@@ -1,5 +1,5 @@
 {
-   "parallelib": "openmp",
+   "parallel": "openmp",
 
    "conflicts": {
       "com and gjf": "No deben existir ambos archivos com y gjf",

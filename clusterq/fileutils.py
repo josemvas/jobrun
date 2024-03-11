@@ -2,32 +2,32 @@ import os
 import string
 import shutil
 import fnmatch
-from clinterface import messages
+from clinterface import messages, _
 from .utils import deepjoin
 
 def file_except_info(exception, path):
     if isinstance(exception, IsADirectoryError):
-         messages.failure('La ruta {} es un directorio'.format(path))
+         messages.failure(_('La ruta $path es un directorio', path=path))
     elif isinstance(exception, FileExistsError):
-         messages.failure('El archivo {} ya existe'.format(path))
+         messages.failure(_('El archivo $path ya existe', path=path))
     elif isinstance(exception, FileNotFoundError):
-         messages.failure('El archivo {} no existe'.format(path))
+         messages.failure(_('El archivo $path no existe', path=path))
     elif isinstance(exception, OSError):
-         messages.failure(str(exception).format(path))
+        messages.failure(_('Error de sistema'), str(exception))
     else:
-         messages.error(type(exception).__name__)
+        messages.error(exctype=type(exception).__name__, excmessage=str(exception))
 
 def dir_except_info(exception, path):
     if isinstance(exception, NotADirectoryError):
-         messages.failure('La ruta {} no es un directorio'.format(path))
+         messages.failure(_('La ruta $path no es un directorio', path=path))
     elif isinstance(exception, FileExistsError):
-         messages.failure('El directorio {} ya existe'.format(path))
+         messages.failure(_('El directorio $path ya existe', path=path))
     elif isinstance(exception, FileNotFoundError):
-         messages.failure('El directorio {} no existe'.format(path))
+         messages.failure(_('El directorio $path no existe', path=path))
     elif isinstance(exception, OSError):
-         messages.failure(str(exception).format(path))
+        messages.failure(_('Error de sistema'), str(exception))
     else:
-         messages.error(type(exception).__name__)
+        messages.error(exctype=type(exception).__name__, excmessage=str(exception))
 
 class NotAbsolutePath(Exception):
     pass
@@ -38,10 +38,6 @@ class AbsPath(str):
             raise TypeError('Path must be a string')
         if not path:
             raise ValueError('Path can not be empty')
-        try:
-            path.format()
-        except (IndexError, KeyError):
-            raise ValueError('Path can not be a format string')
         if parent is None:
             if not os.path.isabs(path):
                 raise NotAbsolutePath
