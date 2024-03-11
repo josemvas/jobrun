@@ -1,76 +1,76 @@
 {
-   "scheduler": "LSF",
-   "sbmtcmd": [ "bsub", "-env", "all" ],
-   "statcmd": [ "bjobs", "-ostat", "-noheader" ],
-   "sbmtregex": ".*<([0-9]+)>.*",
-   "statregex": "(.+)",
+   scheduler: "LSF",
+   sbmtcmd: [ "bsub", "-env", "all" ],
+   statcmd: [ "bjobs", "-ostat", "-noheader" ],
+   sbmtregex: ".*<([0-9]+)>.*",
+   statregex: "([A-Z]+)",
 
-   "logfiles": [
+   logfiles: [
       "#BSUB -o '&logdir/%J.out'",
-      "#BSUB -e '&logdir/%J.out'"
+      "#BSUB -e '&logdir/%J.out'",
    ],
 
-   "jobname": "#BSUB -J '&jobname'",
-   "jobtype": "#BSUB -P '&jobtype'",
+   jobname: "#BSUB -J '&jobname'",
+   jobtype: "#BSUB -P '&jobtype'",
 
-   "queue": "#BSUB -q '&queue'",
+   queue: "#BSUB -q '&queue'",
 
-   "serial": [
-      "#BSUB -n '1'"
+   serial: [
+      "#BSUB -n '1'",
    ],
 
-   "serialat": [
+   serialat: [
       "#BSUB -m '&hosts'",
-      "#BSUB -n '1'"
+      "#BSUB -n '1'",
    ],
 
-   "singlehost": [
+   singlehost: [
       "#BSUB -n '&nproc'",
-      "#BSUB -R 'span[hosts=1]'"
+      "#BSUB -R 'span[hosts=1]'",
    ],
 
-   "singlehostat": [
+   singlehostat: [
       "#BSUB -n '&nproc'",
-      "#BSUB -m '&hosts'"
+      "#BSUB -m '&hosts'",
    ],
 
-   "multihost": [
+   multihost: [
       "#BSUB -n '&nproc'",
-      "#BSUB -R 'span[hosts=&nhost]'"
+      "#BSUB -R 'span[hosts=&nhost]'",
    ],
 
-   "multihostat": [
+   multihostat: [
       "#BSUB -n '&nproc'",
-      "#BSUB -m '&hosts'"
+      "#BSUB -m '&hosts'",
    ],
 
-   "envars": {
-      "jobid": "$LSB_JOBID",
-      "nproc": "$(echo $LSB_HOSTS | wc -w)",
-      "hosts": "$(printf '%s\\n' $LSB_HOSTS | uniq)"
+   envars: {
+      jobid: "$LSB_JOBID",
+      nproc: "$(echo $LSB_HOSTS | wc -w)",
+      hosts: "$(printf '%s\\n' $LSB_HOSTS | uniq)",
    },
     
-   "mpilauncher": {
-      "openmpi": "mpirun",
-      "intelmpi": "mpirun",
-      "mpich": "mpirun"
+   mpilauncher: {
+      openmpi: "mpirun",
+      intelmpi: "mpirun",
+      mpich: "mpirun",
    },
 
-   "queued_states": [
+   running_states: [
       "PEND",
       "RUN",
       "PSUSP",
       "USUSP",
-      "SSUSP"
+      "SSUSP",
    ],
 
-   "ready_states": [
+   finished_states: [
       "DONE",
-      "EXIT"
+      "EXIT",
    ],
 
-   "known_errors": [
-      "Job <[0-9]+> is not found"
-   ]
+   ignored_errors: [
+      "Job <[0-9]+> is not found",
+   ],
 
 }

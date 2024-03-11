@@ -21,13 +21,19 @@ def getjobstate(jobid):
     output = output.decode(sys.stdout.encoding).strip()
     error = error.decode(sys.stdout.encoding).strip()
     if process.returncode == 0:
-        status = re.fullmatch(config.statregex, output).group(1)
-        if status not in config.ready_states:
-            return 'El trabajo $name no se envió porque hay otro trabajo corriendo en el mismo directorio'
-    else:
-        if 'known_errors' in config:
-            for regex in config.known_errors:
-                if re.fullmatch(regex, error):
-                    break
+        if not output:
+            return True, None
+        match = re.fullmatch(config.statregex, output)
+        if match is None:
+            return False, f'El trabajo $jobname no se envió porque no se pudo determinar su estado:\n{output}'
+        if match.group(1) in config.finished_states:
+            return True, None
+        elif match.group(1) in config.running_states:
+            return False, 'El trabajo $jobname no se envió porque hay otro trabajo corriendo en el mismo directorio con el mismo nombre'
         else:
-            return 'El trabajo $name no se envió porque ocurrió un error al revisar su estado: {}'.format(error)
+            return False, f'El trabajo $jobname no se envió porque su estado no está registrado: {match.group(1)}'
+    else:
+        for regex in config.ignored_errors:
+            if re.fullmatch(regex, error):
+                return True, None
+        return False, f'El trabajo $jobname no se envió porque ocurrió un error al consultar su estado:\n{error}'

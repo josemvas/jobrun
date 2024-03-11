@@ -1,31 +1,31 @@
 {
-   "parallel": "None",
+   parallel: 'None',
 
-   "conflicts": {
-      "not dpf": "Debe existir un archivo dpf"
+   conflicts: {
+      'not dpf': 'Debe existir un archivo dpf',
    },
 
-   "filekeys": {
-      "dpf": "job.dpf",
-      "dlg": "job.dlg"
+   filekeys: {
+      dpf: 'job.dpf',
+      dlg: 'job.dlg',
    },
 
-   "inputfiles": [
-      "dpf"
+   inputfiles: [
+      'dpf',
    ],
 
-   "outputfiles": [
-      "dlg"
+   outputfiles: [
+      'dlg',
    ],
 
-   "optargs": {
-      "p": "dpf",
-      "l": "dlg"
+   optargs: {
+      p: 'dpf',
+      l: 'dlg',
    },
 
-   "parameteroptions": [
-      "ligand",
-      "receptor"
-   ]
+   parameteroptions: [
+      'ligand',
+      'receptor',
+   ],
 
 }

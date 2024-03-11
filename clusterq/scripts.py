@@ -30,26 +30,26 @@ def setup(install=True):
         cfgdir.mkdir()
         (cfgdir/'pspecs').mkdir()
         (cfgdir/'qspecs').mkdir()
-        for spec in (moduledir/'pspecs').listdir():
-            if (cfgdir/'pspecs'/spec).isfile():
-                if readspec(moduledir/'pspecs'/spec) != readspec(cfgdir/'pspecs'/spec):
-                    completer.set_message(_('¿Desea reestablecer la configuración de los programas?'))
+        for pspec in (moduledir/'pspecs').listdir():
+            if (cfgdir/'pspecs'/pspec).isfile():
+                if readspec(moduledir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
+                    completer.set_message(_('¿Desea reestablecer la configuración de $progname?', progname=pspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
-                        (moduledir/'pspecs'/spec).copyto(cfgdir/'pspecs')
+                        (moduledir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
             else:
-                (moduledir/'pspecs'/spec).copyto(cfgdir/'pspecs')
-        for spec in (moduledir/'qspecs').listdir():
-            if (cfgdir/'qspecs'/spec).isfile():
-                if readspec(moduledir/'qspecs'/spec) != readspec(cfgdir/'qspecs'/spec):
-                    completer.set_message(_('¿Desea reestablecer la configuración de las colas?'))
+                (moduledir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
+        for qspec in (moduledir/'qspecs').listdir():
+            if (cfgdir/'qspecs'/qspec).isfile():
+                if readspec(moduledir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
+                    completer.set_message(_('¿Desea reestablecer la configuración de $quename?', quename=qspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
-                        (moduledir/'qspecs'/spec).copyto(cfgdir/'qspecs')
+                        (moduledir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
             else:
-                (moduledir/'qspecs'/spec).copyto(cfgdir/'qspecs')
+                (moduledir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
     else:
         bindir = AbsPath('.', parent=os.getcwd())
         cfgdir = AbsPath('clusterq', parent=os.getcwd())

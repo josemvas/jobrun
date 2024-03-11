@@ -1,62 +1,62 @@
 {
-   "scheduler": "SLURM",
-   "sbmtcmd": [ "sbatch", "--export=ALL" ],
-   "statcmd": [ "squeue", "--noheader", "-o%T", "-j" ],
-   "sbmtregex": ".* ([0-9]+)",
-   "statregex": "(.+)",
+   scheduler: "SLURM",
+   sbmtcmd: [ "sbatch", "--export=ALL" ],
+   statcmd: [ "squeue", "--noheader", "-o%T", "-j" ],
+   sbmtregex: ".* ([0-9]+)",
+   statregex: "([A-Z_]+)",
 
-   "logfiles": [
+   logfiles: [
        "#SBATCH -o '&logdir/%A.out'",
-       "#SBATCH -e '&logdir/%A.out'"
+       "#SBATCH -e '&logdir/%A.out'",
    ],
 
-   "jobname": "#SBATCH -J '&jobname'",
-   "jobtype": "#SBATCH --comment='&jobtype'",
+   jobname: "#SBATCH -J '&jobname'",
+   jobtype: "#SBATCH --comment='&jobtype'",
 
-   "queue": "#SBATCH -p '&queue'",
+   queue: "#SBATCH -p '&queue'",
 
-   "serial": [
-       "#SBATCH -n '1'"
+   serial: [
+       "#SBATCH -n '1'",
    ],
 
-   "serialat": [
+   serialat: [
        "#SBATCH -w '&hosts'",
-       "#SBATCH -n '1'"
+       "#SBATCH -n '1'",
    ],
 
-   "singlehost": [
+   singlehost: [
        "#SBATCH -n '&nproc'",
-       "#SBATCH -N '1'"
+       "#SBATCH -N '1'",
    ],
 
-   "singlehostat": [
+   singlehostat: [
        "#SBATCH -n '&nproc'",
-       "#SBATCH -w '&hosts'"
+       "#SBATCH -w '&hosts'",
    ],
 
-   "multihost": [
+   multihost: [
        "#SBATCH -n '&nproc'",
-       "#SBATCH -N '&nhost'"
+       "#SBATCH -N '&nhost'",
    ],
 
-   "multihostat": [
+   multihostat: [
        "#SBATCH -n '&nproc'",
-       "#SBATCH -w '&hosts'"
+       "#SBATCH -w '&hosts'",
    ],
 
-   "envars": {
-       "jobid": "$SLURM_JOB_ID",
-       "nproc": "$SLURM_NTASKS",
-       "hosts": "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)"
+   envars: {
+       jobid: "$SLURM_JOB_ID",
+       nproc: "$SLURM_NTASKS",
+       hosts: "$(getent hosts $SLURM_JOB_NODELIST | cut -d\\  -f1 | uniq)",
    },
    
-   "mpilauncher": {
-       "openmpi": "mpirun",
-       "intelmpi": "mpirun",
-       "mpich": "mpirun"
+   mpilauncher: {
+       openmpi: "mpirun",
+       intelmpi: "mpirun",
+       mpich: "mpirun",
    },
    
-   "queued_states": [
+   running_states: [
        "PENDING",
        "RUNNING",
        "SUSPENDED",
@@ -66,10 +66,10 @@
        "SIGNALING",
        "RESV_DEL_HOLD",
        "REQUEUE_HOLD",
-       "REQUEUED"
+       "REQUEUED",
    ],
    
-   "ready_states": [
+   finished_states: [
        "COMPLETED",
        "CANCELLED",
        "PREEMPTED",
@@ -78,6 +78,11 @@
        "FAILED",
        "BOOT_FAIL",
        "NODE_FAIL",
-       "OUT_OF_MEMORY"
-   ]
+       "OUT_OF_MEMORY",
+   ],
+
+   ignored_errors: [
+      "slurm_load_jobs error: Invalid job id specified",
+   ],
+
 }

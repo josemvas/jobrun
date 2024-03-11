@@ -451,9 +451,9 @@ def submit(workdir, inputname, filtergroups):
             try:
                 with open(pathjoin(jobdir, 'id'), 'r') as f:
                     jobid = f.read()
-                jobstate = getjobstate(jobid)
-                if jobstate is not None:
-                    messages.failure(jobstate.format(name=jobname))
+                success, status = getjobstate(jobid)
+                if not success:
+                    messages.failure(InterpolationTemplate(status).substitute(jobname=jobname))
                     return
             except FileNotFoundError:
                 pass
