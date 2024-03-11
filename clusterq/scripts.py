@@ -5,6 +5,7 @@ from string import Template
 from subprocess import check_output, DEVNULL
 from clinterface import messages, prompts, _
 #from tkdialogs import messages, prompts
+from .utils import shq
 from .readspec import readspec
 from .fileutils import AbsPath
 
@@ -13,13 +14,13 @@ completer = prompts.Completer()
 
 def setup(install=True):
 
-    pythonlibs = set()
-    systemlibs = set()
     packages = []
     enabledpackages = []
     packagenames = {}
+    systemlibs = set()
+    pythonlibs = set()
 
-    moduledir = AbsPath(__file__).parent
+    mdldir = AbsPath(__file__).parent
 
     if install:
         completer.set_message(_('Escriba la ruta del directorio de configuración:'))
@@ -30,41 +31,41 @@ def setup(install=True):
         cfgdir.mkdir()
         (cfgdir/'pspecs').mkdir()
         (cfgdir/'qspecs').mkdir()
-        for pspec in (moduledir/'pspecs').listdir():
+        for pspec in (mdldir/'pspecs').listdir():
             if (cfgdir/'pspecs'/pspec).isfile():
-                if readspec(moduledir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
+                if readspec(mdldir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
                     completer.set_message(_('¿Desea reestablecer la configuración de $progname?', progname=pspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
-                        (moduledir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
+                        (mdldir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
             else:
-                (moduledir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
-        for qspec in (moduledir/'qspecs').listdir():
+                (mdldir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
+        for qspec in (mdldir/'qspecs').listdir():
             if (cfgdir/'qspecs'/qspec).isfile():
-                if readspec(moduledir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
+                if readspec(mdldir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
                     completer.set_message(_('¿Desea reestablecer la configuración de $quename?', quename=qspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
-                        (moduledir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
+                        (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
             else:
-                (moduledir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
+                (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
     else:
         bindir = AbsPath('.', parent=os.getcwd())
         cfgdir = AbsPath('clusterq', parent=os.getcwd())
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
-        if match and match.group(1) not in systemlibs:
+        if match:
             systemlibs.add(match.group(1))
 
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
-            library = AbsPath(match.group(1)).parent
-            if library not in systemlibs:
-                pythonlibs.add(library)
+            lib = AbsPath(match.group(1)).parent
+            if lib not in systemlibs:
+                pythonlibs.add(lib)
 
     if (cfgdir/'environ').isdir():
         for spec in (cfgdir/'environ').listdir():
@@ -89,11 +90,14 @@ def setup(install=True):
     else:
         messages.warning(_('No hay ningún programa configurado todavía'))
 
+    command = ['exec', 'env']
+    if pythonlibs:
+        command.append('LD_LIBRARY_PATH=' + ':'.join(f'{shq(lib)}' for lib in pythonlibs) + ':$LD_LIBRARY_PATH')
+    command.extend([f'PYTHONPATH={shq(mdldir)}', f'CLUSTERQCFG={shq(cfgdir)}', f'{shq(sys.executable)}', '-m', 'clusterq.main', '"$0"', '"$@"'])
+
     for package in packages:
         if package in selpackages:
             with open(bindir/package, 'w') as file:
                 file.write('#!/bin/sh\n')
-                if pythonlibs:
-                    file.write('LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH\n'.format(os.pathsep.join(pythonlibs)))
-                file.write('exec env PYTHONPATH="{}" "{}" -m clusterq.main "{}" "$0" "$@"\n'.format(moduledir, sys.executable, cfgdir))
+                file.write(' '.join(command) + '\n')
             (bindir/package).chmod(0o755)

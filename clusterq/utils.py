@@ -82,14 +82,6 @@ def template_parse(template_str, s):
     # Return a dict with all of our keywords and their values
     return {x: matches.group(x) for x in keywords}
 
-def format_parse(fmtstr, text):
-    regexp = ''
-    for lit, name, spec, conv in Formatter().parse(fmtstr):
-        if name:
-            regexp += lit + '(?P<{}>[_a-z0-9]+)'.format(name)
-    match = re.fullmatch(regexp, text, re.IGNORECASE)
-    return match.groupdict()
-
 def deepjoin(nestedlist, nextseparators, pastseparators=[]):
     itemlist = []
     separator = nextseparators.pop(0)
@@ -132,3 +124,9 @@ def print_tree(options, level=0):
         print(' '*level + opt)
         if isinstance(options, dict):
             print_tree(options[opt], defaults[1:], level + 1)
+
+def shq(string):
+    if re.fullmatch(r'[a-z0-9_./-]+', string, flags=re.IGNORECASE):
+        return string
+    else:
+        return f"'{string}'"

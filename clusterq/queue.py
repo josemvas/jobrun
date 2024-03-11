@@ -29,7 +29,7 @@ def getjobstate(jobid):
         if match.group(1) in config.finished_states:
             return True, None
         elif match.group(1) in config.running_states:
-            return False, 'El trabajo $jobname no se envió porque hay otro trabajo corriendo en el mismo directorio con el mismo nombre'
+            return False, 'El trabajo $jobname no se envió porque hay un trabajo corriendo en el mismo directorio con el mismo nombre'
         else:
             return False, f'El trabajo $jobname no se envió porque su estado no está registrado: {match.group(1)}'
     else:

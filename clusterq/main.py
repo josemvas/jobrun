@@ -1,5 +1,4 @@
-import os
-import re
+import sys, os, re
 from socket import gethostname
 from argparse import ArgumentParser, Action, SUPPRESS
 from clinterface import messages, _
@@ -107,13 +106,9 @@ def dirbranches(trunk, componentlist, dirtree):
 
 try:
 
-    parser = ArgumentParser(add_help=False)
-    parser.add_argument('cfgdir')
-    parser.add_argument('filepath')
-    parsedargs, remainingargs = parser.parse_known_args()
-
-    paths.cfgdir = AbsPath(parsedargs.cfgdir)
-    names.command = os.path.basename(parsedargs.filepath)
+    paths.cfgdir = AbsPath(os.environ['CLUSTERQCFG'])
+    names.command = os.path.basename(sys.argv[1])
+    sys.argv.pop(1)
 
     config.merge(readspec(paths.cfgdir/'environ'/'__cluster__.json5'))
     config.merge(readspec(paths.cfgdir/'environ'/names.command%'json5'))
@@ -218,7 +213,7 @@ try:
     for key in config.interpolationoptions:
         group9.add_argument(opt(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
-    parsedargs = parser.parse_args(remainingargs)
+    parsedargs = parser.parse_args()
 #    print(parsedargs)
 
     for group in parser._action_groups:
