@@ -33,7 +33,7 @@ def getjobstatus(jobid):
         else:
             return False, f'El trabajo $jobname no se envió porque su estado no está registrado: {match.group(1)}'
     else:
-        for regex in config.ignored_errors:
+        for regex in config.ignorederrors:
             if re.fullmatch(regex, error):
                 return True, None
         return False, f'El trabajo $jobname no se envió porque ocurrió un error al consultar su estado:\n{error}'

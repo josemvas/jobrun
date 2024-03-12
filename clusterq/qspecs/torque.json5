@@ -64,7 +64,7 @@
       "C",
    ],
 
-   ignored_errors: [
+   ignorederrors: [
       "qstat: Unknown Job Id Error [0-9]+\\.[^.]+",
    ],
 

@@ -66,7 +66,7 @@ def initialize():
     else:
         settings.defaults = True
 
-    interpolationdict.update(options.interpolationoptions)
+    interpolationdict.update(options.interpolopts)
 
     for i, var in enumerate(options.interpolation.posvars, start=1):
         interpolationdict[str(i)] = var
@@ -76,11 +76,11 @@ def initialize():
     else:
         options.interpolate = False
 
-    for key, value in options.parameteroptions.items():
-        if '/' in options.parameteroptions[key]:
-            messages.error(_('El nombre del conjunto de parámetros no es válido'), f'options.parameteroptions[{key}]={value}')
+    for key, value in options.parameteropts.items():
+        if '/' in options.parameteropts[key]:
+            messages.error(_('El nombre del conjunto de parámetros no es válido'), f'options.parameteropts[{key}]={value}')
 
-    parameterdict.update(options.parameteroptions)
+    parameterdict.update(options.parameteropts)
 
     if options.interpolate:
         if options.interpolation.mol:
@@ -482,7 +482,7 @@ def submit(workdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(stagedir/jobname-config.fileoptions[key])
+        targetfile.symlink(stagedir/jobname-config.fileopts[key])
 
     if options.remote.host:
         remote_args = ArgGroups()
@@ -546,7 +546,7 @@ def submit(workdir, inputname, filtergroups):
             imports.append(script.importfile(stagedir/jobname-key, settings.execdir/config.filekeys[key]))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(stagedir/jobname-config.fileoptions[key], settings.execdir/config.filekeys[config.fileoptions[key]]))
+        imports.append(script.importfile(stagedir/jobname-config.fileopts[key], settings.execdir/config.filekeys[config.fileopts[key]]))
 
     for path in parameterpaths:
         if path.isfile():
@@ -593,7 +593,7 @@ def submit(workdir, inputname, filtergroups):
             messages.failure(_('El gestor de trabajos reportó un error al enviar el trabajo $jobname', error, jobname=jobname))
             return
         else:
-            messages.success(_('El cálculo "$jobname" se correrá en $nproc núcleo(s) en $clustername con el número de trabajo $jobid', jobname=jobname, nproc=options.common.nproc, clustername=names.cluster, jobid=jobid))
+            messages.success(_('El trabajo "$jobname" se correrá en $nproc núcleo(s) en $clustername con el número $jobid', jobname=jobname, nproc=options.common.nproc, clustername=names.cluster, jobid=jobid))
             with open(jobdir/'id', 'w') as f:
                 f.write(jobid)
             with open(paths.lock, 'a'):

@@ -69,7 +69,7 @@
       "EXIT",
    ],
 
-   ignored_errors: [
+   ignorederrors: [
       "Job <[0-9]+> is not found",
    ],
 

@@ -28,30 +28,30 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
-config = SpecDict({
-    'load': [],
-    'source': [],
-    'export': {},
-    'versions': {},
-    'defaults': {},
-    'onscript': [],
-    'offscript': [],
-    'conflicts': {},
-    'filekeys': {},
-    'filevars': {},
-    'optargs': [],
-    'posargs': [],
-    'prescript': [],
-    'postscript': [],
-    'fileoptions': {},
-    'inputfiles': [],
-    'outputfiles': [],
-    'interpolable': [],
-    'ignored_errors': [],
-    'parameterpaths': [],
-    'parameteroptions': [],
-    'interpolationoptions': [],
-})
+config = SpecDict(
+    load = [],
+    source = [],
+    export = {},
+    versions = {},
+    defaults = {},
+    conflicts = {},
+    optargs = [],
+    posargs = [],
+    filekeys = {},
+    filevars = {},
+    fileopts = {},
+    inputfiles = [],
+    outputfiles = [],
+    ignorederrors = [],
+    parameteropts = [],
+    parameterpaths = [],
+    interpolable = [],
+    interpolopts = [],
+    prescript = [],
+    postscript = [],
+    onscript = [],
+    offscript = [],
+)
 
 parameterdict = {}
 parameterpaths = []

@@ -19,7 +19,7 @@
       bin: 'deMon.bin',
    },
 
-   fileoptions: {
+   fileopts: {
       rstfile: 'rst',
       trjfile: 'oldtrj',
    },
@@ -44,7 +44,7 @@
       'inp',
    ],
 
-   interpolationoptions: [
+   interpolopts: [
       'method',
       'basis',
       'auxis',

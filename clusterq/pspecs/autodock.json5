@@ -23,7 +23,7 @@
       l: 'dlg',
    },
 
-   parameteroptions: [
+   parameteropts: [
       'ligand',
       'receptor',
    ],

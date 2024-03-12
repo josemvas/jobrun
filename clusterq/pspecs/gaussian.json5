@@ -25,7 +25,7 @@
       oldchkfile: 'oldchk',
    },
 
-   fileoptions: {
+   fileopts: {
       oldchk: 'oldchk',
    },
 
@@ -48,7 +48,7 @@
       'com',
    ],
 
-   interpolationoptions: [
+   interpolopts: [
       'method',
       'basis',
       'auxis',

@@ -208,7 +208,7 @@ try:
 
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
-    for key, value in config.fileoptions.items():
+    for key, value in config.fileopts.items():
         group6.add_argument(opt(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')
@@ -216,13 +216,13 @@ try:
     group7.add_argument('--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
     group8 = parser.add_argument_group('Parameter options')
-    group8.name = 'parameteroptions'
-    for key in config.parameteroptions:
+    group8.name = 'parameteropts'
+    for key in config.parameteropts:
         group8.add_argument(opt(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
 
     group9 = parser.add_argument_group('Interpolation options')
-    group9.name = 'interpolationoptions'
-    for key in config.interpolationoptions:
+    group9.name = 'interpolopts'
+    for key in config.interpolopts:
         group9.add_argument(opt(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     parsedargs = parser.parse_args()

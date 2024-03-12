@@ -37,7 +37,7 @@
       dftbinfile: 'dftb_in.hsd',
    },
 
-   fileoptions: {
+   fileopts: {
       chargefile: 'charges.bin',
    },
 
@@ -75,7 +75,7 @@
       'dftb_in.hsd',
    ],
 
-   parameteroptions: [
+   parameteropts: [
       'slako',
    ],
 

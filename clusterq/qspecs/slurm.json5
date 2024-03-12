@@ -81,7 +81,7 @@
        "OUT_OF_MEMORY",
    ],
 
-   ignored_errors: [
+   ignorederrors: [
       "slurm_load_jobs error: Invalid job id specified",
    ],
 
