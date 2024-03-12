@@ -3,7 +3,7 @@
    mpilaunch: 'True',
 
    conflicts: {
-      'not inp': 'Debe existir un archivo inp',
+      'not inp': 'Debe existir un archivo de entrada con extensión inp',
    },
 
    filekeys: {

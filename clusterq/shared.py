@@ -54,13 +54,16 @@ config = SpecDict({
 })
 
 parameterdict = {}
+parameterpaths = []
 interpolationdict = {}
+script = AttrDict()
 names = AttrDict()
 nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
-remote_args = ArgGroups()
+settings = AttrDict()
+status = AttrDict(initialized=False)
 names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name

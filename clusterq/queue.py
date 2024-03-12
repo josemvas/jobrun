@@ -15,7 +15,7 @@ def submitjob(jobscript):
     else:
         raise RuntimeError(error)
         
-def getjobstate(jobid):
+def getjobstatus(jobid):
     process = Popen(config.statcmd + [jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = process.communicate()
     output = output.decode(sys.stdout.encoding).strip()

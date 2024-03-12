@@ -3,7 +3,7 @@
    mpilaunch: 'True',
 
    conflicts: {
-      'not INCAR or not POSCAR or not POTCAR': 'Deben existir los archivos INCAR, POSCAR y POTCAR',
+      'not INCAR or not POSCAR or not POTCAR': 'Deben existir los archivos de entrada INCAR, POSCAR y POTCAR',
    },
 
    stdoutfile: 'log',

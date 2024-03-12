@@ -3,9 +3,11 @@ from socket import gethostname
 #from tkdialogs import messages
 from clinterface import messages, _
 from argparse import ArgumentParser, Action, SUPPRESS
+from .parsing import BoolParser
 from .readspec import readspec
+from .utils import AttrDict, LogDict, GlobDict
+from .utils import ConfigTemplate, InterpolationTemplate
 from .utils import opt, natsorted as sorted
-from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate
 from .fileutils import AbsPath, pathsplit, file_except_info
 from .shared import names, nodes, paths, environ, config, options
 from .submit import initialize, submit 
@@ -54,6 +56,14 @@ class ArgList:
                 messages.failure(_('$file no es un archivo de entrada de $spec', file=path.name, spec=config.specname))
                 return next(self)
             workdir = path.parent
+        filestatus = {}
+        for key in config.filekeys:
+            path = workdir/inputname-key
+            filestatus[key] = path.isfile() or key in options.targetfiles
+        for conflict, message in config.conflicts.items():
+            if BoolParser(conflict).evaluate(filestatus):
+                messages.failure(InterpolationTemplate(message).safe_substitute(file=inputname))
+                return next(self)
         matched = self.filter.fullmatch(inputname)
         if matched:
             filtergroups = {str(i): x for i, x in enumerate(matched.groups())}
@@ -233,8 +243,6 @@ try:
         environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
     except KeyError:
         pass
-
-    initialize()
 
     for workdir, inputname, filtergroups in arguments:
         submit(workdir, inputname, filtergroups)

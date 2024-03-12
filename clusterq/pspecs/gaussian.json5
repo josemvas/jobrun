@@ -2,8 +2,8 @@
    parallel: 'omp',
 
    conflicts: {
-      'com and gjf': 'No deben existir ambos archivos com y gjf',
-      'not com and not gjf': 'Debe existir un archivo com o gjf',
+      'com and gjf': 'Conflicto entre los archivos de entrada $file.com y $file.gjf',
+      'not com and not gjf': 'Debe existir un archivo de entrada con extensión com o gjf',
    },
 
    filekeys: {
@@ -18,11 +18,11 @@
    },
 
    filevars: {
-      com: 'com',
-      gjf: 'gjf',
-      chk: 'chk',
-      fchk: 'fchk',
-      oldchk: 'oldchk',
+      comfile: 'com',
+      gjffile: 'gjf',
+      chkfile: 'chk',
+      fchkfile: 'fchk',
+      oldchkfile: 'oldchk',
    },
 
    fileoptions: {
@@ -61,10 +61,10 @@
    ],
 
    prescript: [
-      'sed -i "/^%/d" @($gjf|$com)',
-      'sed -i "1i%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjf|$com)',
-      'sed -i "/--Link1--/a%Chk=$chk\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjf|$com)',
-      'test -f $oldchk && sed -i "1i%OldChk=$oldchk" @($gjf|$com)',
+      'sed -i "/^%/d" @($gjffile|$comfile)',
+      'sed -i "1i%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjffile|$comfile)',
+      'sed -i "/--Link1--/a%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjffile|$comfile)',
+      'test -f $oldchkfile && sed -i "1i%OldChk=$oldchkfile" @($gjffile|$comfile)',
    ],
 
 }

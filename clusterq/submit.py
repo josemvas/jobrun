@@ -4,19 +4,14 @@ import time
 #from tkdialogs import messages, prompts
 from clinterface import messages, prompts, _
 from subprocess import CalledProcessError, call, check_output
-from .queue import submitjob, getjobstate
+from .queue import submitjob, getjobstatus
 from .utils import AttrDict, GlobDict, LogDict
 from .utils import ConfigTemplate, FilterGroupTemplate, InterpolationTemplate
 from .utils import opt, template_parse, natsorted as sorted
-from .shared import parameterdict, interpolationdict
-from .shared import names, nodes, paths, config, options, remote_args, environ
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, file_except_info
-from .parsing import BoolParser
+from .shared import names, nodes, paths, config, options, environ, settings, status, script
+from .shared import parameterdict, interpolationdict, parameterpaths
 from .readmol import readmol
-
-parameterpaths = []
-settings = AttrDict()
-script = AttrDict()
 
 selector = prompts.Selector()
 completer = prompts.Completer()
@@ -34,15 +29,17 @@ def geometry_block(coords):
        for line in coords:
            if not line[0] in atoms:
                atoms.append(line[0])
-       blocklines.append('{:5} C'.format(len(coords)))
+       blocklines.append(f'{len(coords):5} C')
        blocklines.append(' '.join(atoms))
        for i, line in enumerate(coords, start=1):
-           blocklines.append('{:5}  {:3}  {:10.4f}  {:10.4f}  {:10.4f}'.format(i, atoms.index(line[0]) + 1, line[1], line[2], line[3]))
+           blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
        return '\n'.join(blocklines)
     else:
        messages.error(_('Formato desconocido'), f'molformat={molformat}')
 
 def initialize():
+
+    status.initialized = True
 
     script.head = {}
     script.body = []
@@ -285,19 +282,19 @@ def initialize():
 
     for key, value in config.export.items():
         if value:
-            script.head[f'{key}var'] = 'export {}={}'.format(key, value)
+            script.head[f'{key}var'] = f'export {key}={value}'
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for key, value in config.versions[settings.version].export.items():
         if value:
-            script.head[f'{key}var'] = 'export {}={}'.format(key, value)
+            script.head[f'{key}var'] = f'export {key}={value}'
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for i, path in enumerate(config.source + config.versions[settings.version].source):
         if path:
-            script.head[f'source{i}'] = 'source {}'.format(AbsPath(ConfigTemplate(path).substitute(names)))
+            script.head[f'source{i}'] = f'source {AbsPath(ConfigTemplate(path).substitute(names))}'
         else:
             messages.error(_('La ruta del script de configuración está vacía'), 'config.source')
 
@@ -306,21 +303,21 @@ def initialize():
 
     for i, module in enumerate(config.load + config.versions[settings.version].load):
         if module:
-            script.head[f'load{i}'] = 'module load {}'.format(module)
+            script.head[f'load{i}'] = f'module load {module}'
         else:
             messages.error(_('El nombre del módulo es nulo'), 'config.load')
 
     for key, value in config.envars.items():
-        script.head[f'{key}var'] = '{}="{}"'.format(key, value)
+        script.head[f'{key}'] = f'{key}="{value}"'
 
     for key, value in config.filevars.items():
-        script.head[f'{key}file'] = '{}="{}"'.format(key, config.filekeys[value])
+        script.head[f'{key}'] = f'{key}="{config.filekeys[value]}"'
 
     for key, value in names.items():
-        script.head[f'{key}name'] = '{}name="{}"'.format(key, value)
+        script.head[f'{key}name'] = f'{key}name="{value}"'
 
     for key, value in nodes.items():
-        script.head[f'{key}node'] = '{}node="{}"'.format(key, value)
+        script.head[f'{key}node'] = f'{key}node="{value}"'
 
     script.head['freeram'] = "freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')"
     script.head['totalram'] = "totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')"
@@ -329,13 +326,13 @@ def initialize():
     for key in config.optargs:
         if not config.optargs[key] in config.filekeys:
             messages.error(_('Elemento no encontrado'), f'{key} in config.optargs but not in config.filekeys')
-        script.body.append('-{key} {val}'.format(key=key, val=config.filekeys[config.optargs[key]]))
+        script.body.append(f'-{key} {config.filekeys[config.optargs[key]]}')
     
     for item in config.posargs:
         for key in item.split('|'):
             if not key in config.filekeys:
                 messages.error(_('Elemento no encontrado'), f'{key} in config.posargs but not in config.filekeys')
-        script.body.append(f'@({"|".join(config.filekeys[i] for i in item.split("|"))})')
+        script.body.append(f"@({'|'.join(config.filekeys[i] for i in item.split('|'))})")
     
     if 'stdinfile' in config:
         try:
@@ -389,14 +386,8 @@ def initialize():
 
 def submit(workdir, inputname, filtergroups):
 
-    filestatus = {}
-    for key in config.filekeys:
-        path = workdir/inputname-key
-        filestatus[key] = path.isfile() or key in options.targetfiles
-
-    for conflict, message in config.conflicts.items():
-        if BoolParser(conflict).evaluate(filestatus):
-            messages.error(message, f'inputname={inputname}')
+    if not status.initialized:
+        initialize()
 
     if 'prefix' in settings:
         jobname = f'{settings.prefix}.{inputname}'
@@ -406,7 +397,7 @@ def submit(workdir, inputname, filtergroups):
         jobname = inputname
 
     script.head['jobname'] = ConfigTemplate(config.jobname).substitute(jobname=jobname)
-    script.head['jobnamevar'] = 'jobname="{}"'.format(jobname)
+    script.head['jobnamevar'] = 'jobname="{jobname}"'
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, parent=workdir)
@@ -460,9 +451,9 @@ def submit(workdir, inputname, filtergroups):
             try:
                 with open(jobdir/'id', 'r') as f:
                     jobid = f.read()
-                success, status = getjobstate(jobid)
+                success, jobstatus = getjobstatus(jobid)
                 if not success:
-                    messages.failure(InterpolationTemplate(status).substitute(jobname=jobname))
+                    messages.failure(InterpolationTemplate(jobstatus).substitute(jobname=jobname))
                     return
             except FileNotFoundError:
                 pass
@@ -494,6 +485,7 @@ def submit(workdir, inputname, filtergroups):
         targetfile.symlink(stagedir/jobname-config.fileoptions[key])
 
     if options.remote.host:
+        remote_args = ArgGroups()
         reloutdir = os.path.relpath(outdir, paths.home)
         remote_workdir = remote_root/names.user-names.host
         remote_tempdir = remote_root/names.user-names.host-'temp'
@@ -521,8 +513,8 @@ def submit(workdir, inputname, filtergroups):
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tempdir}'])
-                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_workdir}'])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tempdir}'])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_workdir}'])
             except CalledProcessError as e:
                 messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
             call(arglist)

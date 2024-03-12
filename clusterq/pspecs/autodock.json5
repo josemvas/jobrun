@@ -2,7 +2,7 @@
    parallel: 'None',
 
    conflicts: {
-      'not dpf': 'Debe existir un archivo dpf',
+      'not dpf': 'Debe existir un archivo de entrada con extensión dpf',
    },
 
    filekeys: {

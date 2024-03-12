@@ -52,7 +52,7 @@ def clusterq_setup(in_place):
         for pspec in (mdldir/'pspecs').listdir():
             if (cfgdir/'pspecs'/pspec).isfile():
                 if readspec(mdldir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
-                    completer.set_message(_('¿Desea reestablecer la configuración de $progname?', progname=pspec))
+                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $progname?', progname=pspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
@@ -62,7 +62,7 @@ def clusterq_setup(in_place):
         for qspec in (mdldir/'qspecs').listdir():
             if (cfgdir/'qspecs'/qspec).isfile():
                 if readspec(mdldir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
-                    completer.set_message(_('¿Desea reestablecer la configuración de $quename?', quename=qspec))
+                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $quename?', quename=qspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():
@@ -107,8 +107,8 @@ def clusterq_setup(in_place):
 
     command = ['exec', 'env']
     if pythonlibs:
-        command.append('LD_LIBRARY_PATH=' + ':'.join(f'{shq(lib)}' for lib in pythonlibs) + ':$LD_LIBRARY_PATH')
-    command.extend([f'PYTHONPATH={shq(mdldir)}', f'CLUSTERQCFG={shq(cfgdir)}', f'{shq(sys.executable)}', '-m', 'clusterq.main', '"$0"', '"$@"'])
+        command.append("LD_LIBRARY_PATH={':'.join(shq(lib) for lib in pythonlibs)}:$LD_LIBRARY_PATH")
+    command.extend([f'PYTHONPATH={shq(mdldir)}', f'CLUSTERQCFG={shq(cfgdir)}', shq(sys.executable), '-m', 'clusterq.main', '"$0"', '"$@"'])
 
     for package in packages:
         if package in selpackages:

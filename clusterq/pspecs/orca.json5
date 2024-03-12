@@ -3,7 +3,7 @@
    stdoutfile: 'out',
 
    conflicts: {
-      'not inp': 'Debe existir un archivo inp',
+      'not inp': 'Debe existir un archivo de entrada con extensión inp',
    },
 
    filekeys: {
@@ -19,7 +19,7 @@
    },
 
    filevars: {
-      inp: 'inp',
+      inpfile: 'inp',
    },
 
    inputfiles: [
@@ -42,7 +42,7 @@
    ],
 
    prescript: [
-      'sed -i "/\\\\s*%pal\\\\s\\\\s*end/Id;1i%pal nprocs $nproc end" $inp',
+      'sed -i "/\\\\s*%pal\\\\s\\\\s*end/Id;1i%pal nprocs $nproc end" $inpfile',
    ],
 
 }
