@@ -4,7 +4,7 @@ Notes
 - At least Python 3.2 required for: argparse library
 - At least Python 3.3 required for: new IO exception hierarchy
 - At least Python 3.4 required for: pathlib library
-- At least Python 3.6 required for: formatted string literals, widespread pathlib objects, ordered standard dicts
+- At least Python 3.6 required for: formatted string literals, widespread pathlib objects, ordered basic dicts
 
 General
 -------

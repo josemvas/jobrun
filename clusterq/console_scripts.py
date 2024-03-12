@@ -61,7 +61,7 @@ def clusterq_setup(in_place):
         for qspec in (mdldir/'qspecs').listdir():
             if (cfgdir/'qspecs'/qspec).isfile():
                 if readspec(mdldir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
-                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $quename?', quename=qspec))
+                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $queuename?', queuename=qspec))
                     completer.set_truthy_options(['si', 'yes'])
                     completer.set_falsy_options(['no'])
                     if completer.binary_choice():

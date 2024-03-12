@@ -3,7 +3,6 @@ import string
 import shutil
 import fnmatch
 from clinterface import messages, _
-from .utils import deepjoin
 
 def file_except_info(exception, path):
     if isinstance(exception, IsADirectoryError):

@@ -1,23 +1,14 @@
 import re
 import pyjson5 as json5
 from clinterface import messages, _
-from collections import OrderedDict
 from string import Template, Formatter
 
-class MergeList(list):
-    def __init__(self, arglist):
-        super().__init__()
-        self.merge(arglist)
-    def merge(self, other):
-        for elem in other:
-            if isinstance(elem, dict):
-                self.append(MergeDict(elem))
-            elif isinstance(elem, list):
-                self.append(MergeList(elem))
-            else:
-                self.append(elem)
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
 
-class MergeDict(OrderedDict):
+class MergeDict(AttrDict):
     def __init__(self, argdict):
         super().__init__()
         self.merge(argdict)
@@ -33,52 +24,36 @@ class MergeDict(OrderedDict):
                     self[key] = MergeList(value)
                 else:
                     self[key] = value
-    def __getattr__(self, key):
-        if key.startswith('_'):
-            return super(MergeDict, self).__getattr__(key)
-        else:
-            try:
-                return self[key]
-            except KeyError:
-                raise AttributeError(key)
-    def __setattr__(self, key, value):
-        if key.startswith('_'):
-            super(MergeDict, self).__setattr__(key, value)
-        else:
-            self[key] = value
 
-class FormatKeyError(Exception):
-    pass
+class MergeList(list):
+    def __init__(self, arglist):
+        super().__init__()
+        self.merge(arglist)
+    def merge(self, other):
+        for elem in other:
+            if isinstance(elem, dict):
+                self.append(MergeDict(elem))
+            elif isinstance(elem, list):
+                self.append(MergeList(elem))
+            else:
+                self.append(elem)
+
+class GlobDict(dict):
+    def __missing__(self, key):
+        return '*'
+
+class LogDict(dict):
+# Missing keys are logged in the logged_keys attribute
+    def __init__(self):
+        self.logged_keys = []
+    def __missing__(self, key):
+        self.logged_keys.append(key)
 
 class IdentityList(list):
     def __init__(self, *args):
         list.__init__(self, args)
     def __contains__(self, other):
         return any(o is other for o in self)
-
-# This class is used to access dict values specifying keys as attributes
-class AttrDict(OrderedDict):
-    def __getattr__(self, name):
-        if not name.startswith('_'):
-            return self[name]
-        super().__getattr__(name)
-    def __setattr__(self, name, value):
-        if not name.startswith('_'):
-            self[name] = value
-        else:
-            super().__setattr__(name, value)
-
-# This class is used to interpolate format and template strings without raising key errors
-# Missing keys are logged in the logged_keys attribute
-class LogDict(dict):
-    def __init__(self):
-        self.logged_keys = []
-    def __missing__(self, key):
-        self.logged_keys.append(key)
-
-class GlobDict(dict):
-    def __missing__(self, key):
-        return '*'
 
 class ConfigTemplate(Template):
     delimiter = '&'
@@ -92,12 +67,16 @@ class InterpolationTemplate(Template):
     delimiter = '$'
     idpattern = r'[a-z][a-z0-9_]*'
 
+class FormatKeyError(Exception):
+    pass
+
 def readspec(file):
     with open(file, 'r') as f:
         try:
-            return AttrDict(json5.load(f, object_pairs_hook=OrderedDict))
+            return AttrDict(json5.load(f))
         except ValueError as e:
             messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)
+
 def natsorted(*args, **kwargs):
     if 'key' not in kwargs:
         kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
@@ -129,7 +108,7 @@ def catch_keyboard_interrupt(f):
             messages.error(_('Interrumpido por el usuario'))
     return wrapper
 
-def deepjoin(nestedlist, nextseparators, pastseparators=[]):
+def deep_join(nestedlist, nextseparators, pastseparators=[]):
     '''Example: deepjoin(['path', 'to', ['file', 'ext']], [os.path.sep, '.'])
     Output: path/to/file.ext'''
     itemlist = []
@@ -180,4 +159,3 @@ def template_parse(template_str, s):
 
     # Return a dict with all of our keywords and their values
     return {x: matches.group(x) for x in keywords}
-
