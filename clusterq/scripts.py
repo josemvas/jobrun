@@ -2,9 +2,9 @@ import os
 import sys
 import re
 from string import Template
-from subprocess import check_output, DEVNULL
-from clinterface import messages, prompts, _
 #from tkdialogs import messages, prompts
+from clinterface import messages, prompts, _
+from subprocess import check_output, DEVNULL
 from .utils import shq
 from .readspec import readspec
 from .fileutils import AbsPath

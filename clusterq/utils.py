@@ -83,6 +83,8 @@ def template_parse(template_str, s):
     return {x: matches.group(x) for x in keywords}
 
 def deepjoin(nestedlist, nextseparators, pastseparators=[]):
+    '''Example: deepjoin(['path', 'to', ['file', 'ext']], [os.path.sep, '.'])
+    Output: path/to/file.ext'''
     itemlist = []
     separator = nextseparators.pop(0)
     for item in nestedlist:

@@ -52,7 +52,7 @@ class AbsPath(str):
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def __mod__(self, right):
+    def __sub__(self, right):
         if not isinstance(right, str):
             raise TypeError('Right operand must be a string')
         if '/' in right:
@@ -132,9 +132,6 @@ class AbsPath(str):
                 raise NotADirectoryError
         else:
             raise FileNotFoundError
-
-def pathjoin(*components):
-    return deepjoin(components, [os.path.sep, '.'])
 
 def pathsplit(path):
     if path:

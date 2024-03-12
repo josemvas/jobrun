@@ -1,16 +1,16 @@
 import os
 import sys
 import time
-from subprocess import CalledProcessError, call, check_output
-from clinterface import messages, prompts, _
 #from tkdialogs import messages, prompts
+from clinterface import messages, prompts, _
+from subprocess import CalledProcessError, call, check_output
 from .queue import submitjob, getjobstate
 from .utils import AttrDict, GlobDict, LogDict
 from .utils import ConfigTemplate, FilterGroupTemplate, InterpolationTemplate
 from .utils import opt, template_parse, natsorted as sorted
 from .shared import parameterdict, interpolationdict
-from .shared import names, nodes, paths, config, options, remoteargs, environ
-from .fileutils import AbsPath, NotAbsolutePath, pathsplit, pathjoin, file_except_info
+from .shared import names, nodes, paths, config, options, remote_args, environ
+from .fileutils import AbsPath, NotAbsolutePath, pathsplit, file_except_info
 from .parsing import BoolParser
 from .readmol import readmol
 
@@ -53,13 +53,15 @@ def initialize():
 
     if options.remote.host:
         (paths.home/'.ssh').mkdir()
-        paths.socket = paths.home/'.ssh'/options.remote.host%'sock'
+        paths.socket = paths.home/'.ssh'/options.remote.host-'sock'
         try:
-            options.remote.root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
+            remote_root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
                 options.remote.host, 'printenv QREMOTEROOT']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
-        if not options.remote.root:
+        if remote_root:
+            remote_root = AbsPath(remote_root)
+        else:
             messages.error(_('El servidor $host no está configurado para aceptar trabajos', host=options.remote.host))
 
     if options.common.prompt:
@@ -89,12 +91,12 @@ def initialize():
                 path = AbsPath(path, parent=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
-                interpolationdict['mol' + str(i)] = geometry_block(coords)
+                interpolationdict[f'mol{i}'] = geometry_block(coords)
         elif options.interpolation.trjmol:
             path = AbsPath(options.interpolation.trjmol, parent=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
-                interpolationdict['mol' + str(i)] = geometry_block(coords)
+                interpolationdict[f'mol{i}'] = geometry_block(coords)
         if options.interpolation.prefix:
             try:
                 settings.prefix = InterpolationTemplate(options.interpolation.prefix).substitute(interpolationdict)
@@ -102,16 +104,23 @@ def initialize():
                 messages.error(_('El prefijo contiene variables de interpolación inválidas'), f'options.interpolation.prefix={options.interpolation.prefix}, key={e.args[0]}')
             except KeyError as e:
                 messages.error(_('El prefijo contiene variables de interpolación indefinidas'), f'options.interpolation.prefix={options.interpolation.prefix}, key={e.args[0]}')
+        elif options.interpolation.suffix:
+            try:
+                settings.suffix = InterpolationTemplate(options.interpolation.suffix).substitute(interpolationdict)
+            except ValueError as e:
+                messages.error(_('El prefijo contiene variables de interpolación inválidas'), f'options.interpolation.suffix={options.interpolation.suffix}, key={e.args[0]}')
+            except KeyError as e:
+                messages.error(_('El prefijo contiene variables de interpolación indefinidas'), f'options.interpolation.suffix={options.interpolation.suffix}, key={e.args[0]}')
         else:
             if options.interpolation.mol:
                 if len(options.interpolation.mol) == 1:
                     settings.prefix = molprefix
                 else:
-                    messages.error(_('Se debe especificar un prefijo cuando se especifican múltiples archivos de coordenadas'))
+                    messages.error(_('Se debe especificar un prefijo o sufijo cuando se especifican múltiples archivos de coordenadas'))
             elif options.interpolation.trjmol:
                 settings.prefix = molprefix
             else:
-                messages.error(_('Se debe especificar un prefijo para interpolar sin archivo coordenadas'))
+                messages.error(_('Se debe especificar un prefijo o sufijo para interpolar sin archivo coordenadas'))
 
     try:
         config.delay = float(config.delay)
@@ -124,7 +133,7 @@ def initialize():
         messages.error(_('No se especificó el directorio de escritura por defecto'), f'config.defaults.scratch={config.defaults.scratch}')
 
     if 'scratch' in options.common:
-        settings.execdir = options.common.scratch/'$jobid'
+        settings.execdir = AbsPath(options.common.scratch/'$jobid')
     else:
         settings.execdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names))/'$jobid'
 
@@ -173,25 +182,25 @@ def initialize():
         if config.parallel.lower() == 'none':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.serialat):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.serial):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
         elif config.parallel.lower() == 'omp':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.singlehostat):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.singlehost):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
-            script.body.append('OMP_NUM_THREADS=' + str(options.common.nproc))
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+            script.body.append(f'OMP_NUM_THREADS={options.common.nproc}')
         elif config.parallel.lower() == 'mpi':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
             else:
                 for i, item in enumerate(config.multihost):
-                    script.head['span' + str(i)] = ConfigTemplate(item).substitute(options.common)
+                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
             if 'mpilib' in config:
                 if config.mpilib in config.mpirun:
                     script.body.append(ConfigTemplate(config.mpirun[config.mpilib]).substitute(options.common))
@@ -270,25 +279,25 @@ def initialize():
         script.body.append(config.versions[settings.version].executable)
 
     for i, path in enumerate(config.logfiles):
-        script.head['log' + str(i)] = ConfigTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfigTemplate(config.logdir).substitute(names))))
+        script.head[f'log{i}'] = ConfigTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfigTemplate(config.logdir).substitute(names))))
 
     script.head['shopt'] = "shopt -s nullglob extglob"
 
     for key, value in config.export.items():
         if value:
-            script.head[key + 'var'] = 'export {}={}'.format(key, value)
+            script.head[f'{key}var'] = 'export {}={}'.format(key, value)
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for key, value in config.versions[settings.version].export.items():
         if value:
-            script.head[key + 'var'] = 'export {}={}'.format(key, value)
+            script.head[f'{key}var'] = 'export {}={}'.format(key, value)
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for i, path in enumerate(config.source + config.versions[settings.version].source):
         if path:
-            script.head['source' + str(i)] = 'source {}'.format(AbsPath(ConfigTemplate(path).substitute(names)))
+            script.head[f'source{i}'] = 'source {}'.format(AbsPath(ConfigTemplate(path).substitute(names)))
         else:
             messages.error(_('La ruta del script de configuración está vacía'), 'config.source')
 
@@ -297,21 +306,21 @@ def initialize():
 
     for i, module in enumerate(config.load + config.versions[settings.version].load):
         if module:
-            script.head['load' + str(i)] = 'module load {}'.format(module)
+            script.head[f'load{i}'] = 'module load {}'.format(module)
         else:
             messages.error(_('El nombre del módulo es nulo'), 'config.load')
 
     for key, value in config.envars.items():
-        script.head[key + 'var'] = '{}="{}"'.format(key, value)
+        script.head[f'{key}var'] = '{}="{}"'.format(key, value)
 
     for key, value in config.filevars.items():
-        script.head[key + 'file'] = '{}="{}"'.format(key, config.filekeys[value])
+        script.head[f'{key}file'] = '{}="{}"'.format(key, config.filekeys[value])
 
     for key, value in names.items():
-        script.head[key + 'name'] = '{}name="{}"'.format(key, value)
+        script.head[f'{key}name'] = '{}name="{}"'.format(key, value)
 
     for key, value in nodes.items():
-        script.head[key + 'node'] = '{}node="{}"'.format(key, value)
+        script.head[f'{key}node'] = '{}node="{}"'.format(key, value)
 
     script.head['freeram'] = "freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')"
     script.head['totalram'] = "totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')"
@@ -326,23 +335,23 @@ def initialize():
         for key in item.split('|'):
             if not key in config.filekeys:
                 messages.error(_('Elemento no encontrado'), f'{key} in config.posargs but not in config.filekeys')
-        script.body.append('@(' + '|'.join(config.filekeys[i] for i in item.split('|')) + ')')
+        script.body.append(f'@({"|".join(config.filekeys[i] for i in item.split("|"))})')
     
     if 'stdinfile' in config:
         try:
-            script.body.append('0<' + ' ' + config.filekeys[config.stdinfile])
+            script.body.append(f'0< {config.filekeys[config.stdinfile]}')
         except KeyError:
             messages.error(_('Elemento no encontrado'), f'config.stdinfile={config.stdinfile} not in config.filekeys')
 
     if 'stdoutfile' in config:
         try:
-            script.body.append('1>' + ' ' + config.filekeys[config.stdoutfile])
+            script.body.append('1> {config.filekeys[config.stdoutfile]}')
         except KeyError:
             messages.error(_('Elemento no encontrado'), 'config.stdoutfile={config.stdoutfile} not in config.filekeys')
 
     if 'stderrfile' in config:
         try:
-            script.body.append('2>' + ' ' + config.filekeys[config.stderrfile])
+            script.body.append('2> {config.filekeys[config.stderrfile]}')
         except KeyError:
             messages.error(_('Elemento no encontrado'), 'config.stderrfile={config.stderrfile} not in config.filekeys')
     
@@ -382,7 +391,7 @@ def submit(workdir, inputname, filtergroups):
 
     filestatus = {}
     for key in config.filekeys:
-        path = AbsPath(pathjoin(workdir, (inputname, key)))
+        path = workdir/inputname-key
         filestatus[key] = path.isfile() or key in options.targetfiles
 
     for conflict, message in config.conflicts.items():
@@ -390,7 +399,9 @@ def submit(workdir, inputname, filtergroups):
             messages.error(message, f'inputname={inputname}')
 
     if 'prefix' in settings:
-        jobname = settings.prefix + '.' + inputname
+        jobname = f'{settings.prefix}.{inputname}'
+    elif 'suffix' in settings:
+        jobname = f'{inputname}.{settings.suffix}'
     else:
         jobname = inputname
 
@@ -413,8 +424,8 @@ def submit(workdir, inputname, filtergroups):
             return
         stagedir = outdir
         for key in config.inputfiles:
-            srcpath = AbsPath(pathjoin(workdir, (inputname, key)))
-            destpath = pathjoin(stagedir, (jobname, key))
+            srcpath = workdir/inputname-key
+            destpath = stagedir/jobname-key
             if srcpath.isfile():
                 if 'interpolable' in config and key in config.interpolable:
                     with open(srcpath, 'r') as f:
@@ -423,10 +434,10 @@ def submit(workdir, inputname, filtergroups):
                             try:
                                 interpolatedfiles[destpath] = InterpolationTemplate(contents).substitute(interpolationdict)
                             except ValueError:
-                                messages.failure(_('El archivo $file contiene variables de interpolación inválidas', file=srcpath.name), f'key={e.args[0]}')
+                                messages.failure(_('El archivo $file contiene variables de interpolación inválidas', file=srcpath), f'key={e.args[0]}')
                                 return
                             except KeyError as e:
-                                messages.failure(_('El archivo $file contiene variables de interpolación indefinidas', file=srcpath.name), f'key={e.args[0]}')
+                                messages.failure(_('El archivo $file contiene variables de interpolación indefinidas', file=srcpath), f'key={e.args[0]}')
                                 return
                         else:
                             try:
@@ -434,7 +445,7 @@ def submit(workdir, inputname, filtergroups):
                             except ValueError:
                                 pass
                             except KeyError as e:
-                                completer.set_message(_('Parece que hay variables de interpolación en el archivo $file ¿desea continuar sin interpolar?', file=srcpath.name))
+                                completer.set_message(_('Parece que hay variables de interpolación en el archivo $file ¿desea continuar sin interpolar?', file=srcpath))
                                 if completer.binary_choice():
                                     literalfiles[destpath] = srcpath
                                 else:
@@ -442,15 +453,12 @@ def submit(workdir, inputname, filtergroups):
                 else:
                     literalfiles[destpath] = srcpath
 
-    jobdir = AbsPath(pathjoin(stagedir, '.job'))
-
-    inputfileexts = ['.' + i for i in config.inputfiles]
-    outputfileexts = ['.' + i for i in config.outputfiles]
+    jobdir = stagedir/'.job'
 
     if outdir.isdir():
         if jobdir.isdir():
             try:
-                with open(pathjoin(jobdir, 'id'), 'r') as f:
+                with open(jobdir/'id', 'r') as f:
                     jobid = f.read()
                 success, status = getjobstate(jobid)
                 if not success:
@@ -458,16 +466,16 @@ def submit(workdir, inputname, filtergroups):
                     return
             except FileNotFoundError:
                 pass
-        if not set(outdir.listdir()).isdisjoint(pathjoin((jobname, key)) for key in config.outputfiles):
+        if not set(outdir.listdir()).isdisjoint(f'{jobname}.{key}' for key in config.outputfiles):
             completer.set_message(_('Si corre este cálculo los archivos de salida existentes en el directorio $outdir serán sobreescritos, ¿desea continuar de todas formas?', outdir=outdir))
             if options.common.no or (not options.common.yes and not completer.binary_choice()):
                 messages.failure(_('Cancelado por el usuario'))
                 return
-        for ext in outputfileexts:
-            (outdir/jobname%ext).remove()
         if workdir != outdir:
-            for ext in inputfileexts:
-                (outdir/jobname%ext).remove()
+            for ext in config.inputfiles:
+                (outdir/jobname-ext).remove()
+        for ext in config.outputfiles:
+            (outdir/jobname-ext).remove()
     else:
         try:
             outdir.makedirs()
@@ -483,43 +491,41 @@ def submit(workdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(pathjoin(stagedir, (jobname, config.fileoptions[key])))
+        targetfile.symlink(stagedir/jobname-config.fileoptions[key])
 
     if options.remote.host:
-
-        remoteargs.gather(options.common)
         reloutdir = os.path.relpath(outdir, paths.home)
-        remotehome = pathjoin(options.remote.root, (names.user, names.host))
-        remotetemp = pathjoin(options.remote.root, (names.user, names.host, 'temp'))
-        remoteargs.flags.add('raw')
-        remoteargs.flags.add('job')
-        remoteargs.flags.add('move')
-        remoteargs.options['cwd'] = pathjoin(remotetemp, reloutdir)
-        remoteargs.options['out'] = pathjoin(remotehome, reloutdir)
+        remote_workdir = remote_root/names.user-names.host
+        remote_tempdir = remote_root/names.user-names.host-'temp'
+        remote_args.gather(options.common)
+        remote_args.flags.add('raw')
+        remote_args.flags.add('job')
+        remote_args.flags.add('move')
+        remote_args.options['cwd'] = remote_tempdir/reloutdir
+        remote_args.options['out'] = remote_workdir/reloutdir
         for key, value in parameterdict.items():
-            remoteargs.options[key] = val
+            remote_args.options[key] = val
         filelist = []
         for key in config.filekeys:
-            if os.path.isfile(pathjoin(outdir, (jobname, key))):
-                filelist.append(pathjoin(paths.home, '.', reloutdir, (jobname, key)))
+            if (outdir/jobname-key).isfile():
+                filelist.append(paths.home/'.'/reloutdir/jobname-key)
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
-        arglist.extend(env + '=' + val for env, val in environ.items())
+        arglist.extend(f'{env}={val}' for env, val in environ.items())
         arglist.append(names.command)
-        arglist.extend(opt(key) for key in remoteargs.flags)
-        arglist.extend(opt(key, value) for key, value in remoteargs.options.items())
-        arglist.extend(opt(key, value) for key, listval in remoteargs.multoptions.items() for value in listval)
+        arglist.extend(opt(key) for key in remote_args.flags)
+        arglist.extend(opt(key, value) for key, value in remote_args.options.items())
+        arglist.extend(opt(key, value) for key, listval in remote_args.multoptions.items() for value in listval)
         arglist.append(jobname)
         if options.debug.dry_run:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
             print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
         else:
             try:
-                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz'] + filelist + [options.remote.host + ':' + remotetemp])
-                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz', '-f', '-! */'] + filelist + [options.remote.host + ':' + remotehome])
+                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tempdir}'])
+                check_output(['rsync', '-e', "ssh -S '{}'".format(paths.socket), '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_workdir}'])
             except CalledProcessError as e:
                 messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
             call(arglist)
-
         return
 
     ############ Local execution ###########
@@ -544,22 +550,22 @@ def submit(workdir, inputname, filtergroups):
     exports = []
 
     for key in config.inputfiles:
-        if AbsPath(pathjoin(workdir, (inputname, key))).isfile():
-            imports.append(script.importfile(pathjoin(stagedir, (jobname, key)), pathjoin(settings.execdir, config.filekeys[key])))
+        if (workdir/inputname-key).isfile():
+            imports.append(script.importfile(stagedir/jobname-key, settings.execdir/config.filekeys[key]))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(pathjoin(stagedir, (jobname, config.fileoptions[key])), pathjoin(settings.execdir, config.filekeys[config.fileoptions[key]])))
+        imports.append(script.importfile(stagedir/jobname-config.fileoptions[key], settings.execdir/config.filekeys[config.fileoptions[key]]))
 
     for path in parameterpaths:
         if path.isfile():
-            imports.append(script.importfile(path, pathjoin(settings.execdir, path.name)))
+            imports.append(script.importfile(path, settings.execdir/path.name))
         elif path.isdir():
-            imports.append(script.importdir(pathjoin(path), settings.execdir))
+            imports.append(script.importdir(path, settings.execdir))
         else:
             messages.error(_('La ruta de parámetros $path no existe', path=path))
 
     for key in config.outputfiles:
-        exports.append(script.exportfile(pathjoin(settings.execdir, config.filekeys[key]), pathjoin(outdir, (jobname, key))))
+        exports.append(script.exportfile(settings.execdir/config.filekeys[key], outdir/jobname-key))
 
     try:
         jobdir.mkdir()
@@ -567,7 +573,7 @@ def submit(workdir, inputname, filtergroups):
         messages.failure(_('No se puede crear la carpeta $jobdir porque ya existe un archivo con ese nombre', jobdir=jobdir))
         return
 
-    jobscript = pathjoin(jobdir, 'script')
+    jobscript = jobdir/'script'
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash -x' + '\n')
@@ -595,8 +601,8 @@ def submit(workdir, inputname, filtergroups):
             messages.failure(_('El gestor de trabajos reportó un error al enviar el trabajo $jobname', error, jobname=jobname))
             return
         else:
-            messages.success(_('El trabajo "$jobname" se correrá en $nproc núcleo(s) en $clustername con el número $jobid', jobname=jobname, nproc=options.common.nproc, clustername=names.cluster, jobid=jobid))
-            with open(pathjoin(jobdir, 'id'), 'w') as f:
+            messages.success(_('El cálculo "$jobname" se correrá en $nproc núcleo(s) en $clustername con el número de trabajo $jobid', jobname=jobname, nproc=options.common.nproc, clustername=names.cluster, jobid=jobid))
+            with open(jobdir/'id', 'w') as f:
                 f.write(jobid)
             with open(paths.lock, 'a'):
                 os.utime(paths.lock, None)

@@ -1,8 +1,8 @@
 import sys, os, re
 from socket import gethostname
-from argparse import ArgumentParser, Action, SUPPRESS
-from clinterface import messages, _
 #from tkdialogs import messages
+from clinterface import messages, _
+from argparse import ArgumentParser, Action, SUPPRESS
 from .readspec import readspec
 from .utils import opt, natsorted as sorted
 from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate
@@ -31,9 +31,9 @@ class ArgList:
         except IndexError:
             raise StopIteration
         if options.common.job:
-            parentdir = AbsPath(options.common.cwd)
+            workdir = AbsPath(options.common.cwd)
             for key in config.inputfiles:
-                if (parentdir/self.current%key).isfile():
+                if (workdir/self.current-key).isfile():
                     inputname = self.current
                     break
             else:
@@ -41,7 +41,6 @@ class ArgList:
                 return next(self)
         else:
             path = AbsPath(self.current, parent=options.common.cwd)
-            parentdir = path.parent
             try:
                 path.assertfile()
             except Exception as e:
@@ -54,10 +53,11 @@ class ArgList:
             else:
                 messages.failure(_('$file no es un archivo de entrada de $spec', file=path.name, spec=config.specname))
                 return next(self)
+            workdir = path.parent
         matched = self.filter.fullmatch(inputname)
         if matched:
             filtergroups = {str(i): x for i, x in enumerate(matched.groups())}
-            return parentdir, inputname, filtergroups
+            return workdir, inputname, filtergroups
         else:
             return next(self)
 
@@ -111,13 +111,13 @@ try:
     sys.argv.pop(1)
 
     config.merge(readspec(paths.cfgdir/'environ'/'__cluster__.json5'))
-    config.merge(readspec(paths.cfgdir/'environ'/names.command%'json5'))
-    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname%'json5'))
-    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler%'json5'))
+    config.merge(readspec(paths.cfgdir/'environ'/names.command-'json5'))
+    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname-'json5'))
+    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler-'json5'))
 
     userconfdir = paths.home/'.clusterq'
     userclusterconf = userconfdir/'__cluster__.json5'
-    userpackageconf = userconfdir/names.command%'json5'
+    userpackageconf = userconfdir/names.command-'json5'
     
     try:
         config.merge(readspec(userclusterconf))
@@ -188,8 +188,10 @@ try:
 
     group5 = parser.add_argument_group('Opciones de interpolación')
     group5.name = 'interpolation'
+    fixgroup = group5.add_mutually_exclusive_group()
+    fixgroup.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
+    fixgroup.add_argument('--suffix', metavar='SUFFIX', default=None, help='Agregar el sufijo SUFFIX al nombre del trabajo.')
     molgroup = group5.add_mutually_exclusive_group()
-    group5.add_argument('--prefix', metavar='PREFIX', default=None, help='Agregar el prefijo PREFIX al nombre del trabajo.')
     molgroup.add_argument('-m', '--mol', metavar='MOLFILE', action='append', default=[], help='Incluir el último paso del archivo MOLFILE en las variables de interpolación.')
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('-x', '--var', dest='posvars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
@@ -234,8 +236,8 @@ try:
 
     initialize()
 
-    for parentdir, inputname, filtergroups in arguments:
-        submit(parentdir, inputname, filtergroups)
+    for workdir, inputname, filtergroups in arguments:
+        submit(workdir, inputname, filtergroups)
     
 except KeyboardInterrupt:
 

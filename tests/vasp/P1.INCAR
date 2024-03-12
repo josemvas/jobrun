@@ -1,0 +1,74 @@
+SYSTEM = Generic 
+
+Start parameter for this run:
+##ISTART  = 0         ! start job from scratch (see INIWAV)
+###INIWAV  = 1         ! Fill wavefunctions arrays with random numbers
+ICHARGE = 1         ! Calculate charge density from initial wave function
+    GGA = PE 
+
+Electronic relaxation:
+ENCUT   = 400.0     ! Cutoff energy for plane waves basis set in eV  
+###IALGO   = 38        ! IALGO = 38 + 48; IALGO = 48 does not work for Ce-oxides
+#ALGO     = A
+LSUBROT  = .FALSE.
+NELMIN  = 4         ! Minimum number of eletronic selfconsistency (SC) steps
+NELM    = 5000       ! Maximum number of electronic SC steps
+NELMDL  = -12       ! Number of NON-SCF steps (SHOULD be NEGATIVE)
+EDIFF   = 1E-4      ! Global-break condition for the electronic SC-loop (ELM)
+
+
+Calculation mode:
+PREC    = Accurate  ! Calculation level (Changes FFT-grids)
+ISPIN   = 2         ! spin-polarized calculations
+
+ISYM    = 2
+
+
+Integration over the Brillouin zone (BZ):
+ISMEAR  = 0         ! Gaussian smearing
+SIGMA   = 0.05      
+
+Ionic relaxation:
+#####NSW     = 5000       ! Number of ionic steps
+EDIFFG  = 0.001    ! stop if all forces are smaller than |EDIFFG|
+#####IBRION  = 1         
+ISIF    = 0         ! Calculate FORCE and Relax Ions 
+POTIM   = 0.10
+
+
+VASP OUTPUTs
+NWRITE  = 2         ! Determines how much information will be written in OUTCAR
+
+Key for parallel mode calculation:
+NPAR = 4 
+LDIAG= TRUE
+EOF
+
+LREAL= Auto
+NBANDS = 1000
+
+
+ Write flags
+
+IALGO   = 48
+IBRION  = -1
+IWAVPR =  11
+NSW    =  0
+PREC   = High
+
+
+ Write flags
+
+LELF   = .TRUE.
+  LCHARG = .TRUE.
+
+## For LVTOT=.TRUE. VASP.5.x writes the TOTAL local potential to          |
+## the file LOCPOT. If you want the Hartree contributions only, use       |
+## LVHAR=.TRUE. instead. 
+
+ISTART  = 1         ! start job from scratch (see INIWAV)
+INIWAV  = 1         ! Fill wavefunctions arrays with random numbers
+ICHARGE = 1         ! Calculate charge density from initial wave function
+
+
+
