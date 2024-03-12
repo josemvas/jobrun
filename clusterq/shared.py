@@ -3,9 +3,8 @@ from pwd import getpwnam
 from grp import getgrgid
 from getpass import getuser 
 from socket import gethostname
-from .readspec import SpecDict
+from .utils import AttrDict, MergeDict
 from .fileutils import AbsPath
-from .utils import AttrDict
 
 class ArgGroups:
     def __init__(self):
@@ -28,7 +27,7 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
-config = SpecDict(
+config = MergeDict(dict(
     load = [],
     source = [],
     export = {},
@@ -51,7 +50,7 @@ config = SpecDict(
     postscript = [],
     onscript = [],
     offscript = [],
-)
+))
 
 parameterdict = {}
 parameterpaths = []

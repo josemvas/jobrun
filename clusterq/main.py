@@ -3,14 +3,13 @@ from socket import gethostname
 #from tkdialogs import messages
 from clinterface import messages, _
 from argparse import ArgumentParser, Action, SUPPRESS
-from .parsing import BoolParser
-from .readspec import readspec
 from .utils import AttrDict, LogDict, GlobDict
 from .utils import ConfigTemplate, InterpolationTemplate
-from .utils import opt, natsorted as sorted
+from .utils import opt, readspec, natsorted as sorted, catch_keyboard_interrupt
 from .fileutils import AbsPath, pathsplit, file_except_info
 from .shared import names, nodes, paths, environ, config, options
 from .submit import initialize, submit 
+from .parsing import BoolParser
 
 class ArgList:
     def __init__(self, args):
@@ -114,7 +113,9 @@ def dirbranches(trunk, componentlist, dirtree):
         else:
             dirbranches(trunk/component, componentlist, dirtree)
 
-try:
+
+@catch_keyboard_interrupt
+def run():
 
     paths.cfgdir = AbsPath(os.environ['CLUSTERQCFG'])
     names.command = os.path.basename(sys.argv[1])
@@ -247,6 +248,6 @@ try:
     for workdir, inputname, filtergroups in arguments:
         submit(workdir, inputname, filtergroups)
     
-except KeyboardInterrupt:
 
-    messages.error(_('Interrumpido por el usuario'))
+if __name__ == '__main__':
+    run()

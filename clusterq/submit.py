@@ -342,15 +342,15 @@ def initialize():
 
     if 'stdoutfile' in config:
         try:
-            script.body.append('1> {config.filekeys[config.stdoutfile]}')
+            script.body.append(f'1> {config.filekeys[config.stdoutfile]}')
         except KeyError:
-            messages.error(_('Elemento no encontrado'), 'config.stdoutfile={config.stdoutfile} not in config.filekeys')
+            messages.error(_('Elemento no encontrado'), f'config.stdoutfile={config.stdoutfile} not in config.filekeys')
 
     if 'stderrfile' in config:
         try:
-            script.body.append('2> {config.filekeys[config.stderrfile]}')
+            script.body.append(f'2> {config.filekeys[config.stderrfile]}')
         except KeyError:
-            messages.error(_('Elemento no encontrado'), 'config.stderrfile={config.stderrfile} not in config.filekeys')
+            messages.error(_('Elemento no encontrado'), f'config.stderrfile={config.stderrfile} not in config.filekeys')
     
     script.chdir = 'cd "{}"'.format
     if config.filesync == 'local':

@@ -1,6 +1,51 @@
 import re
-from string import Template, Formatter
+import pyjson5 as json5
+from clinterface import messages, _
 from collections import OrderedDict
+from string import Template, Formatter
+
+class MergeList(list):
+    def __init__(self, arglist):
+        super().__init__()
+        self.merge(arglist)
+    def merge(self, other):
+        for elem in other:
+            if isinstance(elem, dict):
+                self.append(MergeDict(elem))
+            elif isinstance(elem, list):
+                self.append(MergeList(elem))
+            else:
+                self.append(elem)
+
+class MergeDict(OrderedDict):
+    def __init__(self, argdict):
+        super().__init__()
+        self.merge(argdict)
+    def merge(self, other):
+        for key, value in other.items():
+            # Merge existing entry or add a new one
+            if key in self and hasattr(self[key], 'merge'):
+                self[key].merge(value)
+            else:
+                if isinstance(value, dict):
+                    self[key] = MergeDict(value)
+                elif isinstance(value, list):
+                    self[key] = MergeList(value)
+                else:
+                    self[key] = value
+    def __getattr__(self, key):
+        if key.startswith('_'):
+            return super(MergeDict, self).__getattr__(key)
+        else:
+            try:
+                return self[key]
+            except KeyError:
+                raise AttributeError(key)
+    def __setattr__(self, key, value):
+        if key.startswith('_'):
+            super(MergeDict, self).__setattr__(key, value)
+        else:
+            self[key] = value
 
 class FormatKeyError(Exception):
     pass
@@ -47,6 +92,60 @@ class InterpolationTemplate(Template):
     delimiter = '$'
     idpattern = r'[a-z][a-z0-9_]*'
 
+def readspec(file):
+    with open(file, 'r') as f:
+        try:
+            return AttrDict(json5.load(f, object_pairs_hook=OrderedDict))
+        except ValueError as e:
+            messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)
+def natsorted(*args, **kwargs):
+    if 'key' not in kwargs:
+        kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
+    return sorted(*args, **kwargs)
+
+def opt(key, value=None):
+    if value is None:
+        return('--{}'.format(key.replace('_', '-')))
+    else:
+        return('--{}="{}"'.format(key.replace('_', '-'), value))
+    
+def shq(string):
+    if re.fullmatch(r'[a-z0-9_./-]+', string, flags=re.IGNORECASE):
+        return string
+    else:
+        return f"'{string}'"
+
+def print_tree(options, level=0):
+    for opt in sorted(options):
+        print(' '*level + opt)
+        if isinstance(options, dict):
+            print_tree(options[opt], defaults[1:], level + 1)
+
+def catch_keyboard_interrupt(f):
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except KeyboardInterrupt:
+            messages.error(_('Interrumpido por el usuario'))
+    return wrapper
+
+def deepjoin(nestedlist, nextseparators, pastseparators=[]):
+    '''Example: deepjoin(['path', 'to', ['file', 'ext']], [os.path.sep, '.'])
+    Output: path/to/file.ext'''
+    itemlist = []
+    separator = nextseparators.pop(0)
+    for item in nestedlist:
+        if isinstance(item, (list, tuple)):
+            itemlist.append(deepjoin(item, nextseparators, pastseparators + [separator]))
+        elif isinstance(item, str):
+            for delim in pastseparators:
+                if delim in item:
+                    raise ValueError('Components can not contain higher level separators')
+            itemlist.append(item)
+        else:
+            raise TypeError('Components must be strings')
+    return separator.join(itemlist)
+
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.
 
@@ -82,53 +181,3 @@ def template_parse(template_str, s):
     # Return a dict with all of our keywords and their values
     return {x: matches.group(x) for x in keywords}
 
-def deepjoin(nestedlist, nextseparators, pastseparators=[]):
-    '''Example: deepjoin(['path', 'to', ['file', 'ext']], [os.path.sep, '.'])
-    Output: path/to/file.ext'''
-    itemlist = []
-    separator = nextseparators.pop(0)
-    for item in nestedlist:
-        if isinstance(item, (list, tuple)):
-            itemlist.append(deepjoin(item, nextseparators, pastseparators + [separator]))
-        elif isinstance(item, str):
-            for delim in pastseparators:
-                if delim in item:
-                    raise ValueError('Components can not contain higher level separators')
-            itemlist.append(item)
-        else:
-            raise TypeError('Components must be strings')
-    return separator.join(itemlist)
-
-def catch_keyboard_interrupt(message):
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            try: return f(*args, **kwargs)
-            except KeyboardInterrupt:
-                raise SystemExit(message)
-        return wrapper
-
-def natsorted(*args, **kwargs):
-    if 'key' not in kwargs:
-        kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
-    return sorted(*args, **kwargs)
-
-def lowalnum(keystr):
-    return ''.join(c.lower() for c in keystr if c.isalnum())
-
-def opt(key, value=None):
-    if value is None:
-        return('--{}'.format(key.replace('_', '-')))
-    else:
-        return('--{}="{}"'.format(key.replace('_', '-'), value))
-    
-def print_tree(options, level=0):
-    for opt in sorted(options):
-        print(' '*level + opt)
-        if isinstance(options, dict):
-            print_tree(options[opt], defaults[1:], level + 1)
-
-def shq(string):
-    if re.fullmatch(r'[a-z0-9_./-]+', string, flags=re.IGNORECASE):
-        return string
-    else:
-        return f"'{string}'"

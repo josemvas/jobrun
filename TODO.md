@@ -42,4 +42,4 @@ queue.py
 readspec.py
 -----------
 
-- Revisar el método merge de SpecList?
+- Revisar el método merge de MergeList?

@@ -25,15 +25,15 @@ def getjobstatus(jobid):
             return True, None
         match = re.fullmatch(config.statregex, output)
         if match is None:
-            return False, f'El trabajo $jobname no se envió porque no se pudo determinar su estado:\n{output}'
+            return False, f'El trabajo "$jobname" no se envió porque no se pudo determinar su estado:\n{output}'
         if match.group(1) in config.finished_states:
             return True, None
         elif match.group(1) in config.running_states:
-            return False, 'El trabajo $jobname no se envió porque hay un trabajo corriendo en el mismo directorio con el mismo nombre'
+            return False, 'El trabajo "$jobname" no se envió porque hay otro trabajo corriendo con el mismo nombre y directorio de salida'
         else:
-            return False, f'El trabajo $jobname no se envió porque su estado no está registrado: {match.group(1)}'
+            return False, f'El trabajo "$jobname" no se envió porque su estado no está registrado: {match.group(1)}'
     else:
         for regex in config.ignorederrors:
             if re.fullmatch(regex, error):
                 return True, None
-        return False, f'El trabajo $jobname no se envió porque ocurrió un error al consultar su estado:\n{error}'
+        return False, f'El trabajo "$jobname" no se envió porque ocurrió un error al consultar su estado:\n{error}'

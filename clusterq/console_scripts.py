@@ -6,8 +6,7 @@ from argparse import ArgumentParser
 #from tkdialogs import messages, prompts
 from clinterface import messages, prompts, _
 from subprocess import check_output, DEVNULL
-from .utils import shq
-from .readspec import readspec
+from .utils import readspec, shq
 from .fileutils import AbsPath
 
 selector = prompts.Selector()
