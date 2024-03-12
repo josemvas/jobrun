@@ -2,6 +2,7 @@ import os
 import sys
 import re
 from string import Template
+from argparse import ArgumentParser
 #from tkdialogs import messages, prompts
 from clinterface import messages, prompts, _
 from subprocess import check_output, DEVNULL
@@ -12,7 +13,21 @@ from .fileutils import AbsPath
 selector = prompts.Selector()
 completer = prompts.Completer()
 
-def setup(install=True):
+
+def clusterq():
+
+    parser = ArgumentParser(description='Herramienta de configuración de ClusterQ.')
+    parser.add_argument('command', metavar='command')
+    parser.add_argument('--in-place', action='store_true')
+    args = parser.parse_args()
+
+    if args.command == 'setup':
+        clusterq_setup(args.in_place)
+    else:
+        messages.error(_('$command no es un comando válido', command=args.command))
+
+
+def clusterq_setup(in_place):
 
     packages = []
     enabledpackages = []
@@ -22,7 +37,10 @@ def setup(install=True):
 
     mdldir = AbsPath(__file__).parent
 
-    if install:
+    if in_place:
+        bindir = AbsPath('.', parent=os.getcwd())
+        cfgdir = AbsPath('clusterq', parent=os.getcwd())
+    else:
         completer.set_message(_('Escriba la ruta del directorio de configuración:'))
         cfgdir = AbsPath(completer.directory_path(), parent=os.getcwd())
         completer.set_message(_('Escriba la ruta en la que se instalarán los ejecutables:'))
@@ -51,9 +69,6 @@ def setup(install=True):
                         (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
             else:
                 (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
-    else:
-        bindir = AbsPath('.', parent=os.getcwd())
-        cfgdir = AbsPath('clusterq', parent=os.getcwd())
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
