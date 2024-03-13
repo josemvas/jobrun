@@ -87,7 +87,7 @@ def clusterq_setup(in_place):
             if 'displayname' in specdict:
                 name = os.path.splitext(spec)[0]
                 packages.append(name)
-                packagenames[name] = specdict.displayname
+                packagenames[name] = specdict['displayname']
 
     if bindir.isdir():
         for runfile in bindir.listdir():

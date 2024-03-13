@@ -9,33 +9,14 @@ from .utils import AttrDict, GlobDict, LogDict
 from .utils import ConfigTemplate, FilterGroupTemplate, InterpolationTemplate
 from .utils import opt, template_parse, natsorted as sorted
 from .fileutils import AbsPath, NotAbsolutePath, pathsplit, file_except_info
-from .shared import names, nodes, paths, config, options, environ, settings, status, script
+from .shared import booleans, names, nodes, paths, config, options, environ, settings, status, script
 from .shared import parameterdict, interpolationdict, parameterpaths
-from .readmol import readmol
+from .readmol import readmol, molblock
 
 selector = prompts.Selector()
 completer = prompts.Completer()
 completer.set_truthy_options(['si', 'yes'])
 completer.set_falsy_options(['no'])
-
-booleans = {'True':True, 'False':False}
-
-def geometry_block(coords):
-    if names.display in ('Gaussian', 'deMon2k'):
-        return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
-    elif names.display in ('DFTB+'):
-       atoms = []
-       blocklines = []
-       for line in coords:
-           if not line[0] in atoms:
-               atoms.append(line[0])
-       blocklines.append(f'{len(coords):5} C')
-       blocklines.append(' '.join(atoms))
-       for i, line in enumerate(coords, start=1):
-           blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
-       return '\n'.join(blocklines)
-    else:
-       messages.error(_('Formato desconocido'), f'molformat={molformat}')
 
 def initialize():
 
@@ -88,12 +69,12 @@ def initialize():
                 path = AbsPath(path, parent=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
-                interpolationdict[f'mol{i}'] = geometry_block(coords)
+                interpolationdict[f'mol{i}'] = molblock(coords)
         elif options.interpolation.trjmol:
             path = AbsPath(options.interpolation.trjmol, parent=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
-                interpolationdict[f'mol{i}'] = geometry_block(coords)
+                interpolationdict[f'mol{i}'] = molblock(coords)
         if options.interpolation.prefix:
             try:
                 settings.prefix = InterpolationTemplate(options.interpolation.prefix).substitute(interpolationdict)

@@ -73,7 +73,7 @@ class FormatKeyError(Exception):
 def readspec(file):
     with open(file, 'r') as f:
         try:
-            return AttrDict(json5.load(f))
+            return json5.load(f)
         except ValueError as e:
             messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)
 
@@ -109,8 +109,8 @@ def catch_keyboard_interrupt(f):
     return wrapper
 
 def deep_join(nestedlist, nextseparators, pastseparators=[]):
-    '''Example: deepjoin(['path', 'to', ['file', 'ext']], [os.path.sep, '.'])
-    Output: path/to/file.ext'''
+# For example deep_join(['dir1', 'dir2', ['name', 'ext']], ['/', '.'])
+# will return dir1/dir2/name.ext
     itemlist = []
     separator = nextseparators.pop(0)
     for item in nestedlist:
@@ -127,35 +127,27 @@ def deep_join(nestedlist, nextseparators, pastseparators=[]):
 
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.
-
     We assume all of the arguments in format string are named keyword arguments (i.e. no {} or
     {:0.2f}). We also assume that all chars are allowed in each keyword argument, so separators
     need to be present which aren't present in the keyword arguments (i.e. '{one}{two}' won't work
     reliably as a format string but '{one}-{two}' will if the hyphen isn't used in {one} or {two}).
-
-    We raise if the format string does not match s.
-
-    Example:
+    We raise if the format string does not match s. Example:
     fs = '{test}-{flight}-{go}'
     s = fs.format('first', 'second', 'third')
     template_parse(fs, s) -> {'test': 'first', 'flight': 'second', 'go': 'third'}
     """
-
     # First split on any keyword arguments, note that the names of keyword arguments will be in the
     # 1st, 3rd, ... positions in this list
     tokens = re.split(r'\$([a-z][a-z0-9_]*)', template_str, flags=re.IGNORECASE)
     keywords = tokens[1::2]
-
     # Now replace keyword arguments with named groups matching them. We also escape between keyword
     # arguments so we support meta-characters there. Re-join tokens to form our regexp pattern
     tokens[1::2] = map(u'(?P<{}>.*)'.format, keywords)
     tokens[0::2] = map(re.escape, tokens[0::2])
     pattern = ''.join(tokens)
-
     # Use our pattern to match the given string, raise if it doesn't match
     matches = re.match(pattern, s)
     if not matches:
         raise Exception("Format string did not match")
-
     # Return a dict with all of our keywords and their values
     return {x: matches.group(x) for x in keywords}

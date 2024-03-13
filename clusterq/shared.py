@@ -27,6 +27,11 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
+booleans = {
+    'True':True,
+    'False':False
+}
+
 config = MergeDict(dict(
     load = [],
     source = [],

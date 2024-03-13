@@ -5,8 +5,25 @@ class ParseError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
-# Guess format and read molfile
+def molblock(coords):
+    if names.display in ('Gaussian', 'deMon2k'):
+        return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
+    elif names.display in ('DFTB+'):
+       atoms = []
+       blocklines = []
+       for line in coords:
+           if not line[0] in atoms:
+               atoms.append(line[0])
+       blocklines.append(f'{len(coords):5} C')
+       blocklines.append(' '.join(atoms))
+       for i, line in enumerate(coords, start=1):
+           blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
+       return '\n'.join(blocklines)
+    else:
+       messages.error(_('Formato desconocido'), f'molformat={molformat}')
+
 def readmol(molfile):
+# Guess format and read molfile
     if molfile.isfile():
         with open(molfile, mode='r') as fh:
             if molfile.hasext('.mol'):
@@ -36,8 +53,8 @@ def readmol(molfile):
     else:
         messages.error(_('El archivo $file no existe', file=molfile))
 
-# Parse XYZ molfile
 def parsexyz(fh):
+# Parse XYZ molfile
     fh.seek(0)
     trajectory = []
     while True:
