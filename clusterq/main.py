@@ -3,13 +3,11 @@ from socket import gethostname
 #from tkdialogs import messages
 from clinterface import messages, _
 from argparse import ArgumentParser, Action, SUPPRESS
-from .utils import AttrDict, LogDict, GlobDict
-from .utils import ConfigTemplate, InterpolationTemplate
-from .utils import opt, readspec, natsorted as sorted, catch_keyboard_interrupt
-from .fileutils import AbsPath, pathsplit, file_except_info
+from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, InterpolationTemplate, option, readspec, natural_sorted as sorted, catch_keyboard_interrupt
+from .fileutils import AbsPath, file_except_info
 from .shared import names, nodes, paths, environ, config, options
-from .submit import initialize, submit 
 from .parsing import BoolParser
+from .submission import submit
 
 class ArgList:
     def __init__(self, args):
@@ -80,7 +78,9 @@ class ListOptions(Action):
             print_tree(tuple(config.versions.keys()), [default], level=1)
         for path in config.parameterpaths:
             dirtree = {}
-            parts = pathsplit(ConfigTemplate(path).safe_substitute(names))
+            path = ConfigTemplate(path).safe_substitute(names)
+            abspath = Abspath(path)
+            parts = abspath.parts
             dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
             if dirtree:
                 print('Conjuntos de parámetros disponibles:')
@@ -210,7 +210,7 @@ def run():
     group6 = parser.add_argument_group('Archivos reutilizables')
     group6.name = 'targetfiles'
     for key, value in config.fileopts.items():
-        group6.add_argument(opt(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
+        group6.add_argument(option(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
 
     group7 = parser.add_argument_group('Opciones de depuración')
     group7.name = 'debug'
@@ -219,12 +219,12 @@ def run():
     group8 = parser.add_argument_group('Parameter options')
     group8.name = 'parameteropts'
     for key in config.parameteropts:
-        group8.add_argument(opt(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
+        group8.add_argument(option(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
 
     group9 = parser.add_argument_group('Interpolation options')
     group9.name = 'interpolopts'
     for key in config.interpolopts:
-        group9.add_argument(opt(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
+        group9.add_argument(option(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     parsedargs = parser.parse_args()
 #    print(parsedargs)

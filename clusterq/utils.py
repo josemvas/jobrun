@@ -77,12 +77,12 @@ def readspec(file):
         except ValueError as e:
             messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)
 
-def natsorted(*args, **kwargs):
+def natural_sorted(*args, **kwargs):
     if 'key' not in kwargs:
         kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
     return sorted(*args, **kwargs)
 
-def opt(key, value=None):
+def option(key, value=None):
     if value is None:
         return('--{}'.format(key.replace('_', '-')))
     else:
