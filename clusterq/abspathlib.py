@@ -31,40 +31,58 @@ def dir_except_info(exception, path):
 class NotAbsolutePath(Exception):
     pass
 
-class AbsPath(str):
-    def __new__(cls, path='/', parent=None):
-        if not isinstance(path, str):
-            raise TypeError('Path must be a string')
-        if not path:
-            raise ValueError('Path can not be empty')
+class AbsPath(list):
+    def __init__(cls, path=None, parent=None):
+        if path is None:
+            path = PurePath('/')
+        elif isinstance(path, str):
+            if not path:
+                raise ValueError
+            if os.path.sep*2 in part:
+                raise ValueError
+            path = PurePath(path)
+        elif isinstance(path, list):
+            if not path:
+                raise ValueError
+            for part in path:
+                if not isinstance(part, str):
+                    raise TypeError
+                if not part:
+                    raise ValueError
+                if os.path.sep in part:
+                    raise ValueError
+            path = PurePath(*path)
+        elif isinstance(path, PurePath):
+            pass
+        else:
+            raise TypeError
         if parent is None:
-            if not os.path.isabs(path):
-                raise NotAbsolutePath
-        elif not os.path.isabs(path):
-            if not isinstance(parent, str):
-                raise TypeError('Parent directory must be a string')
-            if not os.path.isabs(parent):
-                raise ValueError('Parent directory must be an absolute path')
-            path = os.path.join(parent, path)
-        obj = str.__new__(cls, os.path.normpath(path))
-        obj.parts = pathsplit(obj)
-        obj.name = os.path.basename(obj)
-        obj.stem, obj.suffix = os.path.splitext(obj.name)
-        return obj
-    def __sub__(self, right):
-        if not isinstance(right, str):
+            if not path.is_absolute():
+                raise NotAbsolutePathError
+            super().__init__(path.parts[1:]))
+        else:
+            if path.is_absolute():
+                raise AbsolutePathError
+            super().__init__(parent.parts[1:]))
+            self.extend(path.parts)
+    def __str__(self):
+        os.path.sep + os.path.sep.join(self)
+    def __sub__(self, other):
+        if not isinstance(other, str):
             raise TypeError('Right operand must be a string')
-        if '/' in right:
+        if os.path.sep in other:
             raise ValueError('Can not use a path as an extension')
-        return AbsPath(self.name + '.' + right, parent=self.parent())
-    def __truediv__(self, right):
-        if not isinstance(right, str):
+        return AbsPath(self.name + '.' + other, parent=self.parent())
+    def __truediv__(self, other):
+        if not isinstance(other, str):
             raise TypeError('Right operand must be a string')
-        if isinstance(right, AbsPath):
+        if isinstance(other, AbsPath):
             raise ValueError('Can not join two absolute paths')
-        return AbsPath(right, parent=self)
+        return AbsPath(other, parent=self)
     def parent(self):
-        return AbsPath(os.path.dirname(self))
+        return AbsPath(self[:-1])
+    def name(self):
+        return self[-1]
     def listdir(self):
         return os.listdir(self)
     def hasext(self, suffix):
@@ -130,17 +148,3 @@ class AbsPath(str):
                 raise NotADirectoryError
         else:
             raise FileNotFoundError
-
-def pathsplit(path):
-    if path:
-        if path == os.path.sep:
-            componentlist = [os.path.sep]
-        elif path.startswith(os.path.sep):
-            componentlist = [os.path.sep] + path[1:].split(os.path.sep)
-        else:
-            componentlist = path.split(os.path.sep)
-        if '' in componentlist:
-            raise Exception('Path has empty components')
-        return componentlist
-    else:
-        return []

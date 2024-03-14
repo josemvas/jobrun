@@ -52,7 +52,7 @@ class ArgList:
             else:
                 messages.failure(_('$file no es un archivo de entrada de $spec', file=path.name, spec=config.specname))
                 return next(self)
-            workdir = path.parent
+            workdir = path.parent()
         filestatus = {}
         for key in config.filekeys:
             path = workdir/inputname-key
@@ -79,9 +79,7 @@ class ListOptions(Action):
         for path in config.parameterpaths:
             dirtree = {}
             path = ConfigTemplate(path).safe_substitute(names)
-            abspath = Abspath(path)
-            parts = abspath.parts
-            dirbranches(AbsPath(parts.pop(0)), parts, dirtree)
+            dirbranches(AbsPath(), AbsPath(path).parts, dirtree)
             if dirtree:
                 print('Conjuntos de parámetros disponibles:')
                 print_tree(dirtree, level=1)

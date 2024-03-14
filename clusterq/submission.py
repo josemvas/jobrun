@@ -160,10 +160,8 @@ def submit(workdir, inputname, filtergroups):
             messages.error(_('La ruta $path contiene variables de interpolación inválidas', path=path), f'key={e.args[0]}')
         except KeyError as e:
             messages.error(_('La ruta $path contiene variables de interpolación indefinidas', path=path), f'key={e.args[0]}')
-        abspath = AbsPath(path)
-        parts = abspath.parts
-        trunk = AbsPath(parts.pop(0))
-        for part in parts:
+        trunk = AbsPath()
+        for part in AbsPath(path).parts:
             trunk.assertdir()
             trunk = trunk/part
         parameterpaths.append(trunk)

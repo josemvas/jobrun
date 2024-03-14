@@ -3,7 +3,7 @@ from pwd import getpwnam
 from grp import getgrgid
 from getpass import getuser 
 from socket import gethostname
-from .utils import AttrDict, MergeDict
+from .utils import AttrDict, ConfDict
 from .fileutils import AbsPath
 
 class ArgGroups:
@@ -32,7 +32,7 @@ booleans = {
     'False':False
 }
 
-config = MergeDict(dict(
+config = ConfDict(dict(
     load = [],
     source = [],
     export = {},

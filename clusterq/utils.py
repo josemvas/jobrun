@@ -8,10 +8,11 @@ class AttrDict(dict):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
 
-class MergeDict(AttrDict):
+class ConfDict(dict):
     def __init__(self, argdict):
         super().__init__()
         self.merge(argdict)
+        self.__dict__ = self
     def merge(self, other):
         for key, value in other.items():
             # Merge existing entry or add a new one
@@ -19,22 +20,22 @@ class MergeDict(AttrDict):
                 self[key].merge(value)
             else:
                 if isinstance(value, dict):
-                    self[key] = MergeDict(value)
+                    self[key] = ConfDict(value)
                 elif isinstance(value, list):
-                    self[key] = MergeList(value)
+                    self[key] = ConfList(value)
                 else:
                     self[key] = value
 
-class MergeList(list):
+class ConfList(list):
     def __init__(self, arglist):
         super().__init__()
         self.merge(arglist)
     def merge(self, other):
         for elem in other:
             if isinstance(elem, dict):
-                self.append(MergeDict(elem))
+                self.append(ConfDict(elem))
             elif isinstance(elem, list):
-                self.append(MergeList(elem))
+                self.append(ConfList(elem))
             else:
                 self.append(elem)
 

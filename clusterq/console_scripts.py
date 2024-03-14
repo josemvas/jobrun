@@ -35,7 +35,7 @@ def clusterq_setup(in_place):
     systemlibs = set()
     pythonlibs = set()
 
-    mdldir = AbsPath(__file__).parent
+    mdldir = AbsPath(__file__).parent()
 
     if in_place:
         bindir = AbsPath('.', parent=os.getcwd())
@@ -74,7 +74,7 @@ def clusterq_setup(in_place):
     for line in check_output(('ldd', sys.executable)).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'\s*\S+\s+=>\s+(\S+)\s+\(\S+\)', line)
         if match:
-            lib = AbsPath(match.group(1)).parent
+            lib = AbsPath(match.group(1)).parent()
             if lib not in systemlibs:
                 pythonlibs.add(lib)
 

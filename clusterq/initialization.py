@@ -228,10 +228,8 @@ def initialize():
         else:
             path = ConfigTemplate(path).safe_substitute(names)
             path = InterpolationTemplate(path).safe_substitute(parameterdict)
-            abspath = AbsPath(path)
-            parts = abspath.parts
-            trunk = AbsPath(parts.pop(0))
-            for part in parts:
+            trunk = AbsPath()
+            for part in AbsPath(path).parts:
                 trunk.assertdir()
                 try:
                     InterpolationTemplate(part).substitute()
