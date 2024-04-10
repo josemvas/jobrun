@@ -3,7 +3,7 @@ import os, sys, time
 from clinterface import messages, prompts, _
 from subprocess import CalledProcessError, call, check_output
 from .queue import submitjob, getjobstatus
-from .shared import names, paths, config, options, environ, settings, status, script, parameterdict, interpolationdict, parameterpaths
+from .shared import ArgGroups, names, paths, config, options, environ, settings, status, script, parameterdict, interpolationdict, parameterpaths
 from .utils import ConfigTemplate, FilterGroupTemplate, InterpolationTemplate, option
 from .initialization import initialize
 from .fileutils import AbsPath
@@ -44,8 +44,8 @@ def submit(workdir, inputname, filtergroups):
             return
         stagedir = outdir
         for key in config.inputfiles:
-            srcpath = workdir/inputname-key
-            destpath = stagedir/jobname-key
+            srcpath = workdir/inputname*key
+            destpath = stagedir/jobname*key
             if srcpath.isfile():
                 if 'interpolable' in config and key in config.interpolable:
                     with open(srcpath, 'r') as f:
@@ -93,9 +93,9 @@ def submit(workdir, inputname, filtergroups):
                 return
         if workdir != outdir:
             for ext in config.inputfiles:
-                (outdir/jobname-ext).remove()
+                (outdir/jobname*ext).remove()
         for ext in config.outputfiles:
-            (outdir/jobname-ext).remove()
+            (outdir/jobname*ext).remove()
     else:
         try:
             outdir.makedirs()
@@ -111,27 +111,27 @@ def submit(workdir, inputname, filtergroups):
             f.write(contents)
 
     for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(stagedir/jobname-config.fileopts[key])
+        targetfile.symlink(stagedir/jobname*config.fileopts[key])
 
     ############ Remote execution ###########
 
     if options.remote.host:
         remote_args = ArgGroups()
         reloutdir = os.path.relpath(outdir, paths.home)
-        remote_workdir = paths.remotedir/names.user-names.host-'work'
-        remote_tempdir = paths.remotedir/names.user-names.host-'temp'
+        remote_tmpdir = paths.remotedir/names.user*names.host/'tmp'
+        remote_outdir = paths.remotedir/names.user*names.host/'out'
         remote_args.gather(options.common)
         remote_args.flags.add('raw')
         remote_args.flags.add('job')
         remote_args.flags.add('move')
-        remote_args.options['cwd'] = remote_tempdir/reloutdir
-        remote_args.options['out'] = remote_workdir/reloutdir
+        remote_args.options['cwd'] = remote_tmpdir/reloutdir
+        remote_args.options['out'] = remote_outdir/reloutdir
         for key, value in parameterdict.items():
             remote_args.options[key] = val
         filelist = []
         for key in config.filekeys:
-            if (outdir/jobname-key).isfile():
-                filelist.append(paths.home/'.'/reloutdir/jobname-key)
+            if (outdir/jobname*key).isfile():
+                filelist.append(paths.home/'.'/reloutdir/jobname*key)
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
         arglist.extend(f'{env}={val}' for env, val in environ.items())
         arglist.append(names.command)
@@ -141,13 +141,14 @@ def submit(workdir, inputname, filtergroups):
         arglist.append(jobname)
         if options.debug.dry_run:
             print('<FILE LIST>', ' '.join(filelist), '</FILE LIST>')
-            print('<COMMAND LINE>', ' '.join(arglist[3:]), '</COMMAND LINE>')
+            print('<COMMAND LINE>', ' '.join(arglist), '</COMMAND LINE>')
         else:
             try:
-                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tempdir}'])
-                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_workdir}'])
+                check_output(['ssh', '-S', paths.socket, options.remote.host, f"mkdir -p '{remote_tmpdir}' '{remote_outdir}'"])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tmpdir}'])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_outdir}'])
             except CalledProcessError as e:
-                messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
+                messages.error(_('Error al copiar los archivos al servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
             call(arglist)
         return
 
@@ -172,11 +173,11 @@ def submit(workdir, inputname, filtergroups):
     exports = []
 
     for key in config.inputfiles:
-        if (workdir/inputname-key).isfile():
-            imports.append(script.importfile(stagedir/jobname-key, settings.execdir/config.filekeys[key]))
+        if (workdir/inputname*key).isfile():
+            imports.append(script.importfile(stagedir/jobname*key, settings.execdir/config.filekeys[key]))
 
     for key in options.targetfiles:
-        imports.append(script.importfile(stagedir/jobname-config.fileopts[key], settings.execdir/config.filekeys[config.fileopts[key]]))
+        imports.append(script.importfile(stagedir/jobname*config.fileopts[key], settings.execdir/config.filekeys[config.fileopts[key]]))
 
     for path in parameterpaths:
         if path.isfile():
@@ -187,7 +188,7 @@ def submit(workdir, inputname, filtergroups):
             messages.error(_('La ruta de parámetros $path no existe', path=path))
 
     for key in config.outputfiles:
-        exports.append(script.exportfile(settings.execdir/config.filekeys[key], outdir/jobname-key))
+        exports.append(script.exportfile(settings.execdir/config.filekeys[key], outdir/jobname*key))
 
     try:
         jobdir.mkdir()
@@ -214,7 +215,7 @@ def submit(workdir, inputname, filtergroups):
         messages.success(_('Se procesó el trabajo "$jobname" y se generaron los archivos para el envío en el directorio $jobdir', jobname=jobname, jobdir=jobdir))
     else:
         try:
-            time.sleep(config.delay + options.common.delay + os.stat(paths.lock).st_mtime - time.time())
+            time.sleep(options.local.delay + os.stat(paths.lock).st_mtime - time.time())
         except (ValueError, FileNotFoundError) as e:
             pass
         try:

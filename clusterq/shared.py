@@ -57,6 +57,13 @@ config = ConfDict(dict(
     offscript = [],
 ))
 
+options = AttrDict(dict(
+    local = AttrDict(dict(
+        delay = 0,
+        queue = None,
+    )),
+))
+
 parameterdict = {}
 parameterpaths = []
 interpolationdict = {}
@@ -65,7 +72,6 @@ names = AttrDict()
 nodes = AttrDict()
 paths = AttrDict()
 environ = AttrDict()
-options = AttrDict()
 settings = AttrDict()
 names.user = getuser()
 names.host = gethostname()

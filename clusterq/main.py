@@ -32,7 +32,7 @@ class ArgList:
         if options.common.job:
             workdir = AbsPath(options.common.cwd)
             for key in config.inputfiles:
-                if (workdir/self.current-key).isfile():
+                if (workdir/self.current*key).isfile():
                     inputname = self.current
                     break
             else:
@@ -55,7 +55,7 @@ class ArgList:
             workdir = path.parent()
         filestatus = {}
         for key in config.filekeys:
-            path = workdir/inputname-key
+            path = workdir/inputname*key
             filestatus[key] = path.isfile() or key in options.targetfiles
         for conflict, message in config.conflicts.items():
             if BoolParser(conflict).evaluate(filestatus):
@@ -120,13 +120,13 @@ def run():
     sys.argv.pop(1)
 
     config.merge(readspec(paths.cfgdir/'environ'/'__cluster__.json5'))
-    config.merge(readspec(paths.cfgdir/'environ'/names.command-'json5'))
-    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname-'json5'))
-    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler-'json5'))
+    config.merge(readspec(paths.cfgdir/'environ'/names.command*'json5'))
+    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname*'json5'))
+    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler*'json5'))
 
     userconfdir = paths.home/'.clusterq'
     userclusterconf = userconfdir/'__cluster__.json5'
-    userpackageconf = userconfdir/names.command-'json5'
+    userpackageconf = userconfdir/names.command*'json5'
     
     try:
         config.merge(readspec(userclusterconf))
@@ -174,7 +174,7 @@ def run():
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Usar PATH como directorio actual de trabajo.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('--move', action='store_true', help='Mover los archivos de entrada al directorio de salida en vez de copiarlos.')
-    group2.add_argument('--delay', type=int, metavar='#SECONDS', default=0, help='Demorar el envío del trabajo #SECONDS segundos.')
+    group2.add_argument('--delay', type=int, metavar='#SECONDS', default=SUPPRESS, help='Demorar el envío del trabajo #SECONDS segundos.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')

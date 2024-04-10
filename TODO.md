@@ -9,6 +9,7 @@ Notes
 General
 -------
 
+- Usar options.local parar las opciones locales como queue, delay, etc.
 - Usar srun/sbcast para correr trabajos multinodo con slurm
 - Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
 - Usar qrsh/??? para correr trabajos multinodo con pbs/torque

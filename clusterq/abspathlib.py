@@ -67,7 +67,7 @@ class AbsPath(list):
             self.extend(path.parts)
     def __str__(self):
         os.path.sep + os.path.sep.join(self)
-    def __sub__(self, other):
+    def __mul__(self, other):
         if not isinstance(other, str):
             raise TypeError('Right operand must be a string')
         if os.path.sep in other:

@@ -25,10 +25,10 @@ def initialize():
 
     if options.remote.host:
         (paths.home/'.ssh').mkdir()
-        paths.socket = paths.home/'.ssh'/options.remote.host-'sock'
+        paths.socket = paths.home/'.ssh'/options.remote.host*'sock'
         try:
             paths.remotedir = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
-                options.remote.host, 'printenv CLUSTERQ_REMOTE']).strip().decode(sys.stdout.encoding)
+                options.remote.host, 'printenv CLUSTERQ_REMOTE || true']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
         if paths.remotedir:
@@ -94,12 +94,18 @@ def initialize():
             else:
                 messages.error(_('Se debe especificar un prefijo o sufijo para interpolar sin archivo coordenadas'))
 
-    try:
-        config.delay = float(config.delay)
-    except ValueError:
-        messages.error(_('El tiempo de espera debe ser un número'), f'config.delay={config.delay}')
-    except AttributeError:
-        config.delay = 0
+    if 'delay' in options.common:
+        delay = options.common.delay
+    elif 'delay' in config.defaults:
+        delay = config.defaults.delay
+    else:
+        delay = None
+
+    if delay is not None:
+        try:
+            config.local.delay = float(delay)
+        except ValueError:
+            messages.error(_('El tiempo de espera entre trabajos debe ser un número'), f'delay={delay}')
     
     if not 'scratch' in config.defaults:
         messages.error(_('No se especificó el directorio de escritura por defecto'), f'config.defaults.scratch={config.defaults.scratch}')
@@ -109,11 +115,12 @@ def initialize():
     else:
         settings.execdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names))/'$jobid'
 
-    if 'queue' not in options.common:
-        if 'queue' in config.defaults:
-            options.common.queue = config.defaults.queue
-        else:
-            messages.error(_('Debe especificar la cola a la que desea enviar el trabajo'))
+    if 'queue' in options.common:
+        options.local.queue = options.common.queue
+    elif 'queue' in config.defaults:
+        options.local.queue = config.defaults.queue
+    else:
+        messages.error(_('Debe especificar la cola a la que desea enviar el trabajo'))
     
     if 'mpilaunch' in config:
         try: config.mpilaunch = booleans[config.mpilaunch]
@@ -147,7 +154,7 @@ def initialize():
     if 'jobtype' in config:
         script.head['jobtype'] = ConfigTemplate(config.jobtype).substitute(jobtype=config.specname)
 
-    script.head['queue'] = ConfigTemplate(config.queue).substitute(options.common)
+    script.head['queue'] = ConfigTemplate(config.queue).substitute(options.local)
 
     #TODO MPI support for Slurm
     if config.parallel:

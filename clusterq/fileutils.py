@@ -46,12 +46,13 @@ class AbsPath(str):
             if not os.path.isabs(parent):
                 raise ValueError('Parent directory must be an absolute path')
             path = os.path.join(parent, path)
-        obj = str.__new__(cls, os.path.normpath(path))
+#        obj = str.__new__(cls, os.path.normpath(path))
+        obj = str.__new__(cls, path)
         obj.parts = pathsplit(obj)
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def __sub__(self, right):
+    def __mul__(self, right):
         if not isinstance(right, str):
             raise TypeError('Right operand must be a string')
         if '/' in right:
