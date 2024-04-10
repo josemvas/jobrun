@@ -113,11 +113,13 @@ def submit(workdir, inputname, filtergroups):
     for key, targetfile in options.targetfiles.items():
         targetfile.symlink(stagedir/jobname-config.fileopts[key])
 
+    ############ Remote execution ###########
+
     if options.remote.host:
         remote_args = ArgGroups()
         reloutdir = os.path.relpath(outdir, paths.home)
-        remote_workdir = remote_root/names.user-names.host
-        remote_tempdir = remote_root/names.user-names.host-'temp'
+        remote_workdir = paths.remotedir/names.user-names.host-'work'
+        remote_tempdir = paths.remotedir/names.user-names.host-'temp'
         remote_args.gather(options.common)
         remote_args.flags.add('raw')
         remote_args.flags.add('job')
@@ -218,7 +220,7 @@ def submit(workdir, inputname, filtergroups):
         try:
             jobid = submitjob(jobscript)
         except RuntimeError as error:
-            messages.failure(_('El gestor de trabajos reportó un error al enviar el trabajo $jobname', error, jobname=jobname))
+            messages.failure(_('El gestor de trabajos reportó el siguiente error al enviar el trabajo $jobname: $error', jobname=jobname, error=error))
             return
         else:
             messages.success(_('El trabajo "$jobname" se correrá en $nproc núcleo(s) en $clustername con el número $jobid', jobname=jobname, nproc=options.common.nproc, clustername=names.cluster, jobid=jobid))

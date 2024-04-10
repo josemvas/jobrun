@@ -27,12 +27,12 @@ def initialize():
         (paths.home/'.ssh').mkdir()
         paths.socket = paths.home/'.ssh'/options.remote.host-'sock'
         try:
-            remote_root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
-                options.remote.host, 'printenv QREMOTEROOT']).strip().decode(sys.stdout.encoding)
+            paths.remotedir = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
+                options.remote.host, 'printenv CLUSTERQ_REMOTE']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
-        if remote_root:
-            remote_root = AbsPath(remote_root)
+        if paths.remotedir:
+            paths.remotedir = AbsPath(paths.remotedir)
         else:
             messages.error(_('El servidor $host no está configurado para aceptar trabajos', host=options.remote.host))
 

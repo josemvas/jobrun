@@ -67,9 +67,9 @@ paths = AttrDict()
 environ = AttrDict()
 options = AttrDict()
 settings = AttrDict()
-status = AttrDict(initialized=False)
 names.user = getuser()
 names.host = gethostname()
 names.group = getgrgid(getpwnam(getuser()).pw_gid).gr_name
 paths.home = AbsPath(path.expanduser('~'))
 paths.lock = paths.home/'.clusterqlock'
+status = AttrDict(initialized=False)
