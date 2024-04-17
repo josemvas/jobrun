@@ -28,7 +28,7 @@ def initialize():
         paths.socket = paths.home/'.ssh'/options.remote.host*'sock'
         try:
             paths.remotedir = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
-                options.remote.host, 'printenv CLUSTERQ_REMOTE || true']).strip().decode(sys.stdout.encoding)
+                options.remote.host, 'printenv CLUSTERQ_REMOTE_ROOT || true']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
         if paths.remotedir:
@@ -63,12 +63,12 @@ def initialize():
                 path = AbsPath(path, parent=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
-                interpolationdict[f'mol{i}'] = molblock(coords)
+                interpolationdict[f'mol{i}'] = molblock(coords, config.specname)
         elif options.interpolation.trjmol:
             path = AbsPath(options.interpolation.trjmol, parent=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
-                interpolationdict[f'mol{i}'] = molblock(coords)
+                interpolationdict[f'mol{i}'] = molblock(coords, config.specname)
         if options.interpolation.prefix:
             try:
                 settings.prefix = InterpolationTemplate(options.interpolation.prefix).substitute(interpolationdict)

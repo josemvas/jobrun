@@ -137,9 +137,14 @@ def run():
         config.merge(readspec(userpackageconf))
     except FileNotFoundError:
         pass
-    
+
     try:
-        names.display = config.displayname
+        config.specname
+    except AttributeError:
+        messages.error(_('No se definió el nombre del programa'), 'config.specname')
+
+    try:
+        config.displayname
     except AttributeError:
         messages.error(_('No se definió el nombre del programa'), 'config.displayname')
 
@@ -153,7 +158,7 @@ def run():
     except AttributeError:
         nodes.head = names.host
 
-    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(names.display))
+    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(config.displayname))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
