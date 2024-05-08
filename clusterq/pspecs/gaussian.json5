@@ -62,8 +62,8 @@
 
    prescript: [
       'sed -i "/^%/d" @($gjffile|$comfile)',
-      'sed -i "1i%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjffile|$comfile)',
-      'sed -i "/--Link1--/a%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${jobram}MB" @($gjffile|$comfile)',
+      'sed -i "1i%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${maxram}KB" @($gjffile|$comfile)',
+      'sed -i "/--Link1--/a%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${maxram}KB" @($gjffile|$comfile)',
       'test -f $oldchkfile && sed -i "1i%OldChk=$oldchkfile" @($gjffile|$comfile)',
    ],
 

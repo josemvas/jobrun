@@ -16,7 +16,9 @@ def initialize():
 
     status.initialized = True
 
-    script.head = {}
+    script.meta = []
+    script.vars = []
+    script.config = []
     script.body = []
 
     for key, path in options.targetfiles.items():
@@ -149,37 +151,35 @@ def initialize():
 
     ############ Local execution ###########
 
-    script.head['jobname'] = None
-
     if 'jobtype' in config:
-        script.head['jobtype'] = ConfigTemplate(config.jobtype).substitute(jobtype=config.specname)
+        script.meta.append(ConfigTemplate(config.jobtype).substitute(jobtype=config.specname))
 
-    script.head['queue'] = ConfigTemplate(config.queue).substitute(options.local)
+    script.meta.append(ConfigTemplate(config.queue).substitute(options.local))
 
     #TODO MPI support for Slurm
     if config.parallel:
         if config.parallel.lower() == 'none':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.serialat):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
             else:
                 for i, item in enumerate(config.serial):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
         elif config.parallel.lower() == 'omp':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.singlehostat):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
             else:
                 for i, item in enumerate(config.singlehost):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
             script.body.append(f'OMP_NUM_THREADS={options.common.nproc}')
         elif config.parallel.lower() == 'mpi':
             if 'hosts' in options.common:
                 for i, item in enumerate(config.multihostat):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
             else:
                 for i, item in enumerate(config.multihost):
-                    script.head[f'span{i}'] = ConfigTemplate(item).substitute(options.common)
+                    script.meta.append(ConfigTemplate(item).substitute(options.common))
             if 'mpilib' in config:
                 if config.mpilib in config.mpirun:
                     script.body.append(ConfigTemplate(config.mpirun[config.mpilib]).substitute(options.common))
@@ -257,52 +257,50 @@ def initialize():
         script.body.append(config.versions[settings.version].executable)
 
     for i, path in enumerate(config.logfiles):
-        script.head[f'log{i}'] = ConfigTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfigTemplate(config.logdir).substitute(names))))
-
-    script.head['shopt'] = "shopt -s nullglob extglob"
+        script.meta.append(ConfigTemplate(path).safe_substitute(dict(logdir=AbsPath(ConfigTemplate(config.logdir).substitute(names)))))
 
     for key, value in config.export.items():
         if value:
-            script.head[f'{key}var'] = f'export {key}={value}'
+            script.config.append(f'export {key}={value}')
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for key, value in config.versions[settings.version].export.items():
         if value:
-            script.head[f'{key}var'] = f'export {key}={value}'
+            script.config.append(f'export {key}={value}')
         else:
             messages.error(_('La variable de entorno está vacía'), f'config.export[{key}]')
 
     for i, path in enumerate(config.source + config.versions[settings.version].source):
         if path:
-            script.head[f'source{i}'] = f'source {AbsPath(ConfigTemplate(path).substitute(names))}'
+            script.config.append(f'source {AbsPath(ConfigTemplate(path).substitute(names))}')
         else:
             messages.error(_('La ruta del script de configuración está vacía'), 'config.source')
 
     if config.load or config.versions[settings.version].load:
-        script.head['purge'] = 'module purge'
+        script.config.append('module purge')
 
     for i, module in enumerate(config.load + config.versions[settings.version].load):
         if module:
-            script.head[f'load{i}'] = f'module load {module}'
+            script.config.append(f'module load {module}')
         else:
             messages.error(_('El nombre del módulo es nulo'), 'config.load')
 
     for key, value in config.envars.items():
-        script.head[f'{key}'] = f'{key}="{value}"'
+        script.vars.append(f'{key}="{value}"')
+
+    script.vars.append("totram=$(free | awk 'NR==2{print $2}')")
+    script.vars.append("totproc=$(getconf _NPROCESSORS_ONLN)")
+    script.vars.append("maxram=$(($totram*$nproc/$totproc))")
 
     for key, value in config.filevars.items():
-        script.head[f'{key}'] = f'{key}="{config.filekeys[value]}"'
+        script.vars.append(f'{key}="{config.filekeys[value]}"')
 
     for key, value in names.items():
-        script.head[f'{key}name'] = f'{key}name="{value}"'
+        script.vars.append(f'{key}name="{value}"')
 
     for key, value in nodes.items():
-        script.head[f'{key}node'] = f'{key}node="{value}"'
-
-    script.head['freeram'] = "freeram=$(free -m | tail -n+3 | head -1 | awk '{print $4}')"
-    script.head['totalram'] = "totalram=$(free -m | tail -n+2 | head -1 | awk '{print $2}')"
-    script.head['jobram'] = "jobram=$(($nproc*$totalram/$(nproc --all)))"
+        script.vars.append(f'{key}node="{value}"')
 
     for key in config.optargs:
         if not config.optargs[key] in config.filekeys:

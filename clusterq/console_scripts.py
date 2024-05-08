@@ -18,16 +18,15 @@ def clusterq():
 
     parser = ArgumentParser(description='Herramienta de configuración de ClusterQ.')
     parser.add_argument('command', metavar='command')
-    parser.add_argument('--in-place', action='store_true')
     args = parser.parse_args()
 
     if args.command == 'setup':
-        clusterq_setup(args.in_place)
+        clusterq_setup()
     else:
         messages.error(_('$command no es un comando válido', command=args.command))
 
 
-def clusterq_setup(in_place):
+def clusterq_setup(inplace=False):
 
     packages = []
     enabledpackages = []
@@ -37,7 +36,7 @@ def clusterq_setup(in_place):
 
     mdldir = AbsPath(__file__).parent()
 
-    if in_place:
+    if inplace:
         bindir = AbsPath('.', parent=os.getcwd())
         cfgdir = AbsPath('clusterq', parent=os.getcwd())
     else:
@@ -52,7 +51,7 @@ def clusterq_setup(in_place):
         for pspec in (mdldir/'pspecs').listdir():
             if (cfgdir/'pspecs'/pspec).isfile():
                 if readspec(mdldir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
-                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $progname?', progname=pspec))
+                    completer.set_message(_('¿Desea sobrescribir la configuración local del programa $progname?', progname=pspec))
                     if completer.binary_choice():
                         (mdldir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
             else:
@@ -60,7 +59,7 @@ def clusterq_setup(in_place):
         for qspec in (mdldir/'qspecs').listdir():
             if (cfgdir/'qspecs'/qspec).isfile():
                 if readspec(mdldir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
-                    completer.set_message(_('¿Desea restaurar la configuración por defecto de $queuename?', queuename=qspec))
+                    completer.set_message(_('¿Desea sobrescribir la configuración local del gestor de trabajos $queuename?', queuename=qspec))
                     if completer.binary_choice():
                         (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
             else:

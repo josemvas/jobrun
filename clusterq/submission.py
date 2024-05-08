@@ -25,8 +25,8 @@ def submit(workdir, inputname, filtergroups):
     else:
         jobname = inputname
 
-    script.head['jobname'] = ConfigTemplate(config.jobname).substitute(jobname=jobname)
-    script.head['jobnamevar'] = 'jobname="{jobname}"'
+    script.vars.append(f'jobname="{jobname}"')
+    script.meta.append(ConfigTemplate(config.jobname).substitute(jobname=jobname))
 
     if 'out' in options.common:
         outdir = AbsPath(options.common.out, parent=workdir)
@@ -200,7 +200,10 @@ def submit(workdir, inputname, filtergroups):
 
     with open(jobscript, 'w') as f:
         f.write('#!/bin/bash -x' + '\n')
-        f.write(''.join(i + '\n' for i in script.head.values()))
+        f.write(''.join(i + '\n' for i in script.meta))
+        f.write('shopt -s extglob nullglob' + '\n')
+        f.write(''.join(i + '\n' for i in script.vars))
+        f.write(''.join(i + '\n' for i in script.config))
         f.write(script.makedir(settings.execdir) + '\n')
         f.write(''.join(i + '\n' for i in imports))
         f.write(script.chdir(settings.execdir) + '\n')
