@@ -19,9 +19,9 @@ def submit(workdir, inputname, filtergroups):
         initialize()
 
     if 'prefix' in settings:
-        jobname = f'{settings.prefix}.{inputname}'
+        jobname = f'{settings.prefix}_{inputname}'
     elif 'suffix' in settings:
-        jobname = f'{inputname}.{settings.suffix}'
+        jobname = f'{inputname}_{settings.suffix}'
     else:
         jobname = inputname
 
