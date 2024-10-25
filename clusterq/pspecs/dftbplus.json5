@@ -37,10 +37,6 @@
       dftbinfile: 'dftb_in.hsd',
    },
 
-   fileopts: {
-      chargefile: 'charges.bin',
-   },
-
    inputfiles: [
       'dftb_in.hsd',
       'charges.bin',

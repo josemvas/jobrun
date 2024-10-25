@@ -21,22 +21,22 @@ def initialize():
     script.config = []
     script.body = []
 
-    for key, path in options.targetfiles.items():
-        if not path.isfile():
-            messages.error(_('El archivo de entrada no existe'), f'options.targetfiles.items[{key}]={path}')
+#    for key, path in options.restartfiles.items():
+#        if not path.isfile():
+#            messages.error(_('El archivo de reinicio $path no existe', path=path))
 
-    if options.remote.host:
+    if options.remote.remote_host:
         (paths.home/'.ssh').mkdir()
-        paths.socket = paths.home/'.ssh'/options.remote.host*'sock'
+        paths.socket = paths.home/'.ssh'/options.remote.remote_host*'sock'
         try:
             paths.remotedir = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
-                options.remote.host, 'printenv CLUSTERQ_REMOTE_ROOT || true']).strip().decode(sys.stdout.encoding)
+                options.remote.remote_host, 'printenv CLUSTERQ_REMOTE_ROOT || true']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
-            messages.error(_('Error al conectar con el servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
+            messages.error(_('Error al conectar con el servidor $host', host=options.remote.remote_host), e.output.decode(sys.stdout.encoding).strip())
         if paths.remotedir:
             paths.remotedir = AbsPath(paths.remotedir)
         else:
-            messages.error(_('El servidor $host no está configurado para aceptar trabajos', host=options.remote.host))
+            messages.error(_('El servidor $host no está configurado para aceptar trabajos', host=options.remote.remote_host))
 
     if options.common.prompt:
         settings.defaults = False
@@ -96,19 +96,6 @@ def initialize():
             else:
                 messages.error(_('Se debe especificar un prefijo o sufijo para interpolar sin archivo coordenadas'))
 
-    if 'delay' in options.common:
-        delay = options.common.delay
-    elif 'delay' in config.defaults:
-        delay = config.defaults.delay
-    else:
-        delay = None
-
-    if delay is not None:
-        try:
-            config.local.delay = float(delay)
-        except ValueError:
-            messages.error(_('El tiempo de espera entre trabajos debe ser un número'), f'delay={delay}')
-    
     if not 'scratch' in config.defaults:
         messages.error(_('No se especificó el directorio de escritura por defecto'), f'config.defaults.scratch={config.defaults.scratch}')
 
@@ -117,13 +104,6 @@ def initialize():
     else:
         settings.execdir = AbsPath(ConfigTemplate(config.defaults.scratch).substitute(names))/'$jobid'
 
-    if 'queue' in options.common:
-        options.local.queue = options.common.queue
-    elif 'queue' in config.defaults:
-        options.local.queue = config.defaults.queue
-    else:
-        messages.error(_('Debe especificar la cola a la que desea enviar el trabajo'))
-    
     if 'mpilaunch' in config:
         try: config.mpilaunch = booleans[config.mpilaunch]
         except KeyError:
@@ -146,7 +126,7 @@ def initialize():
     else:
         messages.error(_('La lista de archivos de salida está vacía'), 'config.outputfiles')
 
-    if options.remote.host:
+    if options.remote.remote_host:
         return
 
     ############ Local execution ###########
@@ -154,7 +134,10 @@ def initialize():
     if 'jobtype' in config:
         script.meta.append(ConfigTemplate(config.jobtype).substitute(jobtype=config.specname))
 
-    script.meta.append(ConfigTemplate(config.queue).substitute(options.local))
+    if 'queue' in options.common:
+        script.meta.append(ConfigTemplate(config.queue).substitute(queue=options.common.queue))
+    elif 'queue' in config.defaults:
+        script.meta.append(ConfigTemplate(config.queue).substitute(queue=config.defaults.queue))
 
     #TODO MPI support for Slurm
     if config.parallel:

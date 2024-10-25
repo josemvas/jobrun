@@ -11,34 +11,25 @@
       gjf: 'job.gjf',
       log: 'job.log',
       chk: 'job.chk',
-      fchk: 'job.fchk',
       wfn: 'job.wfn',
       cub: 'job.cub',
-      oldchk: 'job.oldchk',
    },
 
    filevars: {
       comfile: 'com',
       gjffile: 'gjf',
       chkfile: 'chk',
-      fchkfile: 'fchk',
-      oldchkfile: 'oldchk',
-   },
-
-   fileopts: {
-      oldchk: 'oldchk',
    },
 
    inputfiles: [
       'com',
       'gjf',
-      'oldchk',
+      'chk',
    ],
 
    outputfiles: [
       'log',
       'chk',
-      'fchk',
       'wfn',
       'cub',
    ],
@@ -51,9 +42,9 @@
    interpolopts: [
       'method',
       'basis',
-      'auxis',
       'charge',
       'multiplicity',
+      'solvent',
    ],
 
    posargs: [
@@ -64,7 +55,6 @@
       'sed -i "/^%/d" @($gjffile|$comfile)',
       'sed -i "1i%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${maxram}KB" @($gjffile|$comfile)',
       'sed -i "/--Link1--/a%Chk=$chkfile\\\\n%NProcShared=${nproc}\\\\n%Mem=${maxram}KB" @($gjffile|$comfile)',
-      'test -f $oldchkfile && sed -i "1i%OldChk=$oldchkfile" @($gjffile|$comfile)',
    ],
 
 }

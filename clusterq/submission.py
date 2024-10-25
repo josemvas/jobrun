@@ -110,12 +110,12 @@ def submit(workdir, inputname, filtergroups):
         with open(destpath, 'w') as f:
             f.write(contents)
 
-    for key, targetfile in options.targetfiles.items():
-        targetfile.symlink(stagedir/jobname*config.fileopts[key])
+#    for key, targetfile in options.restartfiles.items():
+#        targetfile.symlink(stagedir/jobname*config.fileopts[key])
 
     ############ Remote execution ###########
 
-    if options.remote.host:
+    if options.remote.remote_host:
         remote_args = ArgGroups()
         reloutdir = os.path.relpath(outdir, paths.home)
         remote_tmpdir = paths.remotedir/names.user*names.host/'tmp'
@@ -132,7 +132,7 @@ def submit(workdir, inputname, filtergroups):
         for key in config.filekeys:
             if (outdir/jobname*key).isfile():
                 filelist.append(paths.home/'.'/reloutdir/jobname*key)
-        arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.host]
+        arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.remote_host]
         arglist.extend(f'{env}={val}' for env, val in environ.items())
         arglist.append(names.command)
         arglist.extend(option(key) for key in remote_args.flags)
@@ -144,11 +144,11 @@ def submit(workdir, inputname, filtergroups):
             print('<COMMAND LINE>', ' '.join(arglist), '</COMMAND LINE>')
         else:
             try:
-                check_output(['ssh', '-S', paths.socket, options.remote.host, f"mkdir -p '{remote_tmpdir}' '{remote_outdir}'"])
-                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz'] + filelist + [f'{options.remote.host}:{remote_tmpdir}'])
-                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.host}:{remote_outdir}'])
+                check_output(['ssh', '-S', paths.socket, options.remote.remote_host, f"mkdir -p '{remote_tmpdir}' '{remote_outdir}'"])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz'] + filelist + [f'{options.remote.remote_host}:{remote_tmpdir}'])
+                check_output([f'rsync', '-e', "ssh -S '{paths.socket}'", '-qRLtz', '-f', '-! */'] + filelist + [f'{options.remote.remote_host}:{remote_outdir}'])
             except CalledProcessError as e:
-                messages.error(_('Error al copiar los archivos al servidor $host', host=options.remote.host), e.output.decode(sys.stdout.encoding).strip())
+                messages.error(_('Error al copiar los archivos al servidor $host', host=options.remote.remote_host), e.output.decode(sys.stdout.encoding).strip())
             call(arglist)
         return
 
@@ -176,8 +176,8 @@ def submit(workdir, inputname, filtergroups):
         if (workdir/inputname*key).isfile():
             imports.append(script.importfile(stagedir/jobname*key, settings.execdir/config.filekeys[key]))
 
-    for key in options.targetfiles:
-        imports.append(script.importfile(stagedir/jobname*config.fileopts[key], settings.execdir/config.filekeys[config.fileopts[key]]))
+#    for key in options.restartfiles:
+#        imports.append(script.importfile(stagedir/jobname*config.fileopts[key], settings.execdir/config.filekeys[config.fileopts[key]]))
 
     for path in parameterpaths:
         if path.isfile():
@@ -215,12 +215,21 @@ def submit(workdir, inputname, filtergroups):
         f.write(''.join(i + '\n' for i in config.offscript))
 
     if options.debug.dry_run:
+
         messages.success(_('Se procesó el trabajo "$jobname" y se generaron los archivos para el envío en el directorio $jobdir', jobname=jobname, jobdir=jobdir))
+
     else:
+
         try:
-            time.sleep(options.local.delay + os.stat(paths.lock).st_mtime - time.time())
-        except (ValueError, FileNotFoundError) as e:
+            delay = float(config.delay) + os.stat(paths.lock).st_mtime - time.time()
+        except ValueError:
+            messages.error(_('Se esperaba un valor numérico'), f'delay={config.delay}')
+        except (FileNotFoundError) as e:
             pass
+        else:
+            if delay > 0:
+                time.sleep(delay)
+    
         try:
             jobid = submitjob(jobscript)
         except RuntimeError as error:

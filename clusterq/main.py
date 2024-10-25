@@ -56,7 +56,7 @@ class ArgList:
         filestatus = {}
         for key in config.filekeys:
             path = workdir/inputname*key
-            filestatus[key] = path.isfile() or key in options.targetfiles
+            filestatus[key] = path.isfile() #or key in options.restartfiles
         for conflict, message in config.conflicts.items():
             if BoolParser(conflict).evaluate(filestatus):
                 messages.failure(InterpolationTemplate(message).safe_substitute(file=inputname))
@@ -162,7 +162,6 @@ def run():
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
-    group1.name = 'arguments'
 
 #    group1 = parser.add_argument_group('Ejecución remota')
 
@@ -179,26 +178,25 @@ def run():
     group2.add_argument('--cwd', action=StorePath, metavar='PATH', default=os.getcwd(), help='Usar PATH como directorio actual de trabajo.')
     group2.add_argument('--raw', action='store_true', help='No interpolar ni crear copias de los archivos de entrada.')
     group2.add_argument('--move', action='store_true', help='Mover los archivos de entrada al directorio de salida en vez de copiarlos.')
-    group2.add_argument('--delay', type=int, metavar='#SECONDS', default=SUPPRESS, help='Demorar el envío del trabajo #SECONDS segundos.')
     group2.add_argument('--scratch', action=StorePath, metavar='PATH', default=SUPPRESS, help='Escribir los archivos temporales en el directorio PATH.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
-    hostgroup.add_argument('--hosts', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
+    hostgroup.add_argument('-H', '--hosts', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
-#    group2.add_argument('-X', '--xdialog', action='store_true', help='Habilitar el modo gráfico para los mensajes y diálogos.')
 
     group3 = parser.add_argument_group('Opciones remotas')
     group3.name = 'remote'
-    group3.add_argument('-H', '--host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
+    group3.add_argument('-R', '--remote-host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
-    group4 = parser.add_argument_group('Manipulación de argumentos')
+    group4 = parser.add_argument_group('Opciones de selección de archivos')
     group4.name = 'arguments'
     sortgroup = group4.add_mutually_exclusive_group()
     sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
     sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
     group4.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
+#    group4.add_argument('-r', '--restart-file', dest='restartfiles', metavar='FILE', action='append', default=[], help='Restart file path.')
 
     group5 = parser.add_argument_group('Opciones de interpolación')
     group5.name = 'interpolation'
@@ -210,21 +208,16 @@ def run():
     molgroup.add_argument('-M', '--trjmol', metavar='MOLFILE', default=None, help='Incluir todos los pasos del archivo MOLFILE en las variables de interpolación.')
     group5.add_argument('-x', '--var', dest='posvars', metavar='VALUE', action='append', default=[], help='Variables posicionales de interpolación.')
 
-    group6 = parser.add_argument_group('Archivos reutilizables')
-    group6.name = 'targetfiles'
-    for key, value in config.fileopts.items():
-        group6.add_argument(option(key), action=StorePath, metavar='FILEPATH', default=SUPPRESS, help='Ruta al archivo {}.'.format(value))
-
     group7 = parser.add_argument_group('Opciones de depuración')
     group7.name = 'debug'
     group7.add_argument('--dry-run', action='store_true', help='Procesar los archivos de entrada sin enviar el trabajo.')
 
-    group8 = parser.add_argument_group('Parameter options')
+    group8 = parser.add_argument_group('Conjuntos de parámetros')
     group8.name = 'parameteropts'
     for key in config.parameteropts:
         group8.add_argument(option(key), metavar='SETNAME', default=SUPPRESS, help='Conjuntos de parámetros.')
 
-    group9 = parser.add_argument_group('Interpolation options')
+    group9 = parser.add_argument_group('Variables de interpolación')
     group9.name = 'interpolopts'
     for key in config.interpolopts:
         group9.add_argument(option(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')

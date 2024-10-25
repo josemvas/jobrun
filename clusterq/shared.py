@@ -28,9 +28,11 @@ class ArgGroups:
         return repr(self.__dict__)
 
 booleans = {
-    'True':True,
-    'False':False
+    'True': True,
+    'False': False
 }
+
+options = AttrDict()
 
 config = ConfDict(dict(
     load = [],
@@ -55,13 +57,6 @@ config = ConfDict(dict(
     postscript = [],
     onscript = [],
     offscript = [],
-))
-
-options = AttrDict(dict(
-    local = AttrDict(dict(
-        delay = 0,
-        queue = None,
-    )),
 ))
 
 parameterdict = {}

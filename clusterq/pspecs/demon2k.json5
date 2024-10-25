@@ -10,7 +10,6 @@
       inp: 'deMon.inp',
       rst: 'deMon.rst',
       trj: 'deMon.trj',
-      oldtrj: 'deMon.trj',
       out: 'deMon.out',
       mol: 'deMon.mol',
       new: 'deMon.new',
@@ -19,15 +18,10 @@
       bin: 'deMon.bin',
    },
 
-   fileopts: {
-      rstfile: 'rst',
-      trjfile: 'oldtrj',
-   },
-
    inputfiles: [
       'inp',
       'rst',
-      'oldtrj',
+      'trj',
    ],
 
    outputfiles: [
