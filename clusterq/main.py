@@ -50,7 +50,7 @@ class ArgList:
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure(_('$file no es un archivo de entrada de $spec', file=path.name, spec=config.specname))
+                messages.failure(_('$file no es un archivo de entrada de $program', file=path.name, program=config.progname))
                 return next(self)
             workdir = path.parent()
         filestatus = {}
@@ -119,10 +119,10 @@ def run():
     names.command = os.path.basename(sys.argv[1])
     sys.argv.pop(1)
 
-    config.merge(readspec(paths.cfgdir/'environ'/'__cluster__.json5'))
-    config.merge(readspec(paths.cfgdir/'environ'/names.command*'json5'))
-    config.merge(readspec(paths.cfgdir/'pspecs'/config.specname*'json5'))
-    config.merge(readspec(paths.cfgdir/'qspecs'/config.scheduler*'json5'))
+    config.merge(readspec(paths.cfgdir/'profiles'/'__cluster__.json5'))
+    config.merge(readspec(paths.cfgdir/'profiles'/names.command*'json5'))
+    config.merge(readspec(paths.cfgdir/'progspecs'/config.progspecfile))
+    config.merge(readspec(paths.cfgdir/'queuespecs'/config.queuespecfile))
 
     userconfdir = paths.home/'.clusterq'
     userclusterconf = userconfdir/'__cluster__.json5'
@@ -139,19 +139,19 @@ def run():
         pass
 
     try:
-        config.specname
+        config.progname
     except AttributeError:
-        messages.error(_('No se definió el nombre del programa'), 'config.specname')
+        messages.error(_('No se definió el nombre del programa'))
 
     try:
         config.displayname
     except AttributeError:
-        messages.error(_('No se definió el nombre del programa'), 'config.displayname')
+        messages.error(_('No se definió el nombre del programa para mostrar'))
 
     try:
         names.cluster = config.clustername
     except AttributeError:
-        messages.error(_('No se definió el nombre del clúster'), 'config.clustername')
+        messages.error(_('No se definió el nombre del clúster'))
 
     try:
         nodes.head = config.headnode

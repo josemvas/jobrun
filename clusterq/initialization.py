@@ -65,12 +65,12 @@ def initialize():
                 path = AbsPath(path, parent=options.common.cwd)
                 molprefix = path.stem
                 coords = readmol(path)[-1]
-                interpolationdict[f'mol{i}'] = molblock(coords, config.specname)
+                interpolationdict[f'mol{i}'] = molblock(coords, config.progspecfile)
         elif options.interpolation.trjmol:
             path = AbsPath(options.interpolation.trjmol, parent=options.common.cwd)
             molprefix = path.stem
             for i, coords in enumerate(readmol(path), start=1):
-                interpolationdict[f'mol{i}'] = molblock(coords, config.specname)
+                interpolationdict[f'mol{i}'] = molblock(coords, config.progspecfile)
         if options.interpolation.prefix:
             try:
                 settings.prefix = InterpolationTemplate(options.interpolation.prefix).substitute(interpolationdict)
@@ -132,7 +132,7 @@ def initialize():
     ############ Local execution ###########
 
     if 'jobtype' in config:
-        script.meta.append(ConfigTemplate(config.jobtype).substitute(jobtype=config.specname))
+        script.meta.append(ConfigTemplate(config.jobtype).substitute(jobtype=config.progname))
 
     if 'queue' in options.common:
         script.meta.append(ConfigTemplate(config.queue).substitute(queue=options.common.queue))

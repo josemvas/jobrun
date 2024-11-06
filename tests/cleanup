@@ -1,4 +1,0 @@
-#!/bin/sh
-find . -mindepth 3 -type f -delete
-find . -mindepth 2 -type d -delete
-find . -type f -name .\* -delete

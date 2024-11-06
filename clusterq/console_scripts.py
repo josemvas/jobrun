@@ -26,7 +26,7 @@ def clusterq():
         messages.error(_('$command no es un comando válido', command=args.command))
 
 
-def clusterq_setup(inplace=False):
+def clusterq_setup():
 
     packages = []
     enabledpackages = []
@@ -34,36 +34,32 @@ def clusterq_setup(inplace=False):
     systemlibs = set()
     pythonlibs = set()
 
-    mdldir = AbsPath(__file__).parent()
+    packagedir = AbsPath(__file__).parent()
 
-    if inplace:
-        bindir = AbsPath('.', parent=os.getcwd())
-        cfgdir = AbsPath('clusterq', parent=os.getcwd())
-    else:
-        completer.set_message(_('Escriba la ruta del directorio de configuración:'))
-        cfgdir = AbsPath(completer.directory_path(), parent=os.getcwd())
-        completer.set_message(_('Escriba la ruta en la que se instalarán los ejecutables:'))
-        bindir = AbsPath(completer.directory_path(), parent=os.getcwd())
-        bindir.mkdir()
-        cfgdir.mkdir()
-        (cfgdir/'pspecs').mkdir()
-        (cfgdir/'qspecs').mkdir()
-        for pspec in (mdldir/'pspecs').listdir():
-            if (cfgdir/'pspecs'/pspec).isfile():
-                if readspec(mdldir/'pspecs'/pspec) != readspec(cfgdir/'pspecs'/pspec):
-                    completer.set_message(_('¿Desea sobrescribir la configuración local del programa $progname?', progname=pspec))
-                    if completer.binary_choice():
-                        (mdldir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
-            else:
-                (mdldir/'pspecs'/pspec).copyto(cfgdir/'pspecs')
-        for qspec in (mdldir/'qspecs').listdir():
-            if (cfgdir/'qspecs'/qspec).isfile():
-                if readspec(mdldir/'qspecs'/qspec) != readspec(cfgdir/'qspecs'/qspec):
-                    completer.set_message(_('¿Desea sobrescribir la configuración local del gestor de trabajos $queuename?', queuename=qspec))
-                    if completer.binary_choice():
-                        (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
-            else:
-                (mdldir/'qspecs'/qspec).copyto(cfgdir/'qspecs')
+    completer.set_message(_('Escriba la ruta del directorio de configuración:'))
+    cfgdir = AbsPath(completer.directory_path(), parent=os.getcwd())
+    completer.set_message(_('Escriba la ruta en la que se instalarán los ejecutables:'))
+    bindir = AbsPath(completer.directory_path(), parent=os.getcwd())
+    bindir.mkdir()
+    cfgdir.mkdir()
+    (cfgdir/'progspecs').mkdir()
+    (cfgdir/'queuespecs').mkdir()
+    for specfile in (packagedir/'progspecs').listdir():
+        if (cfgdir/'progspecs'/specfile).isfile():
+            if readspec(packagedir/'progspecs'/specfile) != readspec(cfgdir/'progspecs'/specfile):
+                completer.set_message(_('¿Desea sobrescribir la configuración local del programa $progname?', progname=specfile))
+                if completer.binary_choice():
+                    (packagedir/'progspecs'/specfile).copyto(cfgdir/'progspecs')
+        else:
+            (packagedir/'progspecs'/specfile).copyto(cfgdir/'progspecs')
+    for specfile in (packagedir/'queuespecs').listdir():
+        if (cfgdir/'queuespecs'/specfile).isfile():
+            if readspec(packagedir/'queuespecs'/specfile) != readspec(cfgdir/'queuespecs'/specfile):
+                completer.set_message(_('¿Desea sobrescribir la configuración local del gestor de trabajos $queuename?', queuename=specfile))
+                if completer.binary_choice():
+                    (packagedir/'queuespecs'/specfile).copyto(cfgdir/'queuespecs')
+        else:
+            (packagedir/'queuespecs'/specfile).copyto(cfgdir/'queuespecs')
 
     for line in check_output(('ldconfig', '-Nv'), stderr=DEVNULL).decode(sys.stdout.encoding).splitlines():
         match = re.fullmatch(r'(\S+):', line)
@@ -77,9 +73,9 @@ def clusterq_setup(inplace=False):
             if lib not in systemlibs:
                 pythonlibs.add(lib)
 
-    if (cfgdir/'environ').isdir():
-        for spec in (cfgdir/'environ').listdir():
-            specdict = readspec(cfgdir/'environ'/spec)
+    if (cfgdir/'profiles').isdir():
+        for spec in (cfgdir/'profiles').listdir():
+            specdict = readspec(cfgdir/'profiles'/spec)
             if 'displayname' in specdict:
                 name = os.path.splitext(spec)[0]
                 packages.append(name)
@@ -103,7 +99,7 @@ def clusterq_setup(inplace=False):
     command = ['exec', 'env']
     if pythonlibs:
         command.append(f"LD_LIBRARY_PATH={':'.join(shq(lib) for lib in pythonlibs)}:$LD_LIBRARY_PATH")
-    command.extend([f'PYTHONPATH={shq(mdldir)}', f'CLUSTERQCFG={shq(cfgdir)}', shq(sys.executable), '-m', 'clusterq.main', '"$0"', '"$@"'])
+    command.extend([f'PYTHONPATH={shq(packagedir)}', f'CLUSTERQCFG={shq(cfgdir)}', shq(sys.executable), '-m', 'clusterq.main', '"$0"', '"$@"'])
 
     for package in packages:
         if package in selpackages:
