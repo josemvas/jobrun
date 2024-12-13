@@ -35,6 +35,7 @@ def clusterq_setup():
     pythonlibs = set()
 
     packagedir = AbsPath(__file__).parent()
+    site_packages = AbsPath(__file__).parent().parent()
 
     completer.set_message(_('Escriba la ruta del directorio de configuración:'))
     cfgdir = AbsPath(completer.directory_path(), parent=os.getcwd())
@@ -99,7 +100,7 @@ def clusterq_setup():
     command = ['exec', 'env']
     if pythonlibs:
         command.append(f"LD_LIBRARY_PATH={':'.join(shq(lib) for lib in pythonlibs)}:$LD_LIBRARY_PATH")
-    command.extend([f'PYTHONPATH={shq(packagedir)}', f'CLUSTERQCFG={shq(cfgdir)}', shq(sys.executable), '-m', 'clusterq.main', '"$0"', '"$@"'])
+    command.extend([f'PYTHONPATH={shq(site_packages)}', f'CLUSTERQCFG={shq(cfgdir)}', shq(sys.executable), '-m', 'clusterq.main', '"$0"', '"$@"'])
 
     for package in packages:
         if package in selpackages:
