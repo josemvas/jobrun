@@ -1,5 +1,4 @@
 {
-   scheduler: "TORQUE",
    sbmtcmd: [ "qsub", "-V" ],
    statcmd: [ "qstat", "-x" ],
    sbmtregex: "([0-9]+)\\.[^.]+",

@@ -1,72 +1,6 @@
-import sys, os, re
-from socket import gethostname
-#from tkdialogs import messages
-from clinterface import messages, _
+import os
 from argparse import ArgumentParser, Action, SUPPRESS
-from .utils import AttrDict, LogDict, GlobDict, ConfigTemplate, InterpolationTemplate, option, readspec, natural_sorted as sorted, catch_keyboard_interrupt
-from .fileutils import AbsPath, file_except_info
-from .shared import names, nodes, paths, environ, config, options
-from .parsing import BoolParser
-from .submission import submit
-
-class ArgList:
-    def __init__(self, args):
-        self.current = None
-        if options.arguments.sort:
-            self.args = sorted(args)
-        elif options.arguments.sort_reverse:
-            self.args = sorted(args, reverse=True)
-        else:
-            self.args = args
-        if 'filter' in options.arguments:
-            self.filter = re.compile(options.arguments.filter)
-        else:
-            self.filter = re.compile('.+')
-    def __iter__(self):
-        return self
-    def __next__(self):
-        try:
-            self.current = self.args.pop(0)
-        except IndexError:
-            raise StopIteration
-        if options.common.job:
-            workdir = AbsPath(options.common.cwd)
-            for key in config.inputfiles:
-                if (workdir/self.current*key).isfile():
-                    inputname = self.current
-                    break
-            else:
-                messages.failure(_('No hay archivos de entrada del trabajo $job', job=self.current))
-                return next(self)
-        else:
-            path = AbsPath(self.current, parent=options.common.cwd)
-            try:
-                path.assertfile()
-            except Exception as e:
-                file_except_info(e, path)
-                return next(self)
-            for key in config.inputfiles:
-                if path.name.endswith('.' + key):
-                    inputname = path.name[:-len('.' + key)]
-                    break
-            else:
-                messages.failure(_('$file no es un archivo de entrada de $program', file=path.name, program=config.progname))
-                return next(self)
-            workdir = path.parent()
-        filestatus = {}
-        for key in config.filekeys:
-            path = workdir/inputname*key
-            filestatus[key] = path.isfile() #or key in options.restartfiles
-        for conflict, message in config.conflicts.items():
-            if BoolParser(conflict).evaluate(filestatus):
-                messages.failure(InterpolationTemplate(message).safe_substitute(file=inputname))
-                return next(self)
-        matched = self.filter.fullmatch(inputname)
-        if matched:
-            filtergroups = {str(i): x for i, x in enumerate(matched.groups())}
-            return workdir, inputname, filtergroups
-        else:
-            return next(self)
+from .utils import option
 
 class ListOptions(Action):
     def __init__(self, **kwargs):
@@ -112,53 +46,9 @@ def dirbranches(trunk, componentlist, dirtree):
             dirbranches(trunk/component, componentlist, dirtree)
 
 
-@catch_keyboard_interrupt
-def run():
+def parse_args(names, config):
 
-    paths.cfgdir = AbsPath(os.environ['CLUSTERQCFG'])
-    names.command = os.path.basename(sys.argv[1])
-    sys.argv.pop(1)
-
-    config.merge(readspec(paths.cfgdir/'profiles'/'__cluster__.json5'))
-    config.merge(readspec(paths.cfgdir/'profiles'/names.command*'json5'))
-    config.merge(readspec(paths.cfgdir/'progspecs'/config.progspecfile))
-    config.merge(readspec(paths.cfgdir/'queuespecs'/config.queuespecfile))
-
-    userconfdir = paths.home/'.clusterq'
-    userclusterconf = userconfdir/'__cluster__.json5'
-    userpackageconf = userconfdir/names.command*'json5'
-    
-    try:
-        config.merge(readspec(userclusterconf))
-    except FileNotFoundError:
-        pass
-
-    try:
-        config.merge(readspec(userpackageconf))
-    except FileNotFoundError:
-        pass
-
-    try:
-        config.progname
-    except AttributeError:
-        messages.error(_('No se definió el nombre del programa'))
-
-    try:
-        config.displayname
-    except AttributeError:
-        messages.error(_('No se definió el nombre del programa para mostrar'))
-
-    try:
-        names.cluster = config.clustername
-    except AttributeError:
-        messages.error(_('No se definió el nombre del clúster'))
-
-    try:
-        nodes.head = config.headnode
-    except AttributeError:
-        nodes.head = names.host
-
-    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(config.displayname))
+    parser = ArgumentParser(prog=names.command, add_help=False, description='Envía trabajos de {} a la cola de ejecución.'.format(config.packagename))
 
     group1 = parser.add_argument_group('Argumentos')
     group1.add_argument('files', nargs='*', metavar='FILE', help='Rutas de los archivos de entrada.')
@@ -192,9 +82,6 @@ def run():
 
     group4 = parser.add_argument_group('Opciones de selección de archivos')
     group4.name = 'arguments'
-    sortgroup = group4.add_mutually_exclusive_group()
-    sortgroup.add_argument('-s', '--sort', action='store_true', help='Ordenar los argumentos en orden ascendente.')
-    sortgroup.add_argument('-S', '--sort-reverse', action='store_true', help='Ordenar los argumentos en orden descendente.')
     group4.add_argument('-f', '--filter', metavar='REGEX', default=SUPPRESS, help='Enviar únicamente los trabajos que coinciden con la expresión regular.')
 #    group4.add_argument('-r', '--restart-file', dest='restartfiles', metavar='FILE', action='append', default=[], help='Restart file path.')
 
@@ -223,27 +110,14 @@ def run():
         group9.add_argument(option(key), metavar='VARNAME', default=SUPPRESS, help='Variables de interpolación.')
 
     parsedargs = parser.parse_args()
-#    print(parsedargs)
 
+    options = {}
     for group in parser._action_groups:
         group_dict = {a.dest:getattr(parsedargs, a.dest) for a in group._group_actions if a.dest in parsedargs}
         if hasattr(group, 'name'):
-            options[group.name] = AttrDict(**group_dict)
+            options[group.name] = group_dict
 
     if not parsedargs.files:
         messages.error(_('Debe especificar al menos un archivo de entrada'))
 
-    arguments = ArgList(parsedargs.files)
-
-    try:
-        environ.TELEGRAM_BOT_URL = os.environ['TELEGRAM_BOT_URL']
-        environ.TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
-    except KeyError:
-        pass
-
-    for workdir, inputname, filtergroups in arguments:
-        submit(workdir, inputname, filtergroups)
-    
-
-if __name__ == '__main__':
-    run()
+    return options, parsedargs.files

@@ -1,6 +1,5 @@
 {
-   scheduler: "Open Lava",
-   sbmtcmd: [ "bsub" ],
+   sbmtcmd: [ "bsub", "-env", "all" ],
    statcmd: [ "bjobs", "-ostat", "-noheader" ],
    sbmtregex: ".*<([0-9]+)>.*",
    statregex: "([A-Z]+)",
@@ -51,9 +50,9 @@
    },
     
    mpirun: {
-      openmpi: "openmpi-mpirun",
-      intelmpi: "impi-mpirun",
-      mpich: "mpich-mpirun",
+      openmpi: "mpirun",
+      intelmpi: "mpirun",
+      mpich: "mpirun",
    },
 
    running_states: [

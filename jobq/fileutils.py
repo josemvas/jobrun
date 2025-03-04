@@ -52,8 +52,9 @@ class AbsPath(str):
         obj.name = os.path.basename(obj)
         obj.stem, obj.suffix = os.path.splitext(obj.name)
         return obj
-    def __mul__(self, right):
+    def __sub__(self, right):
         if not isinstance(right, str):
+            print(type(right))
             raise TypeError('Right operand must be a string')
         if '/' in right:
             raise ValueError('Can not use a path as an extension')

@@ -1,23 +1,30 @@
 import re
-import pyjson5 as json5
-from clinterface import messages, _
 from string import Template, Formatter
+from clinterface import messages, _
 
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+class ConfList(list):
+    def __init__(self, arglist=[]):
+        super().__init__()
+        self.update(arglist)
+    def update(self, other):
+        for elem in other:
+            if isinstance(elem, dict):
+                self.append(ConfDict(elem))
+            elif isinstance(elem, list):
+                self.append(ConfList(elem))
+            else:
+                self.append(elem)
 
 class ConfDict(dict):
-    def __init__(self, argdict):
+    def __init__(self, argdict={}):
         super().__init__()
-        self.merge(argdict)
+        self.update(argdict)
         self.__dict__ = self
-    def merge(self, other):
+    def update(self, other):
         for key, value in other.items():
             # Merge existing entry or add a new one
-            if key in self and hasattr(self[key], 'merge'):
-                self[key].merge(value)
+            if key in self and hasattr(self[key], 'update'):
+                self[key].update(value)
             else:
                 if isinstance(value, dict):
                     self[key] = ConfDict(value)
@@ -26,18 +33,31 @@ class ConfDict(dict):
                 else:
                     self[key] = value
 
-class ConfList(list):
-    def __init__(self, arglist):
-        super().__init__()
-        self.merge(arglist)
-    def merge(self, other):
-        for elem in other:
-            if isinstance(elem, dict):
-                self.append(ConfDict(elem))
-            elif isinstance(elem, list):
-                self.append(ConfList(elem))
-            else:
-                self.append(elem)
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+class ArgGroups:
+    def __init__(self):
+        self.__dict__['flags'] = set()
+        self.__dict__['options'] = dict()
+        self.__dict__['multoptions'] = dict()
+    def gather(self, options):
+        if isinstance(options, ConfDict):
+            for key, value in options.items():
+                if value is False:
+                    pass
+                elif value is True:
+                    self.__dict__['flags'].add(key)
+                elif isinstance(value, (int, float, str)):
+                    self.__dict__['options'].update({key:value})
+                elif isinstance(value, list):
+                    self.__dict__['multoptions'].update({key:value})
+                else:
+                    raise ValueError()
+    def __repr__(self):
+        return repr(self.__dict__)
 
 class GlobDict(dict):
     def __missing__(self, key):
@@ -71,13 +91,6 @@ class InterpolationTemplate(Template):
 class FormatKeyError(Exception):
     pass
 
-def readspec(file):
-    with open(file, 'r') as f:
-        try:
-            return json5.load(f)
-        except ValueError as e:
-            messages.error('El archivo $file contiene JSON inválido', str(e), file=f.name)
-
 def natural_sorted(*args, **kwargs):
     if 'key' not in kwargs:
         kwargs['key'] = lambda x: [int(c) if c.isdigit() else c.casefold() for c in re.split('(\d+)', x)]
@@ -89,12 +102,6 @@ def option(key, value=None):
     else:
         return('--{}="{}"'.format(key.replace('_', '-'), value))
     
-def shq(string):
-    if re.fullmatch(r'[a-z0-9_./-]+', string, flags=re.IGNORECASE):
-        return string
-    else:
-        return f"'{string}'"
-
 def print_tree(options, level=0):
     for opt in sorted(options):
         print(' '*level + opt)
@@ -152,3 +159,9 @@ def template_parse(template_str, s):
         raise Exception("Format string did not match")
     # Return a dict with all of our keywords and their values
     return {x: matches.group(x) for x in keywords}
+
+booleans = {
+    'True': True,
+    'False': False
+}
+

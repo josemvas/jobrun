@@ -6,9 +6,9 @@ class ParseError(Exception):
         super().__init__(' '.join(message))
 
 def molblock(coords, progspecfile):
-    if progspecfile in ('gaussian.json5', 'demon2k.json5'):
+    if progspecfile in ('gaussian.json', 'demon2k.json'):
         return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
-    elif progspecfile in ('dftbplus.json5'):
+    elif progspecfile in ('dftbplus.json'):
        atoms = []
        blocklines = []
        for line in coords:

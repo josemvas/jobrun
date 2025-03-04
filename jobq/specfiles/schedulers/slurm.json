@@ -1,5 +1,4 @@
 {
-   scheduler: "SLURM",
    sbmtcmd: [ "sbatch", "--export=ALL" ],
    statcmd: [ "squeue", "--noheader", "-o%T", "-j" ],
    sbmtregex: ".* ([0-9]+)",

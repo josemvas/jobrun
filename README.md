@@ -1,59 +1,38 @@
-ClusterQ
-========
+JobQ
+====
 
 About
 -----
+**JobQ** is a configurable tool to submit simulation jobs to HPC clusters. It is compatible with PBS, LSF and Slurm and currently supports the following simulation software:
 
-**ClusterQ** is a extensible python library and command line tool to submit simulation jobs to HPC clusters. It is compatible with PBS, LSF and Slurm and currently supports the following simulation packages:
-
-* Autodock
-* deMon2k
 * DFTB+
 * Gaussian
+* deMon2k
 * ORCA
 * VASP
 
-Installation
-------------
-
-Clone the repository:
-
+Install
+-------
+Install from GitHub with pip
 ```
-git clone https://github.com/josemvas/clusterq.git
+pip3 install --user git+https://github.com/josemvas/jobq.git
 ```
 
-then enter the clusterq directory and install system wide with pip:
-
+Configure
+---------
+After installing run
 ```
-pip3 install .
+jobq-config setup
 ```
-
-For single user installations add the `--user` option.
-
-Setup
------
-
-Run:
-
-```
-clusterq setup
-```
-
-and follow the instructions printed on the screen. For system wide installations the config and bin directories will typically be /usr/local/etc/clusterq and /etc/bin respectively, for single user installations they will be ~/.local/etc/clusterq and ~/.local/bin.
+and follow the instructions printed on the screen.
 
 Upgrade
 -------
-
-Enter the clusterq directory and update the repository:
-
+Upgrade from GitHub with pip
 ```
-git pull
+pip3 install --user --upgrade git+https://github.com/josemvas/jobq.git
 ```
 
-and upgrade system wide with pip:
-
-```
-pip install --upgrade .
-```
-
-For single user installations add the `--user` option.
+Notes
+-----
+For system wide installation drop the `--user` option.

@@ -1,6 +1,5 @@
 Notes
 -----
-
 - At least Python 3.2 required for: argparse library
 - At least Python 3.3 required for: new IO exception hierarchy
 - At least Python 3.4 required for: pathlib library
@@ -8,7 +7,6 @@ Notes
 
 General
 -------
-
 - Usar options.local parar las opciones locales como queue, delay, etc.
 - Usar srun/sbcast para correr trabajos multinodo con slurm
 - Usar lsrun/lsrcp para correr trabajos multinodo con lsf/openlava
@@ -31,16 +29,9 @@ General
 
 scripts.py
 ----------
-
 - Manejar los permisos denegados cuando se instalan los programas
 
 queue.py
 ----------
-
 - Preguntar si se lanza un trabajo cuando no se puede consultar su estado
 - Checar el error estandar ademas de la salida estandar aunque no haya error?
-
-readspec.py
------------
-
-- Revisar el método merge de MergeList?
