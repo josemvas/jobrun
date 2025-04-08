@@ -9,18 +9,18 @@ def molblock(coords, progspecfile):
     if progspecfile in ('gaussian.json', 'demon2k.json'):
         return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
     elif progspecfile in ('dftbplus.json'):
-       atoms = []
-       blocklines = []
-       for line in coords:
-           if not line[0] in atoms:
-               atoms.append(line[0])
-       blocklines.append(f'{len(coords):5} C')
-       blocklines.append(' '.join(atoms))
-       for i, line in enumerate(coords, start=1):
-           blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
-       return '\n'.join(blocklines)
+        atoms = []
+        blocklines = []
+        for line in coords:
+            if not line[0] in atoms:
+                atoms.append(line[0])
+        blocklines.append(f'{len(coords):5} C')
+        blocklines.append(' '.join(atoms))
+        for i, line in enumerate(coords, start=1):
+            blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
+        return '\n'.join(blocklines)
     else:
-       messages.error(_('Formato desconocido'), f'molformat={molformat}')
+        messages.error(_('Formato desconocido: $format'), format=molformat)
 
 def readmol(molfile):
 # Guess format and read molfile
@@ -33,25 +33,25 @@ def readmol(molfile):
                     try:
                         return parsexyz(fh)
                     except ParseError:
-                        messages.error(_('$file no es un archivo de coordenadas válido', file=molfile))
+                        messages.error(_('$file no es un archivo de coordenadas válido'), file=molfile)
             elif molfile.hasext('.xyz'):
                 try:
                     return parsexyz(fh)
                 except ParseError as e:
-                    messages.error(_('$file no es un archivo XYZ válido', file=molfile))
+                    messages.error(_('$file no es un archivo XYZ válido'), file=molfile)
             elif molfile.hasext('.log'):
                 try:
                     return parseglf(fh)
                 except ParseError:
-                    messages.error(_('$file no es un archivo de salida de gaussian válido', file=molfile))
+                    messages.error(_('$file no es un archivo de salida de gaussian válido'), file=molfile)
             else:
                 messages.error(_('Solamente se pueden leer archivos mol, xyz y log'))
     elif molfile.isdir():
-        messages.error(_('El archivo $file es un directorio', file=molfile))
+        messages.error(_('El archivo $file es un directorio'), file=molfile)
     elif molfile.exists():
-        messages.error(_('El archivo $file no es regular', file=molfile))
+        messages.error(_('El archivo $file no es regular'), file=molfile)
     else:
-        messages.error(_('El archivo $file no existe', file=molfile))
+        messages.error(_('El archivo $file no existe'), file=molfile)
 
 def parsexyz(fh):
 # Parse XYZ molfile

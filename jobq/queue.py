@@ -29,7 +29,7 @@ def getjobstatus(jobid):
         if match.group(1) in config.finished_states:
             return True, None
         elif match.group(1) in config.running_states:
-            return False, 'El trabajo "$name" no se envió porque hay otro trabajo corriendo usando el directorio $path'
+            return False, 'El trabajo "$name" no se envió porque hay otro trabajo ocupando el directorio $path'
         else:
             return False, f'El trabajo "$name" no se envió porque tiene un código de estado desconocido: {match.group(1)}'
     else:

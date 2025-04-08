@@ -1,5 +1,7 @@
 import os
 from argparse import ArgumentParser, Action, SUPPRESS
+from clinterface import messages, _
+from .fileutils import AbsPath, NotAbsolutePath
 from .utils import option
 
 class ListOptions(Action):

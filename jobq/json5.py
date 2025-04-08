@@ -13,4 +13,4 @@ def json5_load(file):
     try:
         return json5.loads(json_str, loader=MyCustomLoader())
     except ValueError as e:
-        messages.error(_('JSON inválido ($error) en $file'), error=str(e), file=f.name)
+        messages.error(_('$file contiene JSON inválido: $error'), error=str(e), file=f.name)

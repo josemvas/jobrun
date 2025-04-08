@@ -6,27 +6,27 @@ from clinterface import messages, _
 
 def file_except_info(exception, path):
     if isinstance(exception, IsADirectoryError):
-         messages.failure(_('La ruta $path es un directorio', path=path))
+        messages.failure(_('La ruta $path es un directorio'), path=path)
     elif isinstance(exception, FileExistsError):
-         messages.failure(_('El archivo $path ya existe', path=path))
+        messages.failure(_('El archivo $path ya existe'), path=path)
     elif isinstance(exception, FileNotFoundError):
-         messages.failure(_('El archivo $path no existe', path=path))
+        messages.failure(_('El archivo $path no existe'), path=path)
     elif isinstance(exception, OSError):
-        messages.failure(_('Error de sistema'), str(exception))
+        messages.failure(_('Error de sistema: $exception'), exception=str(exception))
     else:
-        messages.error(exctype=type(exception).__name__, excmessage=str(exception))
+        messages.error(_('$exceptype: $exception'), exceptype=type(exception).__name__, exception=str(exception))
 
 def dir_except_info(exception, path):
     if isinstance(exception, NotADirectoryError):
-         messages.failure(_('La ruta $path no es un directorio', path=path))
+        messages.failure(_('La ruta $path no es un directorio'), path=path)
     elif isinstance(exception, FileExistsError):
-         messages.failure(_('El directorio $path ya existe', path=path))
+        messages.failure(_('El directorio $path ya existe'), path=path)
     elif isinstance(exception, FileNotFoundError):
-         messages.failure(_('El directorio $path no existe', path=path))
+        messages.failure(_('El directorio $path no existe'), path=path)
     elif isinstance(exception, OSError):
-        messages.failure(_('Error de sistema'), str(exception))
+        messages.failure(_('Error de sistema: $exception'), exception=str(exception))
     else:
-        messages.error(exctype=type(exception).__name__, excmessage=str(exception))
+        messages.error(_('$exceptype: $exception'), exceptype=type(exception).__name__, exception=str(exception))
 
 class NotAbsolutePath(Exception):
     pass
@@ -67,7 +67,7 @@ class AbsPath(list):
             self.extend(path.parts)
     def __str__(self):
         os.path.sep + os.path.sep.join(self)
-    def __mul__(self, other):
+    def __mod__(self, other):
         if not isinstance(other, str):
             raise TypeError('Right operand must be a string')
         if os.path.sep in other:
