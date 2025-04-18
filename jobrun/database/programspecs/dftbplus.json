@@ -71,7 +71,7 @@
       'dftb_in.hsd',
    ],
 
-   parameteropts: [
+   parametersets: [
       'slako',
    ],
 

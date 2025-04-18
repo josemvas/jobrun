@@ -2,6 +2,7 @@ import os
 import re
 import sys
 from subprocess import Popen, PIPE
+from clinterface.printing import *
 from .shared import config
 
 def submitjob(jobscript):
@@ -15,7 +16,7 @@ def submitjob(jobscript):
     else:
         raise RuntimeError(error)
         
-def getjobstatus(jobid):
+def dispatchedjob(jobid, jobname, outdir):
     process = Popen(config.statcmd + [jobid], stdout=PIPE, stderr=PIPE, close_fds=True)
     output, error = process.communicate()
     output = output.decode(sys.stdout.encoding).strip()
@@ -25,15 +26,19 @@ def getjobstatus(jobid):
             return True, None
         match = re.fullmatch(config.statregex, output)
         if match is None:
-            return False, f'El trabajo "$name" no se envió porque no se pudo determinar su estado:\n{output}'
+            print_failure('El trabajo "{jobname}" no se envió porque no se pudo determinar su estado', jobname=jobname, output=output)
+            return False
         if match.group(1) in config.finished_states:
             return True, None
         elif match.group(1) in config.running_states:
-            return False, 'El trabajo "$name" no se envió porque hay otro trabajo ocupando el directorio $path'
+            print_failure('El trabajo "{jobname}" no se envió porque hay otro trabajo escribiendo en el directorio {outdir}', jobname=jobname, outdir=outdir)
+            return False
         else:
-            return False, f'El trabajo "$name" no se envió porque tiene un código de estado desconocido: {match.group(1)}'
+            print_failure('El trabajo "{jobname}" no se envió porque tiene un código de estado desconocido', status=match.group(1))
+            return False
     else:
         for regex in config.ignorederrors:
             if re.fullmatch(regex, error):
                 return True, None
-        return False, f'El trabajo "$name" no se envió porque ocurrió un error al consultar su estado:\n{error}'
+        print_failure('El trabajo "{jobname}" no se envió porque ocurrió un error al consultar su estado', jobname=jobname, error=error)
+        return False

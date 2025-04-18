@@ -23,9 +23,8 @@
       l: 'dlg',
    },
 
-   parameteropts: [
-      'ligand',
-      'receptor',
+   parametersets: [
+      'docking',
    ],
 
 }

@@ -3,13 +3,15 @@ import re
 import sys
 import json
 from socket import gethostname
-from clinterface import messages, _
-from .shared import names, nodes, paths, environ, config, options
-from .utils import ConfDict, LogDict, GlobDict, ConfigTemplate, InterpolationTemplate, option, natural_sorted as sorted, catch_keyboard_interrupt
-from .fileutils import AbsPath, NotAbsolutePath, file_except_info
-from .parsing import BoolParser
-from .argparsing import parse_args
+from abspathlib import AbsPath, NotAbsolutePathError
+from boolparse import BoolParser
+from clinterface.printing import *
+
+from .i18n import _
+from .commandargs import parse_args
 from .submission import configure_submission, submit_single_job
+from .shared import names, nodes, paths, environ, config, options
+from .utils import ConfigTemplate, InterpolationTemplate, option, natural_sorted as sorted, catch_keyboard_interrupt, file_except_info
 
 @catch_keyboard_interrupt
 def submit_jobs(json_config):
@@ -27,18 +29,18 @@ def submit_jobs(json_config):
 
     for inputfile in argumentlist:
         if options.common.job:
-            workdir = AbsPath(options.common.cwd)
+            indir = AbsPath(options.common['in'])
             for key in config.inputfiles:
-                if (workdir/inputfile%key).isfile():
+                if (indir/inputfile%key).is_file():
                     inputname = inputfile
                     break
             else:
-                messages.failure(_('No hay archivos de entrada con nombre $inputname'), inputname=inputfile)
+                print_failure(_('No hay archivos de entrada con nombre {inputname}'), inputname=inputfile, indir=indir)
                 continue
         else:
-            path = AbsPath(inputfile, parent=options.common.cwd)
+            path = AbsPath(inputfile, relto=options.common['in'])
             try:
-                path.assertfile()
+                path.assert_file()
             except Exception as e:
                 file_except_info(e, path)
                 continue
@@ -47,21 +49,21 @@ def submit_jobs(json_config):
                     inputname = path.name[:-len('.' + key)]
                     break
             else:
-                messages.failure(_('$file no es un archivo de entrada de $package_name'), file=path.name, package_name=config.packagename)
+                print_failure(_('{file} no es un archivo de entrada de {package_name}'), file=path.name, package_name=config.packagename)
                 continue
-            workdir = path.parent()
+            indir = path.parent
         filestatus = {}
         for key in config.filekeys:
-            path = workdir/inputname%key
-            filestatus[key] = path.isfile() #or key in options.restartfiles
+            path = indir/inputname%key
+            filestatus[key] = path.is_file() #or key in options.restartfiles
         for conflict, message in config.conflicts.items():
             if BoolParser(conflict).evaluate(filestatus):
-                messages.failure(message, file=inputname)
+                print_failure(message, file=inputname)
                 continue
         matched = filtere.fullmatch(inputname)
         if matched:
             filtergroups = {str(i): x for i, x in enumerate(matched.groups())}
-            submit_single_job(workdir, inputname, filtergroups)
+            submit_single_job(indir, inputname, filtergroups)
 
 #if __name__ == '__main__':
 #    run()

@@ -1,14 +1,15 @@
-from clinterface import messages, _
+from clinterface.printing import *
+from .i18n import _
 #from logging import WARNING
 
 class ParseError(Exception):
     def __init__(self, *message):
         super().__init__(' '.join(message))
 
-def molblock(coords, progspecfile):
-    if progspecfile in ('gaussian.json', 'demon2k.json'):
+def molblock(coords, programspec):
+    if programspec in ('gaussian', 'demon2k'):
         return '\n'.join('{:<2s}  {:10.4f}  {:10.4f}  {:10.4f}'.format(*line) for line in coords)
-    elif progspecfile in ('dftbplus.json'):
+    elif programspec in ('dftbplus'):
         atoms = []
         blocklines = []
         for line in coords:
@@ -20,38 +21,38 @@ def molblock(coords, progspecfile):
             blocklines.append(f'{i:5}  {atoms.index(line[0])+1:3}  {line[1]:10.4f}  {line[2]:10.4f}  {line[3]:10.4f}')
         return '\n'.join(blocklines)
     else:
-        messages.error(_('Formato desconocido: $format'), format=molformat)
+        print_error_and_exit(_('Formato desconocido: {format}'), format=molformat)
 
 def readmol(molfile):
 # Guess format and read molfile
-    if molfile.isfile():
+    if molfile.is_file():
         with open(molfile, mode='r') as fh:
-            if molfile.hasext('.mol'):
+            if molfile.has_suffix('.mol'):
                 try:
                     return parsemdl(fh)
                 except ParseError:
                     try:
                         return parsexyz(fh)
                     except ParseError:
-                        messages.error(_('$file no es un archivo de coordenadas válido'), file=molfile)
-            elif molfile.hasext('.xyz'):
+                        print_error_and_exit(_('{file} no es un archivo de coordenadas válido'), file=molfile)
+            elif molfile.has_suffix('.xyz'):
                 try:
                     return parsexyz(fh)
                 except ParseError as e:
-                    messages.error(_('$file no es un archivo XYZ válido'), file=molfile)
-            elif molfile.hasext('.log'):
+                    print_error_and_exit(_('{file} no es un archivo XYZ válido'), file=molfile)
+            elif molfile.has_suffix('.log'):
                 try:
                     return parseglf(fh)
                 except ParseError:
-                    messages.error(_('$file no es un archivo de salida de gaussian válido'), file=molfile)
+                    print_error_and_exit(_('{file} no es un archivo de salida de gaussian válido'), file=molfile)
             else:
-                messages.error(_('Solamente se pueden leer archivos mol, xyz y log'))
-    elif molfile.isdir():
-        messages.error(_('El archivo $file es un directorio'), file=molfile)
+                print_error_and_exit(_('Solamente se pueden leer archivos mol, xyz y log'))
+    elif molfile.is_dir():
+        print_error_and_exit(_('El archivo {file} es un directorio'), file=molfile)
     elif molfile.exists():
-        messages.error(_('El archivo $file no es regular'), file=molfile)
+        print_error_and_exit(_('El archivo {file} no es regular'), file=molfile)
     else:
-        messages.error(_('El archivo $file no existe'), file=molfile)
+        print_error_and_exit(_('El archivo {file} no existe'), file=molfile)
 
 def parsexyz(fh):
 # Parse XYZ molfile
@@ -65,7 +66,7 @@ def parsexyz(fh):
             if trajectory:
                 return trajectory
             else:
-                messages.error(_('El archivo de coordenadas está vacío'))
+                print_error_and_exit(_('El archivo de coordenadas está vacío'))
         try:
             natom = int(natom)
         except ValueError:
@@ -86,7 +87,7 @@ def parsemdl(fh):
     try:
         title = next(fh)
     except StopIteration:
-        messages.error(_('El archivo de coordenadas está vacío'))
+        print_error_and_exit(_('El archivo de coordenadas está vacío'))
     try:
         metadata = next(fh)
         comment = next(fh)
@@ -113,7 +114,7 @@ def parseglf(fh):
     try:
         import cclib
     except ImportError:
-        messages.error(_('Debe instalar cclib para poder leer el archivo de coordenadas'))
+        print_error_and_exit(_('Debe instalar cclib para poder leer el archivo de coordenadas'))
     logfile = cclib.io.ccopen(fh)
 #    logfile = cclib.io.ccopen(fh, loglevel=WARNING)
     try:

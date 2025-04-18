@@ -2,7 +2,7 @@
    parallel: 'omp',
 
    conflicts: {
-      'com and gjf': 'Conflicto entre los archivos de entrada $file.com y $file.gjf',
+      'com and gjf': 'Conflicto entre los archivos de entrada ${file}.com y ${file}.gjf',
       'not com and not gjf': 'Debe existir un archivo de entrada con extensión com o gjf',
    },
 
@@ -39,7 +39,7 @@
       'com',
    ],
 
-   interpolopts: [
+   interpolvars: [
       'method',
       'basis',
       'charge',

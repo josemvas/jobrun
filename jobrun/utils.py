@@ -1,37 +1,7 @@
 import re
 from string import Template, Formatter
-from clinterface import messages, _
-
-class ConfList(list):
-    def __init__(self, arglist=[]):
-        super().__init__()
-        self.update(arglist)
-    def update(self, other):
-        for elem in other:
-            if isinstance(elem, dict):
-                self.append(ConfDict(elem))
-            elif isinstance(elem, list):
-                self.append(ConfList(elem))
-            else:
-                self.append(elem)
-
-class ConfDict(dict):
-    def __init__(self, argdict={}):
-        super().__init__()
-        self.update(argdict)
-        self.__dict__ = self
-    def update(self, other):
-        for key, value in other.items():
-            # Merge existing entry or add a new one
-            if key in self and hasattr(self[key], 'update'):
-                self[key].update(value)
-            else:
-                if isinstance(value, dict):
-                    self[key] = ConfDict(value)
-                elif isinstance(value, list):
-                    self[key] = ConfList(value)
-                else:
-                    self[key] = value
+from clinterface.printing import *
+from .i18n import _
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -44,7 +14,7 @@ class ArgGroups:
         self.__dict__['options'] = dict()
         self.__dict__['multoptions'] = dict()
     def gather(self, options):
-        if isinstance(options, ConfDict):
+        if isinstance(options, dict):
             for key, value in options.items():
                 if value is False:
                     pass
@@ -59,17 +29,6 @@ class ArgGroups:
     def __repr__(self):
         return repr(self.__dict__)
 
-class GlobDict(dict):
-    def __missing__(self, key):
-        return '*'
-
-class LogDict(dict):
-# Missing keys are logged in the logged_keys attribute
-    def __init__(self):
-        self.logged_keys = []
-    def __missing__(self, key):
-        self.logged_keys.append(key)
-
 class IdentityList(list):
     def __init__(self, *args):
         list.__init__(self, args)
@@ -78,10 +37,6 @@ class IdentityList(list):
 
 class ConfigTemplate(Template):
     delimiter = '&'
-    idpattern = r'[a-z][a-z0-9_]*'
-
-class FilterGroupTemplate(Template):
-    delimiter = '%'
     idpattern = r'[a-z][a-z0-9_]*'
 
 class InterpolationTemplate(Template):
@@ -101,19 +56,24 @@ def option(key, value=None):
         return('--{}'.format(key.replace('_', '-')))
     else:
         return('--{}="{}"'.format(key.replace('_', '-'), value))
-    
-def print_tree(options, level=0):
+
+def tree_repr(title, options):
+    tree_lines = [title + ':']
+    format_tree_lines(options, tree_lines, level=1)
+    return '\n'.join(tree_lines)
+
+def format_tree_lines(options, tree_lines, level):
     for opt in sorted(options):
-        print(' '*level + opt)
+        tree_lines.append('   '*level + opt)
         if isinstance(options, dict):
-            print_tree(options[opt], defaults[1:], level + 1)
+            format_tree_lines(options[opt], tree_lines, level + 1)
 
 def catch_keyboard_interrupt(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
         except KeyboardInterrupt:
-            messages.error(_('Interrumpido por el usuario'))
+            print_error_and_exit(_('Interrumpido por el usuario'))
     return wrapper
 
 def deep_join(nestedlist, nextseparators, pastseparators=[]):
@@ -132,6 +92,30 @@ def deep_join(nestedlist, nextseparators, pastseparators=[]):
         else:
             raise TypeError('Components must be strings')
     return separator.join(itemlist)
+
+def file_except_info(exception, path):
+    if isinstance(exception, IsADirectoryError):
+        print_failure(_('La ruta {path} es un directorio'), path=path)
+    elif isinstance(exception, FileExistsError):
+        print_failure(_('El archivo {path} ya existe'), path=path)
+    elif isinstance(exception, FileNotFoundError):
+        print_failure(_('El archivo {path} no existe'), path=path)
+    elif isinstance(exception, OSError):
+        print_failure(_('Error de sistema: {exception}'), exception=str(exception))
+    else:
+        print_error_and_exit(_('{exceptype}: {exception}'), exceptype=type(exception).__name__, exception=str(exception))
+
+def dir_except_info(exception, path):
+    if isinstance(exception, NotADirectoryError):
+        print_failure(_('La ruta {path} no es un directorio'), path=path)
+    elif isinstance(exception, FileExistsError):
+        print_failure(_('El directorio {path} ya existe'), path=path)
+    elif isinstance(exception, FileNotFoundError):
+        print_failure(_('El directorio {path} no existe'), path=path)
+    elif isinstance(exception, OSError):
+        print_failure(_('Error de sistema: {exception}'), exception=str(exception))
+    else:
+        print_error_and_exit(_('{exceptype}: {exception}'), exceptype=type(exception).__name__, exception=str(exception))
 
 def template_parse(template_str, s):
     """Match s against the given format string, return dict of matches.
@@ -164,4 +148,3 @@ booleans = {
     'True': True,
     'False': False
 }
-

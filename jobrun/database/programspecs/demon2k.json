@@ -38,7 +38,7 @@
       'inp',
    ],
 
-   interpolopts: [
+   interpolvars: [
       'method',
       'basis',
       'auxis',
