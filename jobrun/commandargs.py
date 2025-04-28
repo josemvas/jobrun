@@ -52,14 +52,14 @@ def parse_args(packagename, config):
     group2.add_argument('--debug', action='store_true', help='Procesar el trabajo sin enviarlo.')
     hostgroup = group2.add_mutually_exclusive_group()
     hostgroup.add_argument('-N', '--nhost', type=int, metavar='#NODES', default=1, help='Requerir #NODES nodos de ejecución.')
-    hostgroup.add_argument('-H', '--hosts', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
+    hostgroup.add_argument('--hosts', metavar='NODE', default=SUPPRESS, help='Solicitar nodos específicos de ejecución.')
     yngroup = group2.add_mutually_exclusive_group()
     yngroup.add_argument('--yes', action='store_true', help='Responder "si" a todas las preguntas.')
     yngroup.add_argument('--no', action='store_true', help='Responder "no" a todas las preguntas.')
 
     group3 = parser.add_argument_group('Opciones remotas')
     group3.name = 'remote'
-    group3.add_argument('-R', '--remote-host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
+    group3.add_argument('-H', '--remote-host', metavar='HOSTNAME', help='Procesar el trabajo en el host HOSTNAME.')
 
     group4 = parser.add_argument_group('Opciones de selección de archivos')
     group4.name = 'arguments'

@@ -69,12 +69,12 @@ def configure_submission():
             print_error_and_exit(_('El directorio de configuración de SSH no existe'), path=paths.sshdir)
         paths.socket = paths.sshdir/options.remote.remote_host%'sock'
         try:
-            paths.remotedir = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
+            paths.remote_root = check_output(['ssh', '-o', 'ControlMaster=auto', '-o', 'ControlPersist=60', '-S', paths.socket, \
                 options.remote.remote_host, 'printenv JOBRUN_REMOTE_ROOT || true']).strip().decode(sys.stdout.encoding)
         except CalledProcessError as e:
             print_error_and_exit(_('No se pudo conectar con el servidor {host}'), host=options.remote.remote_host, error=e.output.decode(sys.stdout.encoding).strip())
-        if paths.remotedir:
-            paths.remotedir = AbsPath(paths.remotedir)
+        if paths.remote_root:
+            paths.remote_root = AbsPath(paths.remote_root)
         else:
             print_error_and_exit(_('El servidor {host} no está configurado para aceptar trabajos'), host=options.remote.remote_host)
 
@@ -425,20 +425,21 @@ def submit_single_job(indir, inputname, filtergroups):
 
     if options.remote.remote_host:
         remote_args = ArgGroups()
-        reloutdir = os.path.relpath(outdir, paths.home)
-        remote_in = paths.remotedir/names.user%nodes.head/'input'
-        remote_out = paths.remotedir/names.user%nodes.head/'output'
+        remote_home = names.user + '@' + nodes.head
+        remote_in = paths.remote_root/remote_home/'input'
+        remote_out = paths.remote_root/remote_home/'output'
+        rel_outdir = os.path.relpath(outdir, paths.home)
         remote_args.gather(options.common)
         remote_args.flags.add('job')
         remote_args.flags.add('proxy')
-        remote_args.options['in'] = remote_in/reloutdir
-        remote_args.options['out'] = remote_out/reloutdir
+        remote_args.options['in'] = remote_in/rel_outdir
+        remote_args.options['out'] = remote_out/rel_outdir
         for key, value in parameterdict.items():
             remote_args.options[key] = val
         filelist = []
         for key in config.filekeys:
             if (outdir/jobname%key).is_file():
-                filelist.append(paths.home/'.'/reloutdir/jobname%key)
+                filelist.append(paths.home/'.'/rel_outdir/jobname%key)
         arglist = ['ssh', '-qt', '-S', paths.socket, options.remote.remote_host]
         arglist.extend(f'{env}={val}' for env, val in environ.items())
         arglist.append(names.command)
