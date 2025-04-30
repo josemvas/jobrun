@@ -318,24 +318,25 @@ def configure_submission():
             print_error_and_exit(_('{stderrfile} no está en config.filekeys'), stderrfile=config.stderrfile)
     
     script.chdir = 'cd "{}"'.format
+
     if config.filesync == 'local':
         script.makedir = 'mkdir -p -m 700 "{}"'.format
         script.removedir = 'rm -rf "{}"'.format
         script.importfile = 'cp "{}" "{}"'.format
         script.importdir = 'cp -r "{}/." "{}"'.format
-        script.exportfile = 'cp "{}" "{}"'.format
+        script.exportfile = 'if test -f "{0}"; then rm -f "{1}"; cp "{0}" "{1}"; fi'.format
     elif config.filesync == 'remote':
         script.makedir = 'for host in ${{hosts[*]}}; do rsh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hosts[*]}}; do rsh $host rm -rf "\'{}\'"; done'.format
         script.importfile = 'for host in ${{hosts[*]}}; do rcp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.importdir = 'for host in ${{hosts[*]}}; do rsh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
-        script.exportfile = 'rcp "{}" $headnode:"\'{}\'"'.format
+        script.exportfile = 'if test -f "{0}"; then rsh $headnode "rm -f \'{1}\'"; rcp "{0}" $headnode:"\'{1}\'"; fi'.format
     elif config.filesync == 'secure':
         script.makedir = 'for host in ${{hosts[*]}}; do ssh $host mkdir -p -m 700 "\'{}\'"; done'.format
         script.removedir = 'for host in ${{hosts[*]}}; do ssh $host rm -rf "\'{}\'"; done'.format
         script.importfile = 'for host in ${{hosts[*]}}; do scp $headnode:"\'{0}\'" $host:"\'{1}\'"; done'.format
         script.importdir = 'for host in ${{hosts[*]}}; do ssh $host cp -r "\'{0}/.\'" "\'{1}\'"; done'.format
-        script.exportfile = 'scp "{}" $headnode:"\'{}\'"'.format
+        script.exportfile = 'if test -f "{0}"; then ssh $headnode "rm -f \'{1}\'"; scp "{0}" $headnode:"\'{1}\'"; fi'.format
     else:
         print_error_and_exit(_('El método de copia no es válido'), filesync=config.filesync)
 

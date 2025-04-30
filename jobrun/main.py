@@ -18,7 +18,7 @@ def submit_jobs(json_config):
 
     config.update(json.loads(json_config))
     names.command = os.path.basename(sys.argv[0])
-    optiondict, argumentlist = parse_args(names, config)
+    optiondict, argumentlist = parse_args(names.command, config)
     options.update(optiondict)
     configure_submission()
 
