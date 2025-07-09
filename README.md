@@ -15,13 +15,18 @@ Install from GitHub with pip
 pip3 install --user git+https://github.com/josemvas/jobrun.git
 ```
 
-Configure
----------
-After installing run
+Configuration
+-------------
+To setup create a file `cluster_profile.json` and a directory `package_profiles` and run
 ```
-jobrun-cfg setup
+jobrun-setup
 ```
 and follow the instructions printed on the screen.
+
+To update the configuration edit `cluster_profile.json` and/or `package_profiles` and run
+```
+jobrun-reload
+```
 
 Upgrade
 -------

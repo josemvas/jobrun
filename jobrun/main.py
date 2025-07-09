@@ -56,10 +56,13 @@ def submit_jobs(json_config):
         for key in config.filekeys:
             path = indir/inputname%key
             filestatus[key] = path.is_file() #or key in options.restartfiles
-        for conflict, message in config.conflicts.items():
-            if BoolParser(conflict).evaluate(filestatus):
+        conflict = False
+        for boolexpr, message in config.conflicts.items():
+            if BoolParser(boolexpr).evaluate(filestatus):
                 print_failure(message, file=inputname)
-                continue
+                conflict = True
+        if conflict:
+            continue
         matched = filtere.fullmatch(inputname)
         if matched:
             filtergroups = {str(i): x for i, x in enumerate(matched.groups())}

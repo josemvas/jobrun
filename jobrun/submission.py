@@ -220,20 +220,21 @@ def configure_submission():
     ############ Interactive parameter selection ###########
 
     for key in config.parametersets:
-        path = config.parameterpathdict[key]
-        parameterdict[key] = []
-        parent = AbsPath()
-        for part in AbsPath(path).parts:
-            try:
-                part.format()
-            except IndexError:
-                prompt = _('Seleccione un conjunto de parámetros:')
-                option_list = parent.listdir()
-                choice = select_option(prompt, option_list)
-                parameterdict[key].append(choice)
-                parent = parent/choice
-            else:
-                parent = parent/part
+        if key not in parameterdict:
+            parameterdict[key] = []
+            parameterpath = AbsPath(config.parameterpathdict[key])
+            parent = AbsPath()
+            for part in parameterpath.parts:
+                try:
+                    part.format()
+                except IndexError:
+                    prompt = _('Seleccione un conjunto de parámetros:')
+                    option_list = parent.listdir()
+                    choice = select_option(prompt, option_list)
+                    parameterdict[key].append(choice)
+                    parent = parent/choice
+                else:
+                    parent = parent/part
 
     ############ End of interactive parameter selection ###########
 
